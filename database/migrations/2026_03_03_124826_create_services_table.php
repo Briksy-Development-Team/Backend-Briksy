@@ -11,19 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('system_issues', function (Blueprint $table) {
+        Schema::create('services', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->uuid('reporter_id');
-            $table->text('description');
-            $table->json('metadata')->nullable();
-            $table->string('status', 20)->default('Open');
-            $table->string('severity', 10)->default('Low');
+            $table->uuid('type_id');
+
+            $table->string('name');
+            $table->string('slug', 100)->unique();
+            $table->text('description')->nullable();
+            $table->boolean('is_active')->default(true);
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('reporter_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->foreign('type_id')->references('id')->on('organization_types')->cascadeOnDelete();
         });
     }
 
@@ -32,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('system_issues');
+        Schema::dropIfExists('services');
     }
 };

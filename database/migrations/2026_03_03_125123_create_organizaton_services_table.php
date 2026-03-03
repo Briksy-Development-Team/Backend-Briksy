@@ -11,24 +11,22 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inquiries', function (Blueprint $table) {
+        Schema::create('organizaton_services', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
             $table->uuid('organization_id');
-            $table->uuid('user_id');
-            $table->uuid('staff_id');
-            $table->uuid('property_listing_id')->nullable();
+            $table->uuid('service_id');
 
-            $table->string('subject');
-            $table->text('message');
+            $table->text('description')->nullable();
+            $table->decimal('starting_price', 12, 2)->nullable();
+            $table->boolean('is_active')->default(true);
 
             $table->timestamps();
             $table->softDeletes();
 
             $table->foreign('organization_id')->references('id')->on('organizations')->cascadeOnDelete();
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreign('staff_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreign('property_listing_id')->references('id')->on('property_listings')->cascadeOnDelete();
+            $table->foreign('service_id')->references('id')->on('services')->cascadeOnDelete();
+            $table->unique(['organization_id', 'service_id']);
         });
     }
 
@@ -37,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inquiries');
+        Schema::dropIfExists('organizaton_services');
     }
 };

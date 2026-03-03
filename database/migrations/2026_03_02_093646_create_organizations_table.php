@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('organizations', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('plan_id')->nullable();
+            $table->uuid('type_id');
             $table->integer('ranking_priority')->default(1);
             $table->decimal('avg_org_rating', 3, 2)->default(0);
             $table->string('name');
             $table->string('slug')->unique();
-            $table->enum('business_type', ['Builder', 'Broker', 'Conveyancer', 'Landscaper']);
             $table->string('abn', 11)->unique();
             $table->string('stripe_customer_id')->nullable();
             $table->boolean('is_verified')->default(false);
@@ -26,6 +26,7 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->foreign('plan_id')->references('id')->on('subscription_plans')->nullOnDelete();
+            $table->foreign('type_id')->references('id')->on('organization_types')->cascadeOnDelete();
         });
     }
 

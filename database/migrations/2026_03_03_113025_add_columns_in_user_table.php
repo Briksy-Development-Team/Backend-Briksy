@@ -11,14 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('user', function (Blueprint $table) {
-            $table->uuid('id')->primary()->change();
+        Schema::table('users', function (Blueprint $table) {
 
             $table->uuid('organization_id')->nullable()->after('id');
-            $table->string('email')->unique()->change();
-            $table->string('first_name')->after('email');
-            $table->string('last_name')->after('first_name');
-            $table->text('password_hash')->after('last_name');
+            $table->text('password_hash')->after('name');
             $table->boolean('id_verified')->default(false);
             $table->softDeletes();
 
@@ -31,12 +27,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('user', function (Blueprint $table) {
+        Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['organization_id']);
             $table->dropColumn([
                 'organization_id',
-                'first_name',
-                'last_name',
                 'password_hash',
                 'deleted_at'
             ]);

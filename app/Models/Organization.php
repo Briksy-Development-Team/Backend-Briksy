@@ -13,7 +13,7 @@ class Organization extends Model
     use SoftDeletes;
     protected $keyType = 'string';
     public $incrementing = false;
-    
+     
     protected $fillable = [
         'name',
         'address',

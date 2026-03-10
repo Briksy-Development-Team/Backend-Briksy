@@ -82,6 +82,11 @@ class User extends Authenticatable
         return $this->hasMany(Inquiry::class, 'staff_id');
     }
 
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);

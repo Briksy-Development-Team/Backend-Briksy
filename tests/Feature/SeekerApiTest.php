@@ -168,4 +168,93 @@ class SeekerApiTest extends TestCase
             'status' => 'new',
         ]);
     }
+
+    public function test_seeker_can_add_and_list_property_favorites(): void
+    {
+        $user = User::create([
+            'name' => 'Jamie Seeker',
+            'email' => 'jamie-fav@example.com',
+            'password_hash' => 'secret123',
+        ]);
+
+        $type = OrganizationType::create([
+            'name' => 'Builder',
+            'slug' => 'builder',
+        ]);
+
+        $organization = Organization::create([
+            'plan_id' => null,
+            'type_id' => $type->id,
+            'name' => 'Harbor Homes',
+            'slug' => 'harbor-homes-fav',
+            'abn' => '42345678901',
+            'contact_email' => 'hello@harbor-fav.test',
+        ]);
+
+        $property = PropertyListing::create([
+            'org_id' => $organization->id,
+            'creator_id' => $user->id,
+            'title' => 'Favorite Apartment',
+            'status' => 'Published',
+        ]);
+
+        $storeResponse = $this->postJson('/api/v1/seeker/favorites', [
+            'user_id' => $user->id,
+            'type' => 'property',
+            'target_id' => $property->id,
+        ]);
+
+        $storeResponse->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.type', 'property')
+            ->assertJsonPath('data.target.title', 'Favorite Apartment');
+
+        $listResponse = $this->getJson('/api/v1/seeker/favorites?user_id='.$user->id.'&type=property');
+
+        $listResponse->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.target.title', 'Favorite Apartment');
+    }
+
+    public function test_seeker_can_leave_review_for_organization(): void
+    {
+        $user = User::create([
+            'name' => 'Jamie Reviewer',
+            'email' => 'jamie-review@example.com',
+            'password_hash' => 'secret123',
+        ]);
+
+        $type = OrganizationType::create([
+            'name' => 'Mortgage Broker',
+            'slug' => 'mortgage-broker-review',
+        ]);
+
+        $organization = Organization::create([
+            'plan_id' => null,
+            'type_id' => $type->id,
+            'name' => 'Apex Lending Review',
+            'slug' => 'apex-lending-review',
+            'abn' => '52345678901',
+            'contact_email' => 'hello@apex-review.test',
+        ]);
+
+        $response = $this->postJson('/api/v1/seeker/reviews', [
+            'user_id' => $user->id,
+            'organization_id' => $organization->id,
+            'rating' => 5,
+            'comment' => 'Very responsive team.',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.rating', 5)
+            ->assertJsonPath('data.organization_id', $organization->id);
+
+        $this->assertDatabaseHas('reviews', [
+            'user_id' => $user->id,
+            'organization_id' => $organization->id,
+            'rating' => 5,
+        ]);
+    }
 }

@@ -1,22 +1,24 @@
 <?php
 
-namespace App\Models\Admin;
+namespace App\Models;
 
-use App\Models\Admin\OrganizationType;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-
 class Organization extends Model
 {
-    use SoftDeletes;
+    use HasUuids, SoftDeletes;
+
     protected $keyType = 'string';
+
     public $incrementing = false;
-     
+
     protected $fillable = [
         'name',
-        'address',
         'contact_email',
         'contact_phone',
         'abn',
@@ -29,18 +31,37 @@ class Organization extends Model
         'slug',
     ];
 
-    public function users()
+    public function users(): HasMany
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(User::class, 'organization_id');
     }
 
-    public function inquiries()
+    public function inquiries(): HasMany
     {
-        return $this->hasMany(Inquiry::class);
+        return $this->hasMany(Inquiry::class, 'organization_id');
     }
 
-    public function organizationType()
+    public function organizationType(): BelongsTo
     {
         return $this->belongsTo(OrganizationType::class, 'type_id');
+    }
+
+    public function propertyListings(): HasMany
+    {
+        return $this->hasMany(PropertyListing::class, 'org_id');
+    }
+
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'organizaton_services', 'organization_id', 'service_id')
+            ->withPivot(['id', 'description', 'starting_price', 'is_active'])
+            ->withTimestamps();
+    }
+
+    public function serviceGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(ServiceGroup::class, 'org_service_groups', 'organization_id', 'service_group_id')
+            ->withPivot(['id', 'description', 'package_price', 'is_active'])
+            ->withTimestamps();
     }
 }

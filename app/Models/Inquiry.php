@@ -1,15 +1,16 @@
 <?php
 
-namespace App\Models\Admin;
+namespace App\Models;
 
-use App\Models\BusinessData\PropertyListing;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Inquiry extends Model
 {
-    use SoftDeletes;
+    use HasUuids, SoftDeletes;
     
     protected $keyType = 'string';
     public $incrementing = false;
@@ -21,24 +22,29 @@ class Inquiry extends Model
         'subject',
         'organization_id',
         'staff_id',
+        'seeker_name',
+        'seeker_email',
+        'seeker_phone',
+        'status',
     ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function propertyListing()
+    public function propertyListing(): BelongsTo
     {
         return $this->belongsTo(PropertyListing::class);
     }
-    public function staff()
+
+    public function staff(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'staff_id');
     }
-    public function organization()
+
+    public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
     }
-
 }

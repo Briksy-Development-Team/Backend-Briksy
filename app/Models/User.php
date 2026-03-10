@@ -2,21 +2,18 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
-use App\Models\Admin\Inquiry;
-use App\Models\Admin\Organization;
-use App\Models\BusinessData\PropertyListing;
-use App\Models\BusinessData\Review;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, HasUuids, Notifiable, SoftDeletes;
 
     protected $keyType = 'string';
     public $incrementing = false;
@@ -52,40 +49,40 @@ class User extends Authenticatable
             'password_hash' => 'hashed',
         ];
     }
-    protected static function boot()
-    {
-        parent::boot();
 
-        static::creating(function ($model) {
-            if (!$model->id) {
-                $model->id = (string) Str::uuid();
-            }
-        });
-    }
-
-    public function roles()
+    public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_roles')
             ->withPivot('organization_id')
             ->withTimestamps();
     }
 
-    public function organizations()
+    public function organizations(): BelongsToMany
     {
         return $this->belongsToMany(Organization::class, 'user_roles');
     }
 
-    public function property_listing()
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
+    }
+
+    public function propertyListings(): HasMany
     {
         return $this->hasMany(PropertyListing::class, 'creator_id');
     }
 
-    public function inquiries()
+    public function inquiries(): HasMany
     {
         return $this->hasMany(Inquiry::class);
     }
 
-    public function reviews()
+    public function assignedInquiries(): HasMany
+    {
+        return $this->hasMany(Inquiry::class, 'staff_id');
+    }
+
+    public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
     }

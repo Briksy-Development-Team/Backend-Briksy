@@ -14,6 +14,30 @@ class SeekerApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_seeker_can_register(): void
+    {
+        $response = $this->postJson('/api/v1/seeker/auth/register', [
+            'name' => 'Jamie Seeker',
+            'email' => 'jamie@example.com',
+            'password' => 'secret123',
+            'password_confirmation' => 'secret123',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Seeker registered successfully.')
+            ->assertJsonPath('data.email', 'jamie@example.com')
+            ->assertJsonPath('data.roles.0', 'seeker');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'jamie@example.com',
+        ]);
+
+        $this->assertDatabaseHas('roles', [
+            'name' => 'seeker',
+        ]);
+    }
+
     public function test_property_search_returns_standard_response_shape(): void
     {
         $type = OrganizationType::create([

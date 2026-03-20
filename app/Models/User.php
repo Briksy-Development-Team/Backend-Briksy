@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class User extends Authenticatable
 {
@@ -21,6 +22,9 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'mobile_number',
+        'mobile_verified_at',
+        'display_name',
         'password_hash',
         'id_verified',
         'organization_id',
@@ -53,7 +57,7 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_roles')
-            ->withPivot('organization_id')
+            ->withPivot(['id', 'organization_id'])
             ->withTimestamps();
     }
 
@@ -90,5 +94,43 @@ class User extends Authenticatable
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function apiTokens(): HasMany
+    {
+        return $this->hasMany(ApiToken::class);
+    }
+
+    public function hasRole(string $roleName, ?string $organizationId = null): bool
+    {
+        $roles = $this->roles instanceof Collection ? $this->roles : $this->roles()->get();
+
+        return $roles
+            ->filter(fn (Role $role): bool => $role->name === $roleName)
+            ->contains(function (Role $role) use ($organizationId): bool {
+                if ($organizationId === null) {
+                    return true;
+                }
+
+                return $role->pivot?->organization_id === $organizationId;
+            });
+    }
+
+    public function hasAnyRole(array $roleNames, ?string $organizationId = null): bool
+    {
+        foreach ($roleNames as $roleName) {
+            if ($this->hasRole($roleName, $organizationId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function currentAccessToken(): ?ApiToken
+    {
+        $token = $this->getRelationValue('currentAccessToken');
+
+        return $token instanceof ApiToken ? $token : null;
     }
 }

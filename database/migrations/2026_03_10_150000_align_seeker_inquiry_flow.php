@@ -14,11 +14,7 @@ return new class extends Migration
         });
 
         Schema::table('inquiries', function (Blueprint $table): void {
-            $table->uuid('user_id')->nullable()->change();
             $table->uuid('staff_id')->nullable()->change();
-            $table->string('seeker_name')->nullable()->after('property_listing_id');
-            $table->string('seeker_email')->nullable()->after('seeker_name');
-            $table->string('seeker_phone', 30)->nullable()->after('seeker_email');
             $table->string('status', 20)->default('new')->after('message');
         });
     }
@@ -26,8 +22,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('inquiries', function (Blueprint $table): void {
-            $table->dropColumn(['seeker_name', 'seeker_email', 'seeker_phone', 'status']);
-            $table->uuid('user_id')->nullable(false)->change();
             $table->uuid('staff_id')->nullable(false)->change();
         });
 

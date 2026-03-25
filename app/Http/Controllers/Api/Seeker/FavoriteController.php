@@ -9,13 +9,14 @@ use App\Http\Resources\Seeker\FavoriteResource;
 use App\Models\Favorite;
 use App\Models\Organization;
 use App\Models\PropertyListing;
+use Illuminate\Http\JsonResponse;
 
 class FavoriteController extends Controller
 {
-    public function index(FavoriteIndexRequest $request)
+    public function index(FavoriteIndexRequest $request): JsonResponse
     {
         $query = Favorite::query()
-            ->where('user_id', $request->input('user_id'))
+            ->where('user_id', $request->user()->id)
             ->with('favoritable')
             ->latest();
 
@@ -36,13 +37,13 @@ class FavoriteController extends Controller
         );
     }
 
-    public function store(StoreFavoriteRequest $request)
+    public function store(StoreFavoriteRequest $request): JsonResponse
     {
         $targetClass = $request->input('type') === 'property' ? PropertyListing::class : Organization::class;
         $target = $targetClass::query()->findOrFail($request->input('target_id'));
 
         $favorite = Favorite::query()->firstOrCreate([
-            'user_id' => $request->input('user_id'),
+            'user_id' => $request->user()->id,
             'favoritable_type' => $targetClass,
             'favoritable_id' => $target->getKey(),
         ]);
@@ -55,8 +56,15 @@ class FavoriteController extends Controller
         );
     }
 
-    public function destroy(Favorite $favorite)
+    public function destroy(Favorite $favorite): JsonResponse
     {
+        if ($favorite->user_id !== request()->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to remove this favorite.',
+            ], 403);
+        }
+
         $favorite->delete();
 
         return $this->success(

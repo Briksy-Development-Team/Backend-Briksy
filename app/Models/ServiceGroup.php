@@ -36,8 +36,9 @@ class ServiceGroup extends Model
 
     public function organizations(): BelongsToMany
     {
-        return $this->belongsToMany(Organization::class, 'org_service_groups', 'service_group_id', 'organization_id')
+        return $this->belongsToMany(Organization::class, 'organization_service_groups', 'service_group_id', 'organization_id')
             ->withPivot(['id', 'description', 'package_price', 'is_active'])
             ->withTimestamps();
     }
 }
+

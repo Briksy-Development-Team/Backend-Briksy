@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Models\Organization;
 use App\Models\OrganizationType;
 use App\Models\PropertyListing;
+use App\Models\Role;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class SeekerApiTest extends TestCase
@@ -255,6 +257,114 @@ class SeekerApiTest extends TestCase
             'user_id' => $user->id,
             'organization_id' => $organization->id,
             'rating' => 5,
+        ]);
+    }
+
+    public function test_admin_can_register_and_receive_bearer_token(): void
+    {
+        $response = $this->postJson('/api/admin/auth/register', [
+            'name' => 'Main Admin',
+            'email' => 'admin@example.com',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Admin registered successfully.')
+            ->assertJsonPath('data.user.email', 'admin@example.com')
+            ->assertJsonPath('data.user.roles.0', 'admin')
+            ->assertJsonPath('data.token_type', 'Bearer');
+
+        $this->assertDatabaseHas('roles', [
+            'name' => 'admin',
+        ]);
+    }
+
+    public function test_admin_or_admin_staff_can_login_with_valid_credentials(): void
+    {
+        $user = User::create([
+            'name' => 'Team Admin',
+            'email' => 'team-admin@example.com',
+            'password_hash' => 'secret1234',
+        ]);
+
+        $adminRole = Role::query()->create([
+            'name' => 'admin',
+            'scope' => 'global',
+            'is_system' => true,
+        ]);
+
+        $user->roles()->attach($adminRole->id, [
+            'id' => (string) str()->uuid(),
+            'organization_id' => null,
+        ]);
+
+        $response = $this->postJson('/api/admin/auth/login', [
+            'email' => 'team-admin@example.com',
+            'password' => 'secret1234',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Login successful.')
+            ->assertJsonPath('data.user.roles.0', 'admin')
+            ->assertJsonPath('data.token_type', 'Bearer');
+    }
+
+    public function test_only_admin_can_register_admin_staff(): void
+    {
+        $seeker = User::create([
+            'name' => 'Regular User',
+            'email' => 'regular@example.com',
+            'password_hash' => 'secret1234',
+        ]);
+
+        Sanctum::actingAs($seeker, ['*']);
+
+        $forbiddenResponse = $this->postJson('/api/admin/auth/register-staff', [
+            'name' => 'Staff One',
+            'email' => 'staff1@example.com',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+        ]);
+
+        $forbiddenResponse->assertForbidden()
+            ->assertJsonPath('message', 'Only admin users can register admin staff.');
+
+        $admin = User::create([
+            'name' => 'Main Admin',
+            'email' => 'main-admin@example.com',
+            'password_hash' => 'secret1234',
+        ]);
+
+        $adminRole = Role::query()->firstOrCreate(
+            ['name' => 'admin'],
+            ['scope' => 'global', 'is_system' => true]
+        );
+
+        $admin->roles()->attach($adminRole->id, [
+            'id' => (string) str()->uuid(),
+            'organization_id' => null,
+        ]);
+
+        Sanctum::actingAs($admin, ['admin']);
+
+        $successResponse = $this->postJson('/api/admin/auth/register-staff', [
+            'name' => 'Staff One',
+            'email' => 'staff1@example.com',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+        ]);
+
+        $successResponse->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Admin staff registered successfully.')
+            ->assertJsonPath('data.user.roles.0', 'admin_staff')
+            ->assertJsonPath('data.token_type', 'Bearer');
+
+        $this->assertDatabaseHas('roles', [
+            'name' => 'admin_staff',
         ]);
     }
 }

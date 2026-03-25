@@ -31,7 +31,7 @@ class Service extends Model
 
     public function organizations(): BelongsToMany
     {
-        return $this->belongsToMany(Organization::class, 'organizaton_services', 'service_id', 'organization_id')
+        return $this->belongsToMany(Organization::class, 'organization_services', 'service_id', 'organization_id')
             ->withPivot(['id', 'description', 'starting_price', 'is_active'])
             ->withTimestamps();
     }
@@ -42,3 +42,4 @@ class Service extends Model
             ->withTimestamps();
     }
 }
+

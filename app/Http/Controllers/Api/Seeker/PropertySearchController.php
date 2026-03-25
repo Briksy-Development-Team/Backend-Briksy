@@ -14,7 +14,7 @@ class PropertySearchController extends Controller
     {
         $query = PropertyListing::query()
             ->published()
-            ->with(['organization.organizationType', 'media' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('sort_order')]);
+            ->with('organization.organizationType');
 
         ApiQueryBuilder::applySearch($query, $request->search(), ['title', 'description', 'suburb', 'postcode']);
         ApiQueryBuilder::applyExactFilters($query, [
@@ -53,7 +53,7 @@ class PropertySearchController extends Controller
     {
         $property = PropertyListing::query()
             ->published()
-            ->with(['organization.organizationType', 'media' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('sort_order')])
+            ->with('organization.organizationType')
             ->findOrFail($propertyListing->id);
 
         return $this->success(

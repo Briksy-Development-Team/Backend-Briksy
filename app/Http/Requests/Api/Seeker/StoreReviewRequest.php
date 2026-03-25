@@ -14,7 +14,6 @@ class StoreReviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['required', 'uuid', 'exists:users,id'],
             'organization_id' => ['nullable', 'uuid', 'exists:organizations,id', 'required_without:property_listing_id'],
             'property_listing_id' => ['nullable', 'uuid', 'exists:property_listings,id', 'required_without:organization_id'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],

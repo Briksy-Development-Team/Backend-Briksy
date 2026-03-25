@@ -15,7 +15,6 @@ class StoreFavoriteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['required', 'uuid', 'exists:users,id'],
             'type' => ['required', 'string', Rule::in(['property', 'organization'])],
             'target_id' => ['required', 'uuid'],
         ];

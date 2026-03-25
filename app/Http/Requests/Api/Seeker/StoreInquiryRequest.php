@@ -20,8 +20,8 @@ class StoreInquiryRequest extends FormRequest
             'user_id' => ['nullable', 'uuid', 'exists:users,id'],
             'subject' => ['required', 'string', 'max:150'],
             'message' => ['required', 'string', 'max:5000'],
-            'seeker_name' => ['required', 'string', 'max:120'],
-            'seeker_email' => ['required', 'email', 'max:150'],
+            'seeker_name' => ['required_without:user_id', 'nullable', 'string', 'max:120'],
+            'seeker_email' => ['required_without:user_id', 'nullable', 'email', 'max:150'],
             'seeker_phone' => ['nullable', 'string', 'max:30'],
         ];
     }

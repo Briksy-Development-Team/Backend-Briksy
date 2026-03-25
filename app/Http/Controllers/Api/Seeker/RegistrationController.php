@@ -7,11 +7,15 @@ use App\Http\Requests\Api\Seeker\RegisterSeekerRequest;
 use App\Http\Resources\Seeker\SeekerAccountResource;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class RegistrationController extends Controller
 {
-    public function store(RegisterSeekerRequest $request)
+    public function store(RegisterSeekerRequest $request): JsonResponse
     {
         $user = DB::transaction(function () use ($request): User {
             $user = User::create([
@@ -41,5 +45,181 @@ class RegistrationController extends Controller
             new SeekerAccountResource($user),
             'Seeker registered successfully.'
         );
+    }
+
+    public function loginSeeker(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::query()
+            ->where('email', $validated['email'])
+            ->with('roles')
+            ->first();
+
+        if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email or password.',
+            ], 401);
+        }
+
+        $token = $user->createToken('seeker-auth', ['seeker'])->plainTextToken;
+
+        return $this->success([
+            'user' => new SeekerAccountResource($user),
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'abilities' => ['seeker'],
+        ], 'Login successful.');
+    }
+
+    public function registerAdmin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:150', 'unique:users,email'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $adminUser = DB::transaction(function () use ($validated): User {
+            $adminUser = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password_hash' => $validated['password'],
+                'organization_id' => null,
+                'id_verified' => false,
+            ]);
+
+            $adminRole = Role::query()->firstOrCreate(
+                ['name' => 'admin'],
+                ['scope' => 'global', 'is_system' => true]
+            );
+
+            $adminUser->roles()->syncWithoutDetaching([
+                $adminRole->id => [
+                    'id' => (string) str()->uuid(),
+                    'organization_id' => null,
+                ],
+            ]);
+
+            return $adminUser->load('roles');
+        });
+
+        $token = $adminUser->createToken('admin-auth', ['admin'])->plainTextToken;
+
+        return $this->created([
+            'user' => new SeekerAccountResource($adminUser),
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'abilities' => ['admin'],
+        ], 'Admin registered successfully.');
+    }
+
+    public function loginAdmin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::query()
+            ->where('email', $validated['email'])
+            ->with('roles')
+            ->first();
+
+        if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email or password.',
+            ], 401);
+        }
+
+        $abilities = $this->resolveAdminAbilities($user);
+
+        if ($abilities === []) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This account is not authorized for admin APIs.',
+            ], 403);
+        }
+
+        $token = $user->createToken('admin-auth', $abilities)->plainTextToken;
+
+        return $this->success([
+            'user' => new SeekerAccountResource($user),
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'abilities' => $abilities,
+        ], 'Login successful.');
+    }
+
+    public function registerAdminStaff(Request $request): JsonResponse
+    {
+        $authUser = $request->user();
+
+        if (!$authUser || !$authUser->hasRole('admin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only admin users can register admin staff.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:150', 'unique:users,email'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+            'organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
+        ]);
+
+        $organizationId = $validated['organization_id'] ?? $authUser->organization_id;
+
+        $staffUser = DB::transaction(function () use ($validated, $organizationId): User {
+            $staffUser = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password_hash' => $validated['password'],
+                'organization_id' => $organizationId,
+                'id_verified' => false,
+            ]);
+
+            $staffRole = Role::query()->firstOrCreate(
+                ['name' => 'admin_staff'],
+                ['scope' => 'tenant', 'is_system' => true]
+            );
+
+            $staffUser->roles()->syncWithoutDetaching([
+                $staffRole->id => [
+                    'id' => (string) str()->uuid(),
+                    'organization_id' => $organizationId,
+                ],
+            ]);
+
+            return $staffUser->load('roles');
+        });
+
+        $token = $staffUser->createToken('admin-staff-auth', ['admin_staff'])->plainTextToken;
+
+        return $this->created([
+            'user' => new SeekerAccountResource($staffUser),
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'abilities' => ['admin_staff'],
+        ], 'Admin staff registered successfully.');
+    }
+
+    private function resolveAdminAbilities(User $user): array
+    {
+        if ($user->hasRole('admin')) {
+            return ['admin'];
+        }
+
+        if ($user->hasRole('admin_staff')) {
+            return ['admin_staff'];
+        }
+
+        return [];
     }
 }

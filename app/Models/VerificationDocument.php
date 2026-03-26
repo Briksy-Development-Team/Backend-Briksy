@@ -7,26 +7,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Media extends Model
+class VerificationDocument extends Model
 {
     use HasUuids, SoftDeletes;
-
-    protected $table = 'media';
 
     protected $keyType = 'string';
 
     public $incrementing = false;
 
     protected $fillable = [
-        'property_listing_id',
+        'organization_id',
         'file_url',
-        'media_type',
-        'is_primary',
-        'sort_order',
+        'document_type',
+        'status',
     ];
 
-    public function propertyListing(): BelongsTo
+    public function organization(): BelongsTo
     {
-        return $this->belongsTo(PropertyListing::class);
+        return $this->belongsTo(Organization::class);
     }
 }

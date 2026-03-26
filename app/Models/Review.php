@@ -7,23 +7,31 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Media extends Model
+class Review extends Model
 {
     use HasUuids, SoftDeletes;
-
-    protected $table = 'media';
 
     protected $keyType = 'string';
 
     public $incrementing = false;
 
     protected $fillable = [
+        'user_id',
+        'organization_id',
         'property_listing_id',
-        'file_url',
-        'media_type',
-        'is_primary',
-        'sort_order',
+        'rating',
+        'comment',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
 
     public function propertyListing(): BelongsTo
     {

@@ -76,6 +76,23 @@ class RegistrationController extends Controller
         ], 'Login successful.');
     }
 
+    public function me(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user()->loadMissing('roles');
+
+        return $this->success([
+            'user' => new SeekerAccountResource($user),
+        ], 'Authenticated user fetched successfully.');
+    }
+
+    public function logoutSeeker(Request $request): JsonResponse
+    {
+        $request->user()?->currentAccessToken()?->delete();
+
+        return $this->success([], 'Logout successful.');
+    }
+
     public function registerAdmin(Request $request): JsonResponse
     {
         $validated = $request->validate([

@@ -23,10 +23,44 @@ class ApiQueryBuilder
     public static function applyExactFilters(Builder $query, array $filters): void
     {
         foreach ($filters as $column => $value) {
-            if (!blank($value)) {
+            if ($value !== null && $value !== '') {
                 $query->where($column, $value);
             }
         }
+    }
+
+    public static function applyFilters(Builder $query, array $filters, array $allowedFilters): void
+    {
+        foreach ($allowedFilters as $filterKey => $column) {
+            $value = $filters[$filterKey] ?? null;
+
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $targetColumn = is_string($column) ? $column : $filterKey;
+
+            if (is_array($value)) {
+                $query->whereIn($targetColumn, $value);
+                continue;
+            }
+
+            $query->where($targetColumn, $value);
+        }
+    }
+
+    public static function applyPresenceFilter(Builder $query, string $column, ?bool $isPresent): void
+    {
+        if ($isPresent === null) {
+            return;
+        }
+
+        if ($isPresent) {
+            $query->whereNotNull($column);
+            return;
+        }
+
+        $query->whereNull($column);
     }
 
     public static function applySort(

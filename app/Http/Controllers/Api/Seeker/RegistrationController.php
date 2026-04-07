@@ -175,7 +175,7 @@ class RegistrationController extends Controller
 
     public function registerAdminStaff(Request $request): JsonResponse
     {
-        $authUser = $request->user();
+        $authUser = auth('sanctum')->user();
 
         if (!$authUser || !$authUser->hasRole('admin')) {
             return response()->json([
@@ -225,6 +225,98 @@ class RegistrationController extends Controller
             'token_type' => 'Bearer',
             'abilities' => ['admin_staff'],
         ], 'Admin staff registered successfully.');
+    }
+
+
+    public function registerSuperAdmin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:150', 'unique:users,email'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $superRole = Role::query()->firstOrCreate(
+            ['name' => 'super_admin'],
+            ['scope' => 'global', 'is_system' => true]
+        );
+
+        $superAdminExists = $superRole->users()->exists();
+
+        if ($superAdminExists) {
+            $authUser = auth('sanctum')->user();
+
+            if (!$authUser || !$authUser->hasRole('super_admin')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only super admin users can register another super admin.',
+                ], 403);
+            }
+        }
+
+        $superAdmin = DB::transaction(function () use ($validated, $superRole): User {
+            $superAdmin = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password_hash' => $validated['password'],
+                'organization_id' => null,
+                'id_verified' => false,
+            ]);
+
+            $superAdmin->roles()->syncWithoutDetaching([
+                $superRole->id => [
+                    'id' => (string) str()->uuid(),
+                    'organization_id' => null,
+                ],
+            ]);
+
+            return $superAdmin->load('roles');
+        });
+
+        $token = $superAdmin->createToken('super-admin-auth', ['super_admin'])->plainTextToken;
+
+        return $this->created([
+            'user' => new SeekerAccountResource($superAdmin),
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'abilities' => ['super_admin'],
+        ], 'Super admin registered successfully.');
+    }
+
+    public function loginSuperAdmin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::query()
+            ->where('email', $validated['email'])
+            ->with('roles')
+            ->first();
+
+        if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email or password.',
+            ], 401);
+        }
+
+        if (!$user->hasRole('super_admin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This account is not authorized for super admin APIs.',
+            ], 403);
+        }
+
+        $token = $user->createToken('super-admin-auth', ['super_admin'])->plainTextToken;
+
+        return $this->success([
+            'user' => new SeekerAccountResource($user),
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'abilities' => ['super_admin'],
+        ], 'Login successful.');
     }
 
     private function resolveAdminAbilities(User $user): array

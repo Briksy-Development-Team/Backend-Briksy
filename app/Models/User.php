@@ -109,6 +109,11 @@ class User extends Authenticatable
         return $this->hasMany(SeekerSavedSearch::class);
     }
 
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
     public function hasRole(string $roleName, ?string $organizationId = null): bool
     {
         $roles = $this->roles instanceof Collection ? $this->roles : $this->roles()->get();

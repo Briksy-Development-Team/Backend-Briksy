@@ -96,14 +96,15 @@ class RegistrationController extends Controller
     public function registerAdmin(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
+            'first' => ['required', 'string', 'max:120'],
+            'last' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
         $adminUser = DB::transaction(function () use ($validated): User {
             $adminUser = User::create([
-                'name' => $validated['name'],
+                'name' => $validated['first'] . ' ' . $validated['last'],
                 'email' => $validated['email'],
                 'password_hash' => $validated['password'],
                 'organization_id' => null,
@@ -185,7 +186,8 @@ class RegistrationController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
+            'first' => ['required', 'string', 'max:120'],
+            'last' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)],
             'organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
@@ -195,7 +197,7 @@ class RegistrationController extends Controller
 
         $staffUser = DB::transaction(function () use ($validated, $organizationId): User {
             $staffUser = User::create([
-                'name' => $validated['name'],
+                'name' => $validated['first'] . ' ' . $validated['last'],
                 'email' => $validated['email'],
                 'password_hash' => $validated['password'],
                 'organization_id' => $organizationId,

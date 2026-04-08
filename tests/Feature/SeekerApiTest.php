@@ -263,7 +263,8 @@ class SeekerApiTest extends TestCase
     public function test_admin_can_register_and_receive_bearer_token(): void
     {
         $response = $this->postJson('/api/admin/auth/register', [
-            'name' => 'Main Admin',
+            'first' => 'Main',
+            'last' => 'Admin',
             'email' => 'admin@example.com',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
@@ -323,7 +324,8 @@ class SeekerApiTest extends TestCase
         Sanctum::actingAs($seeker, ['*']);
 
         $forbiddenResponse = $this->postJson('/api/admin/auth/register-staff', [
-            'name' => 'Staff One',
+            'first' => 'Staff',
+            'last' => 'One',
             'email' => 'staff1@example.com',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
@@ -351,7 +353,8 @@ class SeekerApiTest extends TestCase
         Sanctum::actingAs($admin, ['admin']);
 
         $successResponse = $this->postJson('/api/admin/auth/register-staff', [
-            'name' => 'Staff One',
+            'first' => 'Staff',
+            'last' => 'One',
             'email' => 'staff1@example.com',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',

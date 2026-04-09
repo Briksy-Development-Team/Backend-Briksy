@@ -34,19 +34,19 @@ class StaffController extends Controller
         );
     }
 
-    public function show(User $user): JsonResponse
+    public function show(User $staff): JsonResponse
     {
-        if (!$user->hasRole('admin_staff')) {
+        if (!$staff->hasRole('admin_staff')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Staff member not found.',
             ], 404);
         }
 
-        $user->load(['roles', 'organization']);
+        $staff->load(['roles', 'organization']);
 
         return $this->success(
-            new UserResource($user),
+            new UserResource($staff),
             'Staff member retrieved successfully.'
         );
     }
@@ -85,9 +85,9 @@ class StaffController extends Controller
         );
     }
 
-    public function update(StaffUpdateRequest $request, User $user): JsonResponse
+    public function update(StaffUpdateRequest $request, User $staff): JsonResponse
     {
-        if (!$user->hasRole('admin_staff')) {
+        if (!$staff->hasRole('admin_staff')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Staff member not found.',
@@ -102,8 +102,8 @@ class StaffController extends Controller
 
         unset($validatedData['password']);
 
-        $user->fill($validatedData);
-        $user->save();
+        $staff->fill($validatedData);
+        $staff->save();
 
         if (array_key_exists('organization_id', $validatedData) && $validatedData['organization_id']) {
             $role = Role::query()->firstOrCreate(
@@ -111,12 +111,12 @@ class StaffController extends Controller
                 ['scope' => 'tenant', 'is_system' => true]
             );
 
-            if ($user->roles()->where('roles.id', $role->id)->exists()) {
-                $user->roles()->updateExistingPivot($role->id, [
+            if ($staff->roles()->where('roles.id', $role->id)->exists()) {
+                $staff->roles()->updateExistingPivot($role->id, [
                     'organization_id' => $validatedData['organization_id'],
                 ]);
             } else {
-                $user->roles()->attach($role->id, [
+                $staff->roles()->attach($role->id, [
                     'id' => (string) str()->uuid(),
                     'organization_id' => $validatedData['organization_id'],
                 ]);
@@ -124,7 +124,7 @@ class StaffController extends Controller
         }
 
         return $this->success(
-            new UserResource($user->fresh()->load(['roles', 'organization'])),
+            new UserResource($staff->fresh()->load(['roles', 'organization'])),
             'Staff member updated successfully.'
         );
     }

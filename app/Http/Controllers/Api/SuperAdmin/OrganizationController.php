@@ -20,15 +20,20 @@ class OrganizationController extends Controller
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
 
-        if ($query->filled('filter.type_slug')) {
-            $query->whereHas('organizationType', fn() => $query->where('slug', $request->string('filter.type_slug')->toString()));
+        if ($request->filled('filter.type_slug')) {
+            $typeSlug = $request->string('filter.type_slug')->toString();
+            $query->whereHas('organizationType', fn ($typeQuery) => $typeQuery->where('slug', $typeSlug));
         }
 
         ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
 
-        $organizations = $query->paginate($request->perPage())->withQueryString();
+        $paginator = $query->paginate($request->perPage())->withQueryString();
 
-        return $this->success(OrganizationResource::collection($organizations), 'Organizations retrieved successfully.');
+        return $this->paginated(
+            OrganizationResource::collection($paginator),
+            $paginator,
+            'Organizations retrieved successfully.'
+        );
     }
 
     public function show(Organization $organization): JsonResponse

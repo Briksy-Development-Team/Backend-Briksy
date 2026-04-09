@@ -52,19 +52,19 @@ class SeekerController extends Controller
         );
     }
 
-    public function show(User $user): JsonResponse
+    public function show(User $seeker): JsonResponse
     {
-        if (!$user->hasRole('seeker')) {
+        if (!$seeker->hasRole('seeker')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Seeker not found.',
             ], 404);
         }
 
-        $user->load('roles');
+        $seeker->load('roles');
 
         return $this->success(
-            new UserResource($user),
+            new UserResource($seeker),
             'Seeker retrieved successfully.'
         );
     }
@@ -103,9 +103,9 @@ class SeekerController extends Controller
         );
     }
 
-    public function update(SeekerUpdateRequest $request, User $user): JsonResponse
+    public function update(SeekerUpdateRequest $request, User $seeker): JsonResponse
     {
-        if (!$user->hasRole('seeker')) {
+        if (!$seeker->hasRole('seeker')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Seeker not found.',
@@ -120,11 +120,11 @@ class SeekerController extends Controller
 
         unset($data['password']);
 
-        $user->fill($data);
-        $user->save();
+        $seeker->fill($data);
+        $seeker->save();
 
         return $this->success(
-            new UserResource($user->fresh()->load('roles')),
+            new UserResource($seeker->fresh()->load('roles')),
             'Seeker updated successfully.'
         );
     }

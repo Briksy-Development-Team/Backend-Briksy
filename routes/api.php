@@ -16,6 +16,11 @@ use App\Support\Auth\AdminAbilities;
 use App\Http\Controllers\Api\SuperAdmin\OrganizationController;
 use App\Http\Controllers\Api\SuperAdmin\OrganizationTypeController;
 use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerController;
+use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
+use App\Http\Controllers\Api\SuperAdmin\PropertyFeatureController as SuperAdminPropertyFeatureController;
+use App\Http\Controllers\Api\SuperAdmin\ServiceGroupController as SuperAdminServiceGroupController;
+use App\Http\Controllers\Api\SuperAdmin\ServiceController as SuperAdminServiceController;
+use App\Http\Controllers\Api\SuperAdmin\ServiceProviderController;
 use App\Http\Controllers\Api\SuperAdmin\StaffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -182,6 +187,19 @@ Route::prefix('super-admin')->group(function (): void {
         Route::post('organizations', [OrganizationController::class, 'store']);
         Route::get('organizations/{organization}', [OrganizationController::class, 'show']);
         Route::put('organizations/{organization}', [OrganizationController::class, 'update']);
+
+        Route::get('service-providers', [ServiceProviderController::class, 'index']);
+        Route::get('service-providers/{providerType}/{providerId}', [ServiceProviderController::class, 'show']);
+
+        Route::get('properties', [SuperAdminPropertyController::class, 'index']);
+        Route::get('properties/{property}', [SuperAdminPropertyController::class, 'show']);
+
+        Route::get('services', [SuperAdminServiceController::class, 'index']);
+        Route::get('services/{service}', [SuperAdminServiceController::class, 'show']);
+        Route::get('service-groups', [SuperAdminServiceGroupController::class, 'index']);
+        Route::get('service-groups/{serviceGroup}', [SuperAdminServiceGroupController::class, 'show']);
+
+        Route::get('property-features', [SuperAdminPropertyFeatureController::class, 'index']);
 
         Route::get('organization-types', [OrganizationTypeController::class, 'index']);
         Route::post('organization-types', [OrganizationTypeController::class, 'store']);

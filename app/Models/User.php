@@ -114,6 +114,11 @@ class User extends Authenticatable
         return $this->hasMany(SocialAccount::class);
     }
 
+    public function soleTraderProfile(): HasOne
+    {
+        return $this->hasOne(SoleTraderProfile::class);
+    }
+
     public function hasRole(string $roleName, ?string $organizationId = null): bool
     {
         $roles = $this->roles instanceof Collection ? $this->roles : $this->roles()->get();

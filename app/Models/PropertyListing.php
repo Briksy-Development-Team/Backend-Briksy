@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
@@ -27,8 +28,16 @@ class PropertyListing extends Model
         'title',
         'description',
         'status',
+        'property_type_id',
+        'property_condition',
         'suburb',
         'postcode',
+        'land_area_sqm',
+        'floor_area_sqm',
+        'frontage_width_m',
+        'bedroom_option',
+        'bathroom_option',
+        'car_space_option',
         'embedding',
     ];
 
@@ -40,6 +49,11 @@ class PropertyListing extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_id');
+    }
+
+    public function propertyType(): BelongsTo
+    {
+        return $this->belongsTo(PropertyType::class, 'property_type_id');
     }
 
     public function media(): HasMany
@@ -60,6 +74,14 @@ class PropertyListing extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class, 'property_listing_id');
+    }
+
+    public function features(): BelongsToMany
+    {
+        return $this->belongsToMany(PropertyFeature::class, 'property_listing_features', 'property_listing_id', 'feature_id')
+            ->wherePivotNull('deleted_at')
+            ->withPivot(['id'])
+            ->withTimestamps();
     }
 
     public function scopePublished(Builder $query): Builder

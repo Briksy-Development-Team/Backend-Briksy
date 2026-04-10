@@ -18,6 +18,7 @@ class Service extends Model
 
     protected $fillable = [
         'type_id',
+        'service_group_id',
         'name',
         'slug',
         'description',
@@ -34,6 +35,11 @@ class Service extends Model
         return $this->belongsToMany(Organization::class, 'organization_services', 'service_id', 'organization_id')
             ->withPivot(['id', 'description', 'starting_price', 'is_active'])
             ->withTimestamps();
+    }
+
+    public function serviceGroup(): BelongsTo
+    {
+        return $this->belongsTo(ServiceGroup::class, 'service_group_id');
     }
 
     public function serviceGroups(): BelongsToMany

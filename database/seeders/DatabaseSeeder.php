@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             PropertyListingSeeder::class,
             PropertyListingFeatureSeeder::class,
+            ComprehensiveDemoDataSeeder::class,
         ]);
     }
 }

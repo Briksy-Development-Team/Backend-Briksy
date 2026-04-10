@@ -23,6 +23,7 @@ class Organization extends Model
         'contact_email',
         'contact_phone',
         'abn',
+        'acn',
         'plan_id',
         'type_id',
         'ranking_priority',
@@ -30,6 +31,10 @@ class Organization extends Model
         'stripe_customer_id',
         'is_verified',
         'slug',
+        'logo_url',
+        'brand_primary_color',
+        'brand_secondary_color',
+        'licensed_staff_seats',
     ];
 
     public function users(): HasMany
@@ -69,6 +74,11 @@ class Organization extends Model
         return $this->belongsToMany(ServiceGroup::class, 'organization_service_groups', 'organization_id', 'service_group_id')
             ->withPivot(['id', 'description', 'package_price', 'is_active'])
             ->withTimestamps();
+    }
+
+    public function soleTraderProfiles(): HasMany
+    {
+        return $this->hasMany(SoleTraderProfile::class, 'organization_id');
     }
 }
 

@@ -17,7 +17,7 @@ class UserResource extends JsonResource
             'mobile_number' => $this->mobile_number,
             'organization_id' => $this->organization_id,
             'email_verified_at' => $this->email_verified_at?->toISOString(),
-            'mobile_verified_at' => $this->mobile_verified_at?->toISOString(),
+            'mobile_verified_at' => $this->mobile_verified_at,
             'roles' => $this->whenLoaded('roles', fn (): array => $this->roles->pluck('name')->values()->all()),
             'created_at' => $this->created_at?->toISOString(),
         ];

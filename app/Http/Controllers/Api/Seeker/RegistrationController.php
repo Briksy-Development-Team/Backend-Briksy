@@ -18,8 +18,16 @@ class RegistrationController extends Controller
     public function store(RegisterSeekerRequest $request): JsonResponse
     {
         $user = DB::transaction(function () use ($request): User {
+            // Support frontends that submit `first` and `last` instead of a single `name`.
+            $name = $request->input('name');
+            if (empty($name)) {
+                $first = trim((string) $request->input('first'));
+                $last = trim((string) $request->input('last'));
+                $name = trim(sprintf('%s %s', $first, $last));
+            }
+
             $user = User::create([
-                'name' => $request->input('name'),
+                'name' => $name,
                 'email' => $request->input('email'),
                 'password_hash' => $request->input('password'),
                 'organization_id' => null,

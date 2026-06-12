@@ -15,8 +15,17 @@ class FavoriteController extends Controller
 {
     public function index(FavoriteIndexRequest $request): JsonResponse
     {
+        $userId = $this->resolveUserId($request);
+
+        if ($userId === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
         $query = Favorite::query()
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $userId)
             ->with('favoritable')
             ->latest();
 
@@ -39,11 +48,20 @@ class FavoriteController extends Controller
 
     public function store(StoreFavoriteRequest $request): JsonResponse
     {
+        $userId = $this->resolveUserId($request);
+
+        if ($userId === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
         $targetClass = $request->input('type') === 'property' ? PropertyListing::class : Organization::class;
         $target = $targetClass::query()->findOrFail($request->input('target_id'));
 
         $favorite = Favorite::query()->firstOrCreate([
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'favoritable_type' => $targetClass,
             'favoritable_id' => $target->getKey(),
         ]);
@@ -58,7 +76,16 @@ class FavoriteController extends Controller
 
     public function destroy(Favorite $favorite): JsonResponse
     {
-        if ($favorite->user_id !== request()->user()->id) {
+        $userId = $this->resolveUserId(request());
+
+        if ($userId === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        if ($favorite->user_id !== $userId) {
             return response()->json([
                 'success' => false,
                 'message' => 'You are not authorized to remove this favorite.',
@@ -71,5 +98,10 @@ class FavoriteController extends Controller
             null,
             'Favorite removed successfully.'
         );
+    }
+
+    protected function resolveUserId(FavoriteIndexRequest|StoreFavoriteRequest|\Illuminate\Http\Request $request): ?string
+    {
+        return $request->user()?->id ?? $request->input('user_id');
     }
 }

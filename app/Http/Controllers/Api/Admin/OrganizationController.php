@@ -1,19 +1,30 @@
 <?php  
  
 namespace App\Http\Controllers\Api\Admin; 
- 
+
 use App\Http\Controllers\Api\Controller; 
 use App\Http\Resources\Admin\AdminOrganizationResource; 
 use App\Models\Organization; 
 use App\Support\Query\ApiQueryBuilder; 
 use Illuminate\Http\JsonResponse; 
 use Illuminate\Http\Request; 
- 
+
 class OrganizationController extends Controller 
 { 
     public function index(Request $request): JsonResponse 
     { 
-        $query = Organization::query()->with('organizationType'); 
+        $organizationId = $request->user()?->organization_id;
+
+        if (!$organizationId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin account is not assigned to an organization.',
+            ], 403);
+        }
+
+        $query = Organization::query()
+            ->whereKey($organizationId)
+            ->with('organizationType'); 
  
         ApiQueryBuilder::applySearch( 
             $query, 
@@ -65,6 +76,10 @@ class OrganizationController extends Controller
  
     public function show(Organization $organization): JsonResponse 
     { 
+        $organizationId = request()->user()?->organization_id;
+
+        abort_unless($organizationId && $organization->id === $organizationId, 403);
+
         $organization->loadMissing('organizationType'); 
  
         return $this->success( 

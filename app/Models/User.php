@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\Permission;
 
 class User extends Authenticatable
 {
@@ -79,6 +80,23 @@ class User extends Authenticatable
         return $this->hasMany(PropertyListing::class, 'creator_id');
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'user_id');
+    }
+
+    public function directPermissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'user_permissions')
+            ->withPivot(['id', 'effect'])
+            ->withTimestamps();
+    }
+
+    public function planRequests(): HasMany
+    {
+        return $this->hasMany(PlanRequest::class, 'requested_by');
+    }
+
     public function inquiries(): HasMany
     {
         return $this->hasMany(Inquiry::class);
@@ -138,5 +156,96 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $this->loadMissing(['roles.permissions', 'directPermissions']);
+
+        if ($this->directPermissions->firstWhere('name', $permission)?->pivot?->effect === 'deny') {
+            return false;
+        }
+
+        if ($this->directPermissions->firstWhere('name', $permission)?->pivot?->effect === 'allow') {
+            return true;
+        }
+
+        foreach ($this->roles as $role) {
+            if ($role->permissions->contains('name', $permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function hasAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function hasAllPermissions(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if (!$this->hasPermission($permission)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function getAllPermissions(): Collection
+    {
+        if ($this->isSuperAdmin()) {
+            return Permission::query()->orderBy('module')->orderBy('action')->get();
+        }
+
+        $this->loadMissing(['roles.permissions', 'directPermissions']);
+
+        $denyIds = $this->directPermissions
+            ->filter(fn (Permission $permission): bool => $permission->pivot?->effect === 'deny')
+            ->pluck('id')
+            ->all();
+
+        $allowIds = $this->directPermissions
+            ->filter(fn (Permission $permission): bool => $permission->pivot?->effect === 'allow')
+            ->pluck('id')
+            ->all();
+
+        $roleIds = $this->roles
+            ->flatMap(fn (Role $role): Collection => $role->permissions->pluck('id'))
+            ->unique()
+            ->diff($denyIds)
+            ->merge($allowIds)
+            ->unique()
+            ->values()
+            ->all();
+
+        return Permission::query()
+            ->whereIn('id', $roleIds)
+            ->orderBy('module')
+            ->orderBy('action')
+            ->get();
+    }
+
+    public function getPermissionNames(): array
+    {
+        return $this->getAllPermissions()->pluck('name')->values()->all();
     }
 }

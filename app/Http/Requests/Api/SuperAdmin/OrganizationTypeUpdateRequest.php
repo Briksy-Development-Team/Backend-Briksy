@@ -14,11 +14,11 @@ class OrganizationTypeUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-         = ->route('organizationType');
+        $organizationType = $this->route('organizationType');
 
         return [
             'name' => ['sometimes', 'string', 'max:100'],
-            'slug' => ['sometimes', 'string', 'max:100', Rule::unique('organization_types', 'slug')->ignore()],
+            'slug' => ['sometimes', 'string', 'max:100', Rule::unique('organization_types', 'slug')->ignore($organizationType?->id)],
         ];
     }
 }

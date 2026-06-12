@@ -17,6 +17,14 @@ class SeekerAccountResource extends JsonResource
             'id_verified' => (bool) $this->id_verified,
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'roles' => $this->whenLoaded('roles', fn (): array => $this->roles->pluck('name')->values()->all()),
+            'permissions' => $this->whenLoaded('roles', function (): array {
+                return $this->roles
+                    ->flatMap(fn ($role) => $role->permissions->pluck('name'))
+                    ->unique()
+                    ->values()
+                    ->all();
+            }),
+            'permission_names' => $this->whenLoaded('directPermissions', fn (): array => $this->directPermissions->pluck('name')->values()->all()),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

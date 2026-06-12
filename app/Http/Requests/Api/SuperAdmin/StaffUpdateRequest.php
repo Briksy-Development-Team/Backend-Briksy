@@ -15,14 +15,24 @@ class StaffUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-         = ->route('staff');
+        $staff = $this->route('staff');
 
         return [
             'organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
             'name' => ['sometimes', 'string', 'max:120'],
-            'email' => ['sometimes', 'email', 'max:150', Rule::unique('users', 'email')->ignore()],
+            'email' => [
+                'sometimes',
+                'email',
+                'max:150',
+                Rule::unique('users', 'email')->ignore($staff?->id),
+            ],
             'password' => ['nullable', 'confirmed', Password::min(8)],
-            'mobile_number' => ['nullable', 'string', 'max:30', Rule::unique('users', 'mobile_number')->ignore()],
+            'mobile_number' => [
+                'nullable',
+                'string',
+                'max:30',
+                Rule::unique('users', 'mobile_number')->ignore($staff?->id),
+            ],
             'display_name' => ['nullable', 'string', 'max:120'],
         ];
     }

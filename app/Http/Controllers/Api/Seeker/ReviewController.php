@@ -14,7 +14,16 @@ class ReviewController extends Controller
 {
     public function index(ReviewIndexRequest $request): JsonResponse
     {
-        $query = Review::query()->where('user_id', $request->user()->id)->latest();
+        $userId = $this->resolveUserId($request);
+
+        if ($userId === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $query = Review::query()->where('user_id', $userId)->latest();
 
         if ($request->filled('organization_id')) {
             $query->where('organization_id', $request->input('organization_id'));
@@ -37,8 +46,17 @@ class ReviewController extends Controller
 
     public function store(StoreReviewRequest $request): JsonResponse
     {
+        $userId = $this->resolveUserId($request);
+
+        if ($userId === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
         $review = Review::query()->create([
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'organization_id' => $request->input('organization_id'),
             'property_listing_id' => $request->input('property_listing_id'),
             'rating' => $request->input('rating'),
@@ -49,5 +67,10 @@ class ReviewController extends Controller
             new ReviewResource($review),
             'Review created successfully.'
         );
+    }
+
+    protected function resolveUserId(ReviewIndexRequest|StoreReviewRequest|\Illuminate\Http\Request $request): ?string
+    {
+        return $request->user()?->id ?? $request->input('user_id');
     }
 }

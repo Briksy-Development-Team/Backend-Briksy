@@ -47,9 +47,29 @@ class Organization extends Model
         return $this->belongsTo(OrganizationType::class, 'type_id');
     }
 
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'plan_id');
+    }
+
     public function propertyListings(): HasMany
     {
         return $this->hasMany(PropertyListing::class, 'org_id');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'organization_id');
+    }
+
+    public function planRequests(): HasMany
+    {
+        return $this->hasMany(PlanRequest::class, 'organization_id');
+    }
+
+    public function companySettings(): HasMany
+    {
+        return $this->hasMany(CompanySetting::class, 'organization_id');
     }
 
     public function favorites(): MorphMany
@@ -71,4 +91,3 @@ class Organization extends Model
             ->withTimestamps();
     }
 }
-

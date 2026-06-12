@@ -13,8 +13,18 @@ class SeekerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $organizationId = $request->user()?->organization_id;
+
+        if (!$organizationId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin account is not assigned to an organization.',
+            ], 403);
+        }
+
         $query = User::query()
             ->with('seekerProfile')
+            ->where('organization_id', $organizationId)
             ->whereHas('roles', static function ($roleQuery): void {
                 $roleQuery->where('roles.name', 'seeker');
             });
@@ -84,6 +94,9 @@ class SeekerController extends Controller
 
     public function show(User $user): JsonResponse
     {
+        $organizationId = request()->user()?->organization_id;
+
+        abort_unless($organizationId && $user->organization_id === $organizationId, 403);
         abort_unless($user->hasRole('seeker'), 404);
 
         $user->loadMissing('seekerProfile');

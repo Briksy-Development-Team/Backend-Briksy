@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Role extends Model
@@ -25,6 +25,12 @@ class Role extends Model
     {
         return $this->belongsToMany(User::class, 'user_roles')
             ->withPivot(['id', 'organization_id'])
+            ->withTimestamps();
+    }
+
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'role_permissions')
             ->withTimestamps();
     }
 }

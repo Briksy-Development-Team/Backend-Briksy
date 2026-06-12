@@ -46,7 +46,7 @@ class RegistrationController extends Controller
                 ],
             ]);
 
-            return $user->load('roles');
+            return $user->load(['roles.permissions', 'directPermissions']);
         });
 
         return $this->created(
@@ -64,7 +64,7 @@ class RegistrationController extends Controller
 
         $user = User::query()
             ->where('email', $validated['email'])
-            ->with('roles')
+            ->with(['roles.permissions', 'directPermissions'])
             ->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
@@ -87,7 +87,7 @@ class RegistrationController extends Controller
     public function me(Request $request): JsonResponse
     {
         /** @var User $user */
-        $user = $request->user()->loadMissing('roles');
+        $user = $request->user()->loadMissing(['roles.permissions', 'directPermissions']);
 
         return $this->success([
             'user' => new SeekerAccountResource($user),
@@ -131,7 +131,7 @@ class RegistrationController extends Controller
                 ],
             ]);
 
-            return $adminUser->load('roles');
+            return $adminUser->load(['roles.permissions', 'directPermissions']);
         });
 
         $token = $adminUser->createToken('admin-auth', ['admin'])->plainTextToken;
@@ -153,7 +153,7 @@ class RegistrationController extends Controller
 
         $user = User::query()
             ->where('email', $validated['email'])
-            ->with('roles')
+            ->with(['roles.permissions', 'directPermissions'])
             ->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
@@ -224,7 +224,7 @@ class RegistrationController extends Controller
                 ],
             ]);
 
-            return $staffUser->load('roles');
+            return $staffUser->load(['roles.permissions', 'directPermissions']);
         });
 
         $token = $staffUser->createToken('admin-staff-auth', ['admin_staff'])->plainTextToken;
@@ -280,7 +280,7 @@ class RegistrationController extends Controller
                 ],
             ]);
 
-            return $superAdmin->load('roles');
+            return $superAdmin->load(['roles.permissions', 'directPermissions']);
         });
 
         $token = $superAdmin->createToken('super-admin-auth', ['super_admin'])->plainTextToken;
@@ -302,7 +302,7 @@ class RegistrationController extends Controller
 
         $user = User::query()
             ->where('email', $validated['email'])
-            ->with('roles')
+            ->with(['roles.permissions', 'directPermissions'])
             ->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password_hash)) {

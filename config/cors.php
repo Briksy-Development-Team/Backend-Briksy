@@ -21,7 +21,7 @@ return [
         static fn (string $origin) => rtrim(trim($origin), '/'),
         explode(',', env(
             'CORS_ALLOWED_ORIGINS',
-            'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,https://briksy.elsolveit.com,http://briksy.elsolveit.com'
+            'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000,https://briksy.elsolveit.com,http://briksy.elsolveit.com,https://pink-lark-559550.hostingersite.com'
         ))
     ))),
 

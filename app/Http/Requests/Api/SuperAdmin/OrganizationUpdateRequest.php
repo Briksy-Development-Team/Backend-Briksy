@@ -14,13 +14,13 @@ class OrganizationUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-         = ->route('organization');
+        $organization = $this->route('organization');
 
         return [
             'name' => ['sometimes', 'string', 'max:200'],
-            'slug' => ['sometimes', 'string', 'max:200', Rule::unique('organizations', 'slug')->ignore()],
-            'abn' => ['sometimes', 'string', 'size:11', Rule::unique('organizations', 'abn')->ignore()],
-            'acn' => ['nullable', 'string', 'size:9', Rule::unique('organizations', 'acn')->ignore()],
+            'slug' => ['sometimes', 'string', 'max:200', Rule::unique('organizations', 'slug')->ignore($organization?->id)],
+            'abn' => ['sometimes', 'string', 'size:11', Rule::unique('organizations', 'abn')->ignore($organization?->id)],
+            'acn' => ['nullable', 'string', 'size:9', Rule::unique('organizations', 'acn')->ignore($organization?->id)],
             'type_id' => ['sometimes', 'uuid', 'exists:organization_types,id'],
             'plan_id' => ['nullable', 'uuid', 'exists:subscription_plans,id'],
             'contact_email' => ['nullable', 'email', 'max:150'],

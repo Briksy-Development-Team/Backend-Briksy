@@ -27,6 +27,7 @@ class OrganizationResource extends JsonResource
             'avg_org_rating' => $this->avg_org_rating,
             'stripe_customer_id' => $this->stripe_customer_id,
             'is_verified' => (bool) $this->is_verified,
+            'status' => $this->deleted_at ? 'Inactive' : 'Active',
             'logo_url' => $this->logo_url,
             'brand_primary_color' => $this->brand_primary_color,
             'brand_secondary_color' => $this->brand_secondary_color,

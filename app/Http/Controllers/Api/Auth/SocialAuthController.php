@@ -57,7 +57,7 @@ class SocialAuthController extends Controller
                     'provider_refresh_token' => $socialUser->refreshToken ?? null,
                 ]);
 
-                return $account->user()->with('roles')->first();
+                return $account->user()->with(['roles.permissions', 'directPermissions'])->first();
             }
 
             $user = null;
@@ -99,7 +99,7 @@ class SocialAuthController extends Controller
                 }
             }
 
-            return $user->load('roles');
+            return $user->load(['roles.permissions', 'directPermissions']);
         });
 
         $abilities = $this->resolveAbilities($user, $roleName);

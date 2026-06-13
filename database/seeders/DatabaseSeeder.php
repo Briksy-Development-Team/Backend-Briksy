@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             OrganizationSeeder::class,
             SubscriptionPlanSeeder::class,
             UserSeeder::class,
+            SeekerSeeder::class,
             SuperAdminSeeder::class,
             CommerceModuleSeeder::class,
             PropertyListingSeeder::class,

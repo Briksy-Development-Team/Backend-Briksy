@@ -14,6 +14,7 @@ class OrganizationTypeSeeder extends Seeder
             'property-management' => 'Property Management',
             'aged-care' => 'Aged Care',
             'home-services' => 'Home Services',
+            'solo-traders' => 'Solo Traders',
         ];
 
         foreach ($types as $slug => $name) {

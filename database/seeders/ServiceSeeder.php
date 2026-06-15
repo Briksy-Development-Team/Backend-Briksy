@@ -35,6 +35,14 @@ class ServiceSeeder extends Seeder
                 ['name' => 'Landscaping', 'slug' => 'landscaping', 'description' => 'Garden care and outdoor maintenance.'],
                 ['name' => 'General Maintenance', 'slug' => 'general-maintenance', 'description' => 'Handyman and minor repairs.'],
             ],
+            'solo-traders' => [
+                ['name' => 'Electrical', 'slug' => 'electrical', 'description' => 'Electrical installation, repair, and maintenance services.'],
+                ['name' => 'Plumbing', 'slug' => 'plumbing', 'description' => 'Plumbing repair, installation, and maintenance services.'],
+                ['name' => 'Fencing', 'slug' => 'fencing', 'description' => 'Fence installation and repairs.'],
+                ['name' => 'Landscapers', 'slug' => 'landscapers', 'description' => 'Outdoor maintenance and landscaping services.'],
+                ['name' => 'Conveyancers', 'slug' => 'conveyancers', 'description' => 'Property transfer and conveyancing services.'],
+                ['name' => 'Brokers', 'slug' => 'brokers', 'description' => 'Brokerage and deal facilitation services.'],
+            ],
         ];
 
         foreach ($servicesByType as $typeSlug => $services) {

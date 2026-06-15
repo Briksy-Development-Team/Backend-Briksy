@@ -49,6 +49,7 @@ class PermissionSeeder extends Seeder
             ['module' => 'property', 'action' => 'create', 'name' => 'property.create', 'display_name' => 'Create Properties'],
             ['module' => 'property', 'action' => 'update', 'name' => 'property.update', 'display_name' => 'Update Properties'],
             ['module' => 'property', 'action' => 'delete', 'name' => 'property.delete', 'display_name' => 'Delete Properties'],
+            ['module' => 'service', 'action' => 'view', 'name' => 'service.view', 'display_name' => 'View Services'],
             ['module' => 'user', 'action' => 'view', 'name' => 'user.view', 'display_name' => 'View Users'],
             ['module' => 'user', 'action' => 'create', 'name' => 'user.create', 'display_name' => 'Create Users'],
             ['module' => 'user', 'action' => 'update', 'name' => 'user.update', 'display_name' => 'Update Users'],

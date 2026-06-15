@@ -49,6 +49,14 @@ class ServiceGroupSeeder extends Seeder
                     'services' => ['cleaning', 'landscaping', 'general-maintenance'],
                 ],
             ],
+            'solo-traders' => [
+                [
+                    'name' => 'Solo Trader Services',
+                    'slug' => 'solo-trader-services',
+                    'description' => 'Core services offered by solo trader businesses.',
+                    'services' => ['electrical', 'plumbing', 'fencing', 'landscapers', 'conveyancers', 'brokers'],
+                ],
+            ],
         ];
 
         foreach ($groupsByType as $typeSlug => $groups) {

@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\SuperAdmin\PlanRequestController;
 use App\Http\Controllers\Api\SuperAdmin\CouponController;
 use App\Http\Controllers\Api\SuperAdmin\OrderController;
 use App\Http\Controllers\Api\SuperAdmin\EmailTemplateController;
+use App\Http\Controllers\Api\SuperAdmin\ServiceController as SuperAdminServiceController;
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
@@ -222,6 +223,9 @@ Route::prefix('super-admin')->group(function (): void {
 
         Route::get('properties', [SuperAdminPropertyController::class, 'index'])->middleware('permission:property.view');
         Route::get('properties/{propertyListing}', [SuperAdminPropertyController::class, 'show'])->middleware('permission:property.view');
+
+        Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware('permission:service.view');
+        Route::get('service-groups', [SuperAdminServiceController::class, 'index'])->middleware('permission:service.view');
 
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware('permission:dashboard.view');
 

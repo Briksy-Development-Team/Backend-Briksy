@@ -18,11 +18,22 @@ class Service extends Model
 
     protected $fillable = [
         'type_id',
+        'organization_id',
         'name',
+        'title',
+        'category',
         'slug',
         'description',
+        'service_area',
+        'rate_from',
+        'rate_to',
         'is_active',
     ];
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
+    }
 
     public function organizationType(): BelongsTo
     {
@@ -42,4 +53,3 @@ class Service extends Model
             ->withTimestamps();
     }
 }
-

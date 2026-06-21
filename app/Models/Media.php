@@ -11,7 +11,7 @@ class Media extends Model
 {
     use HasUuids, SoftDeletes;
 
-    protected $table = 'media';
+    protected $table = 'property_listing_media';
 
     protected $keyType = 'string';
 

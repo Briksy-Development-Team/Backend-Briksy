@@ -12,9 +12,12 @@ class OrganizationResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'trading_name' => $this->trading_name,
             'slug' => $this->slug,
             'abn' => $this->abn,
             'acn' => $this->acn,
+            'business_type' => $this->business_type,
+            'business_verification_status' => $this->business_verification_status,
             'plan_id' => $this->plan_id,
             'type' => $this->whenLoaded('organizationType', fn () => [
                 'id' => $this->organizationType?->id,
@@ -23,6 +26,9 @@ class OrganizationResource extends JsonResource
             ]),
             'contact_email' => $this->contact_email,
             'contact_phone' => $this->contact_phone,
+            'address' => $this->address,
+            'state' => $this->state,
+            'postcode' => $this->postcode,
             'ranking_priority' => $this->ranking_priority,
             'avg_org_rating' => $this->avg_org_rating,
             'stripe_customer_id' => $this->stripe_customer_id,

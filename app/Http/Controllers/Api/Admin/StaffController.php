@@ -4,16 +4,22 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\Admin\AdminStaffResource;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Business\BusinessModuleResolver;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class StaffController extends Controller
 {
+    public function __construct(private readonly BusinessModuleResolver $moduleResolver)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $organizationId = $request->user()?->organization_id;
@@ -69,13 +75,16 @@ class StaffController extends Controller
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'mobile_number' => ['nullable', 'string', 'max:30', 'unique:users,mobile_number'],
             'display_name' => ['nullable', 'string', 'max:120'],
+            'password' => ['required', 'string', 'min:8'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
         $staff = DB::transaction(function () use ($validated, $organizationId): User {
             $staff = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
-                'password_hash' => Str::password(16),
+                'password_hash' => $validated['password'],
                 'mobile_number' => $validated['mobile_number'] ?? null,
                 'display_name' => $validated['display_name'] ?? null,
                 'organization_id' => $organizationId,
@@ -93,6 +102,8 @@ class StaffController extends Controller
                     'organization_id' => $organizationId,
                 ],
             ]);
+
+            $this->syncDirectPermissions($staff, $validated['permissions'] ?? []);
 
             return $staff->load('roles');
         });
@@ -115,11 +126,28 @@ class StaffController extends Controller
             'email' => ['sometimes', 'email', 'max:150', 'unique:users,email,' . $user->id],
             'mobile_number' => ['nullable', 'string', 'max:30', 'unique:users,mobile_number,' . $user->id],
             'display_name' => ['nullable', 'string', 'max:120'],
+            'password' => ['nullable', 'string', 'min:8'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
+
+        if (!empty($validated['password'])) {
+            $validated['password_hash'] = $validated['password'];
+        }
+
+        $permissionNames = array_key_exists('permissions', $validated)
+            ? $validated['permissions']
+            : null;
+
+        unset($validated['password'], $validated['permissions']);
 
         $user->fill($validated);
         $user->organization_id = $organizationId;
         $user->save();
+
+        if ($permissionNames !== null) {
+            $this->syncDirectPermissions($user, $permissionNames);
+        }
 
         return $this->success(
             new AdminStaffResource($user->fresh('roles')),
@@ -142,5 +170,51 @@ class StaffController extends Controller
         $organizationId = $request->user()?->organization_id;
 
         return (bool) $organizationId && $user->organization_id === $organizationId;
+    }
+
+    private function syncDirectPermissions(User $user, array $permissionNames): void
+    {
+        $this->assertAllowedPermissions($user, $permissionNames);
+
+        $permissionIds = Permission::query()
+            ->whereIn('name', $permissionNames)
+            ->pluck('id')
+            ->all();
+
+        $payload = [];
+
+        foreach ($permissionIds as $permissionId) {
+            $payload[$permissionId] = [
+                'id' => (string) str()->uuid(),
+                'effect' => 'allow',
+            ];
+        }
+
+        $user->directPermissions()->sync($payload);
+    }
+
+    private function assertAllowedPermissions(User $user, array $permissionNames): void
+    {
+        $allowed = ['dashboard.view', 'user.view', 'user.create', 'user.update', 'user.delete', 'settings.view', 'settings.update'];
+
+        if ($this->moduleResolver->isPropertyAllowed($user)) {
+            $allowed = array_merge($allowed, ['property.view', 'property.create', 'property.update', 'property.delete']);
+        }
+
+        if ($this->moduleResolver->isServiceAllowed($user)) {
+            $allowed = array_merge($allowed, ['service.view', 'service.create', 'service.update', 'service.delete']);
+        }
+
+        $invalid = array_values(array_diff($permissionNames, $allowed));
+
+        if ($invalid !== []) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'One or more permissions are not allowed for this business type.',
+                'errors' => [
+                    'permissions' => ['Invalid permissions: ' . implode(', ', $invalid)],
+                ],
+            ], 403));
+        }
     }
 }

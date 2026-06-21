@@ -7,10 +7,12 @@ use App\Http\Requests\Api\Admin\PropertyListingIndexRequest;
 use App\Http\Requests\Api\Admin\PropertyListingStoreRequest;
 use App\Http\Requests\Api\Admin\PropertyListingUpdateRequest;
 use App\Http\Resources\Admin\AdminPropertyListingResource;
+use App\Models\Media;
 use App\Models\PropertyListing;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PropertyController extends Controller
 {
@@ -89,11 +91,16 @@ class PropertyController extends Controller
             'longitude' => $request->input('longitude'),
             'title' => $request->input('title'),
             'description' => $request->input('description'),
+            'address' => $request->input('address'),
+            'full_address' => $request->input('full_address') ?? $request->input('address'),
             'status' => $request->input('status'),
             'suburb' => $request->input('suburb'),
             'postcode' => $request->input('postcode'),
         ]);
-        $listing->load(['organization.organizationType', 'creator']);
+
+        $this->storeListingMedia($listing, $request);
+
+        $listing->load(['organization.organizationType', 'creator', 'media']);
 
         return $this->created(
             new AdminPropertyListingResource($listing),
@@ -105,9 +112,17 @@ class PropertyController extends Controller
     {
         abort_unless($this->isInAdminOrganization($request, $propertyListing), 403);
 
-        $propertyListing->fill($request->validated());
+        $validated = $request->validated();
+        if (array_key_exists('address', $validated) && !array_key_exists('full_address', $validated)) {
+            $validated['full_address'] = $validated['address'];
+        }
+
+        $propertyListing->fill($validated);
         $propertyListing->save();
-        $propertyListing->load(['organization.organizationType', 'creator']);
+
+        $this->storeListingMedia($propertyListing, $request);
+
+        $propertyListing->load(['organization.organizationType', 'creator', 'media']);
 
         return $this->success(
             new AdminPropertyListingResource($propertyListing),
@@ -129,5 +144,39 @@ class PropertyController extends Controller
         $organizationId = $request->user()?->organization_id;
 
         return (bool) $organizationId && $propertyListing->org_id === $organizationId;
+    }
+
+    private function storeListingMedia(PropertyListing $listing, Request $request): void
+    {
+        $uploadedImages = $request->file('images', []);
+        $uploadedVideos = $request->file('videos', []);
+
+        $mediaOrder = (int) Media::query()
+            ->where('property_listing_id', $listing->id)
+            ->max('sort_order');
+
+        foreach ($uploadedImages as $index => $file) {
+            $path = $file->storePublicly("property-listings/{$listing->id}/images", 'public');
+
+            Media::query()->create([
+                'property_listing_id' => $listing->id,
+                'file_url' => Storage::disk('public')->url($path),
+                'media_type' => 'image',
+                'is_primary' => $index === 0 && $mediaOrder === 0,
+                'sort_order' => ++$mediaOrder,
+            ]);
+        }
+
+        foreach ($uploadedVideos as $file) {
+            $path = $file->storePublicly("property-listings/{$listing->id}/videos", 'public');
+
+            Media::query()->create([
+                'property_listing_id' => $listing->id,
+                'file_url' => Storage::disk('public')->url($path),
+                'media_type' => 'video',
+                'is_primary' => false,
+                'sort_order' => ++$mediaOrder,
+            ]);
+        }
     }
 }

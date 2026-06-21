@@ -26,7 +26,7 @@ class StaffUpdateRequest extends FormRequest
                 'max:150',
                 Rule::unique('users', 'email')->ignore($staff?->id),
             ],
-            'password' => ['nullable', 'confirmed', Password::min(8)],
+            'password' => ['nullable', Password::min(8)],
             'mobile_number' => [
                 'nullable',
                 'string',
@@ -34,6 +34,8 @@ class StaffUpdateRequest extends FormRequest
                 Rule::unique('users', 'mobile_number')->ignore($staff?->id),
             ],
             'display_name' => ['nullable', 'string', 'max:120'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ];
     }
 }

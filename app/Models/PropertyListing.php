@@ -26,6 +26,8 @@ class PropertyListing extends Model
         'longitude',
         'title',
         'description',
+        'address',
+        'full_address',
         'status',
         'suburb',
         'postcode',
@@ -44,7 +46,7 @@ class PropertyListing extends Model
 
     public function media(): HasMany
     {
-        return $this->hasMany(Media::class, 'property_listing_id');
+        return $this->hasMany(Media::class, 'property_listing_id')->orderBy('sort_order');
     }
 
     public function favorites(): MorphMany

@@ -20,9 +20,15 @@ class Organization extends Model
 
     protected $fillable = [
         'name',
+        'trading_name',
         'contact_email',
         'contact_phone',
         'abn',
+        'business_type',
+        'business_verification_status',
+        'address',
+        'state',
+        'postcode',
         'plan_id',
         'type_id',
         'ranking_priority',

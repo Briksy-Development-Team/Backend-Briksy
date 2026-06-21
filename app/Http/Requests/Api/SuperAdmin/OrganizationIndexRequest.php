@@ -20,9 +20,12 @@ class OrganizationIndexRequest extends ApiListRequest
     {
         return [
             'name',
+            'trading_name',
             'slug',
             'abn',
             'acn',
+            'business_type',
+            'business_verification_status',
         ];
     }
 
@@ -30,6 +33,8 @@ class OrganizationIndexRequest extends ApiListRequest
     {
         return [
             'type_id' => 'type_id',
+            'business_type' => 'business_type',
+            'business_verification_status' => 'business_verification_status',
             'is_verified' => 'is_verified',
         ];
     }
@@ -39,6 +44,10 @@ class OrganizationIndexRequest extends ApiListRequest
         return [
             'filter.type_id' => ['nullable', 'uuid', 'exists:organization_types,id'],
             'filter.type_slug' => ['nullable', 'string', 'max:100'],
+            'filter.service_slug' => ['nullable', 'string', 'max:100'],
+            'filter.service_group_slug' => ['nullable', 'string', 'max:100'],
+            'filter.business_type' => ['nullable', 'string', 'in:organisation,company,solo_trader'],
+            'filter.business_verification_status' => ['nullable', 'string', 'in:pending,verified,rejected'],
             'filter.is_verified' => ['nullable', 'boolean'],
         ];
     }

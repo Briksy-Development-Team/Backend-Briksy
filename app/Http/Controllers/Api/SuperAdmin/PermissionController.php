@@ -11,6 +11,7 @@ use App\Http\Resources\SuperAdmin\UserResource;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Business\BusinessModuleResolver;
 use App\Models\UserPermission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,10 @@ use Illuminate\Support\Str;
 
 class PermissionController extends Controller
 {
+    public function __construct(private readonly BusinessModuleResolver $moduleResolver)
+    {
+    }
+
     public function index(PermissionIndexRequest $request): JsonResponse
     {
         $query = Permission::query()->orderBy('module')->orderBy('action')->orderBy('name');
@@ -223,6 +228,8 @@ class PermissionController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'organization_id' => $user->organization_id,
+                'business_type' => $this->moduleResolver->businessType($user),
+                'business_verification_status' => $this->moduleResolver->verificationStatus($user),
                 'roles' => $user->roles->pluck('name')->values()->all(),
             ],
             'roles' => $user->roles->pluck('name')->values()->all(),
@@ -230,6 +237,7 @@ class PermissionController extends Controller
             'direct_permissions' => $directPermissions,
             'effective_permissions' => PermissionResource::collection($effectivePermissions)->resolve(),
             'effective_permission_names' => $effectivePermissions->pluck('name')->values()->all(),
+            'enabled_modules' => $this->moduleResolver->resolve($user),
             'grouped' => $this->groupPermissions($effectivePermissions),
         ];
     }

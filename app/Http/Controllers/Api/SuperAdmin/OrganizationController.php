@@ -26,6 +26,24 @@ class OrganizationController extends Controller
             $query->whereHas('organizationType', fn ($typeQuery) => $typeQuery->where('slug', $typeSlug));
         }
 
+        if ($request->filled('filter.service_slug')) {
+            $serviceSlug = $request->string('filter.service_slug')->toString();
+            $query->whereHas('services', fn ($serviceQuery) => $serviceQuery->where('services.slug', $serviceSlug));
+        }
+
+        if ($request->filled('filter.service_group_slug')) {
+            $serviceGroupSlug = $request->string('filter.service_group_slug')->toString();
+            $query->whereHas('serviceGroups', fn ($serviceGroupQuery) => $serviceGroupQuery->where('service_groups.slug', $serviceGroupSlug));
+        }
+
+        if ($request->filled('filter.business_type')) {
+            $query->where('business_type', $request->string('filter.business_type')->toString());
+        }
+
+        if ($request->filled('filter.business_verification_status')) {
+            $query->where('business_verification_status', $request->string('filter.business_verification_status')->toString());
+        }
+
         ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
 
         $paginator = $query->paginate($request->perPage())->withQueryString();
@@ -49,7 +67,10 @@ class OrganizationController extends Controller
 
     public function store(OrganizationStoreRequest $request): JsonResponse
     {
-        $organization = Organization::query()->create($request->validated());
+        $validated = $request->validated();
+        $validated['abn'] = preg_replace('/\s+/', '', (string) ($validated['abn'] ?? ''));
+        $validated['business_verification_status'] = $validated['business_verification_status'] ?? 'pending';
+        $organization = Organization::query()->create($validated);
         $organization->load(['organizationType', 'plan']);
 
         return $this->created(
@@ -60,7 +81,13 @@ class OrganizationController extends Controller
 
     public function update(OrganizationUpdateRequest $request, Organization $organization): JsonResponse
     {
-        $organization->fill($request->validated());
+        $validated = $request->validated();
+
+        if (array_key_exists('abn', $validated)) {
+            $validated['abn'] = preg_replace('/\s+/', '', (string) $validated['abn']);
+        }
+
+        $organization->fill($validated);
         $organization->save();
         $organization->load(['organizationType', 'plan']);
 
@@ -103,6 +130,36 @@ class OrganizationController extends Controller
         return $this->success(
             new OrganizationResource($organization),
             'Plan assigned successfully.'
+        );
+    }
+
+    public function approveVerification(Organization $organization): JsonResponse
+    {
+        $organization->update([
+            'business_verification_status' => 'verified',
+            'is_verified' => true,
+        ]);
+
+        $organization->load(['organizationType', 'plan']);
+
+        return $this->success(
+            new OrganizationResource($organization),
+            'Business verification approved successfully.'
+        );
+    }
+
+    public function rejectVerification(Organization $organization): JsonResponse
+    {
+        $organization->update([
+            'business_verification_status' => 'rejected',
+            'is_verified' => false,
+        ]);
+
+        $organization->load(['organizationType', 'plan']);
+
+        return $this->success(
+            new OrganizationResource($organization),
+            'Business verification rejected successfully.'
         );
     }
 }

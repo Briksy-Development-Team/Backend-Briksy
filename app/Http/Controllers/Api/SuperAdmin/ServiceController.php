@@ -3,65 +3,160 @@
 namespace App\Http\Controllers\Api\SuperAdmin;
 
 use App\Http\Controllers\Api\Controller;
-use App\Models\ServiceGroup;
+use App\Http\Requests\Api\SuperAdmin\ServiceIndexRequest;
+use App\Http\Requests\Api\SuperAdmin\ServiceStoreRequest;
+use App\Http\Requests\Api\SuperAdmin\ServiceUpdateRequest;
+use App\Http\Resources\SuperAdmin\ServiceResource;
+use App\Models\Service;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(ServiceIndexRequest $request): JsonResponse
     {
-        $query = ServiceGroup::query()
-            ->with(['organizationType'])
-            ->withCount(['services', 'organizations']);
+        $query = Service::query()
+            ->with(['organizationType', 'organization'])
+            ->withCount(['organizations', 'serviceGroups']);
 
-        ApiQueryBuilder::applySearch($query, $request->string('search')->toString(), ['name', 'slug', 'description']);
+        if (!$request->user()?->hasRole('super_admin')) {
+            $organizationId = $request->user()?->organization_id;
+
+            if (!$organizationId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin account is not assigned to an organization.',
+                ], 403);
+            }
+
+            $query->where('organization_id', $organizationId);
+        }
+
+        ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
 
         if ($request->filled('filter.type_slug')) {
             $typeSlug = $request->string('filter.type_slug')->toString();
             $query->whereHas('organizationType', fn ($typeQuery) => $typeQuery->where('slug', $typeSlug));
         }
 
+        if ($request->filled('filter.is_active')) {
+            $query->where('is_active', $request->boolean('filter.is_active'));
+        }
+
         ApiQueryBuilder::applySort(
             $query,
-            $request->string('sort')->toString(),
-            $request->string('direction')->toString() ?: 'asc',
-            [
-                'id' => 'id',
-                'name' => 'name',
-                'slug' => 'slug',
-                'created_at' => 'created_at',
-                'services_count' => 'services_count',
-                'organizations_count' => 'organizations_count',
-            ],
+            $request->sort(),
+            $request->direction(),
+            $request->allowedSorts(),
             'created_at'
         );
 
-        $groups = $query->paginate($request->integer('per_page', 10))->withQueryString();
-
-        $data = $groups->getCollection()->map(static function (ServiceGroup $group): array {
-            return [
-                'id' => $group->id,
-                'name' => $group->name,
-                'slug' => $group->slug,
-                'description' => $group->description,
-                'organization_type' => $group->organizationType ? [
-                    'id' => $group->organizationType->id,
-                    'name' => $group->organizationType->name,
-                    'slug' => $group->organizationType->slug,
-                ] : null,
-                'services_count' => $group->services_count,
-                'organization_count' => $group->organizations_count,
-                'created_at' => $group->created_at?->toISOString(),
-                'updated_at' => $group->updated_at?->toISOString(),
-            ];
-        })->all();
+        $services = $query->paginate($request->perPage())->withQueryString();
 
         return $this->paginated(
-            $data,
-            $groups,
+            ServiceResource::collection($services),
+            $services,
             'Services retrieved successfully.'
         );
+    }
+
+    public function show(Request $request, Service $service): JsonResponse
+    {
+        abort_unless($this->canAccessService($request, $service), 403);
+
+        $service->load(['organizationType', 'organization'])
+            ->loadCount(['organizations', 'serviceGroups']);
+
+        return $this->success(
+            new ServiceResource($service),
+            'Service retrieved successfully.'
+        );
+    }
+
+    public function store(ServiceStoreRequest $request): JsonResponse
+    {
+        $service = Service::query()->create($this->buildPayload($request));
+
+        $service->load(['organizationType', 'organization'])
+            ->loadCount(['organizations', 'serviceGroups']);
+
+        return $this->created(
+            new ServiceResource($service),
+            'Service created successfully.'
+        );
+    }
+
+    public function update(ServiceUpdateRequest $request, Service $service): JsonResponse
+    {
+        abort_unless($this->canAccessService($request, $service), 403);
+
+        $service->fill($this->buildPayload($request, $service));
+        $service->save();
+        $service->load(['organizationType', 'organization'])
+            ->loadCount(['organizations', 'serviceGroups']);
+
+        return $this->success(
+            new ServiceResource($service),
+            'Service updated successfully.'
+        );
+    }
+
+    public function destroy(Request $request, Service $service): JsonResponse
+    {
+        abort_unless($this->canAccessService($request, $service), 403);
+
+        $service->delete();
+
+        return $this->success([], 'Service deleted successfully.');
+    }
+
+    private function buildPayload(Request $request, ?Service $service = null): array
+    {
+        $validated = $request->validated();
+
+        $name = $validated['name'] ?? $service?->name;
+        $title = $validated['title'] ?? $name;
+
+        $payload = [
+            'name' => $name,
+            'title' => $title,
+            'category' => $validated['category'] ?? $service?->category,
+            'slug' => $validated['slug'] ?? $service?->slug,
+            'description' => $validated['description'] ?? $service?->description,
+            'service_area' => $validated['service_area'] ?? $service?->service_area,
+            'rate_from' => $validated['rate_from'] ?? $service?->rate_from,
+            'rate_to' => $validated['rate_to'] ?? $service?->rate_to,
+            'is_active' => array_key_exists('is_active', $validated)
+                ? (bool) $validated['is_active']
+                : (bool) ($service?->is_active ?? true),
+        ];
+
+        if ($request->user()?->hasRole('super_admin')) {
+            $payload['organization_id'] = $validated['organization_id'] ?? $service?->organization_id;
+            $payload['type_id'] = $validated['type_id'] ?? $service?->type_id;
+        } else {
+            $payload['organization_id'] = $request->user()?->organization_id;
+            $payload['type_id'] = $request->user()?->organization?->type_id ?? $service?->type_id;
+        }
+
+        return $payload;
+    }
+
+    private function canAccessService(Request $request, Service $service): bool
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        $organizationId = $user->organization_id;
+
+        return (bool) $organizationId && $service->organization_id === $organizationId;
     }
 }

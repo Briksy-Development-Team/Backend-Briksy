@@ -19,13 +19,8 @@ class UserResource extends JsonResource
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'mobile_verified_at' => $this->mobile_verified_at?->toISOString(),
             'roles' => $this->whenLoaded('roles', fn (): array => $this->roles->pluck('name')->values()->all()),
-            'permissions' => $this->whenLoaded('roles', function (): array {
-                return $this->roles
-                    ->flatMap(fn ($role) => $role->permissions->pluck('name'))
-                    ->unique()
-                    ->values()
-                    ->all();
-            }),
+            'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
+            'status' => $this->deleted_at ? 'inactive' : 'active',
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

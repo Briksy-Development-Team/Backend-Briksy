@@ -7,6 +7,7 @@ use App\Http\Requests\Api\SuperAdmin\StaffIndexRequest;
 use App\Http\Requests\Api\SuperAdmin\StaffStoreRequest;
 use App\Http\Requests\Api\SuperAdmin\StaffUpdateRequest;
 use App\Http\Resources\SuperAdmin\UserResource;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Query\ApiQueryBuilder;
@@ -76,6 +77,8 @@ class StaffController extends Controller
                 ],
             ]);
 
+            $this->syncDirectPermissions($user, $request->input('permissions', []));
+
             return $user->load(['roles', 'organization']);
         });
 
@@ -101,6 +104,10 @@ class StaffController extends Controller
         }
 
         unset($validatedData['password']);
+        $permissionNames = array_key_exists('permissions', $validatedData)
+            ? $validatedData['permissions']
+            : null;
+        unset($validatedData['permissions']);
 
         $staff->fill($validatedData);
         $staff->save();
@@ -123,9 +130,32 @@ class StaffController extends Controller
             }
         }
 
+        if ($permissionNames !== null) {
+            $this->syncDirectPermissions($staff, $permissionNames);
+        }
+
         return $this->success(
             new UserResource($staff->fresh()->load(['roles', 'organization'])),
             'Staff member updated successfully.'
         );
+    }
+
+    private function syncDirectPermissions(User $user, array $permissionNames): void
+    {
+        $permissionIds = Permission::query()
+            ->whereIn('name', $permissionNames)
+            ->pluck('id')
+            ->all();
+
+        $payload = [];
+
+        foreach ($permissionIds as $permissionId) {
+            $payload[$permissionId] = [
+                'id' => (string) str()->uuid(),
+                'effect' => 'allow',
+            ];
+        }
+
+        $user->directPermissions()->sync($payload);
     }
 }

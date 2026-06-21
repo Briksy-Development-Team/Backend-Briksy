@@ -18,9 +18,11 @@ class StaffStoreRequest extends FormRequest
             'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', Password::min(8)],
             'mobile_number' => ['nullable', 'string', 'max:30', 'unique:users,mobile_number'],
             'display_name' => ['nullable', 'string', 'max:120'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ];
     }
 }

@@ -13,6 +13,8 @@ class PropertyListingResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'description' => $this->description,
+            'address' => $this->address,
+            'full_address' => $this->full_address,
             'status' => $this->status,
             'rating' => (float) $this->avg_prop_rating,
             'location' => [

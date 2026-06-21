@@ -144,49 +144,28 @@ Route::prefix('admin')->group(function (): void {
         Route::get('businesses', [AdminOrganizationController::class, 'index'])->middleware('permission:company.view');
         Route::get('businesses/{organization}', [AdminOrganizationController::class, 'show'])->middleware('permission:company.view');
 
-        Route::get('properties', [AdminPropertyController::class, 'index'])->middleware('permission:property.view');
-        Route::post('properties', [AdminPropertyController::class, 'store'])->middleware('permission:property.create');
-        Route::get('properties/{propertyListing}', [AdminPropertyController::class, 'show'])->middleware('permission:property.view');
-        Route::put('properties/{propertyListing}', [AdminPropertyController::class, 'update'])->middleware('permission:property.update');
-        Route::delete('properties/{propertyListing}', [AdminPropertyController::class, 'destroy'])->middleware('permission:property.delete');
+        Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
+        Route::post('properties', [AdminPropertyController::class, 'store'])->middleware(['module:property_management', 'permission:property.create']);
+        Route::get('properties/{propertyListing}', [AdminPropertyController::class, 'show'])->middleware(['module:property_management', 'permission:property.view']);
+        Route::put('properties/{propertyListing}', [AdminPropertyController::class, 'update'])->middleware(['module:property_management', 'permission:property.update']);
+        Route::delete('properties/{propertyListing}', [AdminPropertyController::class, 'destroy'])->middleware(['module:property_management', 'permission:property.delete']);
 
-        Route::prefix('services')->group(function (): void {
-            Route::get('groups', function () {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Admin API for service groups (list) is not implemented yet.',
-                ], 501);
-            });
-            Route::get('groups/{serviceGroup}', function () {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Admin API for service groups (show) is not implemented yet.',
-                ], 501);
-            });
-            Route::get('/', function () {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Admin API for services (list) is not implemented yet.',
-                ], 501);
-            });
-            Route::get('{service}', function () {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Admin API for services (show) is not implemented yet.',
-                ], 501);
-            });
-        });
+        Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware(['module:service_management', 'permission:service.view']);
+        Route::post('services', [SuperAdminServiceController::class, 'store'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::get('services/{service}', [SuperAdminServiceController::class, 'show'])->middleware(['module:service_management', 'permission:service.view']);
+        Route::put('services/{service}', [SuperAdminServiceController::class, 'update'])->middleware(['module:service_management', 'permission:service.update']);
+        Route::delete('services/{service}', [SuperAdminServiceController::class, 'destroy'])->middleware(['module:service_management', 'permission:service.delete']);
     });
 
     Route::middleware(['auth:sanctum', 'role:admin'])->group(function (): void {
         Route::post('auth/register-staff', [RegistrationController::class, 'registerAdminStaff'])
             ->withoutMiddleware('role:admin');
 
-        Route::get('staff', [AdminStaffController::class, 'index'])->middleware('permission:user.view');
-        Route::post('staff', [AdminStaffController::class, 'store'])->middleware('permission:user.create');
-        Route::get('staff/{user}', [AdminStaffController::class, 'show'])->middleware('permission:user.view');
-        Route::put('staff/{user}', [AdminStaffController::class, 'update'])->middleware('permission:user.update');
-        Route::delete('staff/{user}', [AdminStaffController::class, 'destroy'])->middleware('permission:user.delete');
+        Route::get('staff', [AdminStaffController::class, 'index'])->middleware(['module:user_management', 'permission:user.view']);
+        Route::post('staff', [AdminStaffController::class, 'store'])->middleware(['module:user_management', 'permission:user.create']);
+        Route::get('staff/{user}', [AdminStaffController::class, 'show'])->middleware(['module:user_management', 'permission:user.view']);
+        Route::put('staff/{user}', [AdminStaffController::class, 'update'])->middleware(['module:user_management', 'permission:user.update']);
+        Route::delete('staff/{user}', [AdminStaffController::class, 'destroy'])->middleware(['module:user_management', 'permission:user.delete']);
 
     });
 });
@@ -216,6 +195,8 @@ Route::prefix('super-admin')->group(function (): void {
         Route::delete('organizations/{organization}', [OrganizationController::class, 'destroy'])->middleware('permission:company.delete');
         Route::patch('organizations/{organization}/restore', [OrganizationController::class, 'restore'])->middleware('permission:company.update');
         Route::patch('organizations/{organization}/assign-plan', [OrganizationController::class, 'assignPlan'])->middleware('permission:company.update');
+        Route::patch('organizations/{organization}/approve-verification', [OrganizationController::class, 'approveVerification'])->middleware('permission:company.update');
+        Route::patch('organizations/{organization}/reject-verification', [OrganizationController::class, 'rejectVerification'])->middleware('permission:company.update');
 
         Route::get('organization-types', [OrganizationTypeController::class, 'index'])->middleware('permission:company.view');
         Route::post('organization-types', [OrganizationTypeController::class, 'store'])->middleware('permission:company.create');
@@ -225,7 +206,13 @@ Route::prefix('super-admin')->group(function (): void {
         Route::get('properties/{propertyListing}', [SuperAdminPropertyController::class, 'show'])->middleware('permission:property.view');
 
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware('permission:service.view');
-        Route::get('service-groups', [SuperAdminServiceController::class, 'index'])->middleware('permission:service.view');
+        Route::get('service-groups', function () {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin API for service groups (list) is not implemented yet.',
+            ], 501);
+        })->middleware('permission:service.view');
+        Route::get('services/{service}', [SuperAdminServiceController::class, 'show'])->middleware('permission:service.view');
 
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware('permission:dashboard.view');
 

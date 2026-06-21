@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\EnsureUserHasModule;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => CheckForAnyAbility::class,
             'role' => EnsureUserHasRole::class,
             'permission' => EnsureUserHasPermission::class,
+            'module' => EnsureUserHasModule::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

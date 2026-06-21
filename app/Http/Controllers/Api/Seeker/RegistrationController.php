@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Seeker;
 use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\Seeker\RegisterSeekerRequest;
 use App\Http\Resources\Seeker\SeekerAccountResource;
+use App\Models\Organization;
+use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 class RegistrationController extends Controller
 {
@@ -107,15 +110,69 @@ class RegistrationController extends Controller
             'first' => ['required', 'string', 'max:120'],
             'last' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
+            'business_name' => ['required', 'string', 'max:200'],
+            'trading_name' => ['nullable', 'string', 'max:200'],
+            'business_type' => ['required', 'in:organisation,company,solo_trader'],
+            'abn_number' => [
+                'required',
+                'string',
+                'size:11',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $normalized = preg_replace('/\s+/', '', (string) $value);
+                    if (!preg_match('/^\d{11}$/', $normalized) || !$this->isValidAbn($normalized)) {
+                        $fail('The ABN number is invalid.');
+                    }
+                },
+            ],
+            'contact_email' => ['nullable', 'email', 'max:150'],
+            'contact_phone' => ['nullable', 'string', 'max:30'],
+            'address' => ['nullable', 'string'],
+            'state' => ['nullable', 'string', 'max:50'],
+            'postcode' => ['nullable', 'string', 'max:10'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
-        $adminUser = DB::transaction(function () use ($validated): User {
+        $businessType = $validated['business_type'];
+        $abn = preg_replace('/\s+/', '', $validated['abn_number']);
+        $organizationTypeSlug = $businessType === 'solo_trader' ? 'solo-traders' : 'property-management';
+
+        $adminUser = DB::transaction(function () use ($validated, $businessType, $abn, $organizationTypeSlug): User {
+            $organizationType = OrganizationType::query()
+                ->where('slug', $organizationTypeSlug)
+                ->firstOrFail();
+
+            $slugBase = Str::slug($validated['business_name']);
+            $slug = $slugBase;
+            $suffix = 1;
+            while (Organization::query()->where('slug', $slug)->exists()) {
+                $slug = $slugBase . '-' . $suffix++;
+            }
+
+            $organization = Organization::create([
+                'name' => $validated['business_name'],
+                'trading_name' => $validated['trading_name'] ?? null,
+                'contact_email' => $validated['contact_email'] ?? $validated['email'],
+                'contact_phone' => $validated['contact_phone'] ?? null,
+                'abn' => $abn,
+                'business_type' => $businessType,
+                'business_verification_status' => 'pending',
+                'address' => $validated['address'] ?? null,
+                'state' => $validated['state'] ?? null,
+                'postcode' => $validated['postcode'] ?? null,
+                'plan_id' => null,
+                'type_id' => $organizationType->id,
+                'ranking_priority' => 1,
+                'avg_org_rating' => 0,
+                'slug' => $slug,
+                'stripe_customer_id' => null,
+                'is_verified' => false,
+            ]);
+
             $adminUser = User::create([
-                'name' => $validated['first'] . ' ' . $validated['last'],
+                'name' => trim($validated['first'] . ' ' . $validated['last']),
                 'email' => $validated['email'],
                 'password_hash' => $validated['password'],
-                'organization_id' => null,
+                'organization_id' => $organization->id,
                 'id_verified' => false,
             ]);
 
@@ -127,11 +184,11 @@ class RegistrationController extends Controller
             $adminUser->roles()->syncWithoutDetaching([
                 $adminRole->id => [
                     'id' => (string) str()->uuid(),
-                    'organization_id' => null,
+                    'organization_id' => $organization->id,
                 ],
             ]);
 
-            return $adminUser->load(['roles.permissions', 'directPermissions']);
+            return $adminUser->load(['roles.permissions', 'directPermissions', 'organization']);
         });
 
         $token = $adminUser->createToken('admin-auth', ['admin'])->plainTextToken;
@@ -340,5 +397,24 @@ class RegistrationController extends Controller
         }
 
         return [];
+    }
+
+    private function isValidAbn(string $abn): bool
+    {
+        if (!preg_match('/^\d{11}$/', $abn)) {
+            return false;
+        }
+
+        $digits = array_map('intval', str_split($abn));
+        $digits[0] -= 1;
+
+        $weights = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+        $sum = 0;
+
+        foreach ($digits as $index => $digit) {
+            $sum += $digit * $weights[$index];
+        }
+
+        return $sum % 89 === 0;
     }
 }

@@ -262,10 +262,20 @@ class SeekerApiTest extends TestCase
 
     public function test_admin_can_register_and_receive_bearer_token(): void
     {
+        $this->seed();
+
         $response = $this->postJson('/api/admin/auth/register', [
             'first' => 'Main',
             'last' => 'Admin',
             'email' => 'admin@example.com',
+            'business_name' => 'Main Admin Co',
+            'trading_name' => 'Main Admin',
+            'business_type' => 'company',
+            'abn_number' => '51824753556',
+            'contact_phone' => '+61 400 111 222',
+            'address' => '12 Example Street, Sydney NSW 2000',
+            'state' => 'NSW',
+            'postcode' => '2000',
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
         ]);

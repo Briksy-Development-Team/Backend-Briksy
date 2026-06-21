@@ -14,9 +14,37 @@ class AdminPropertyListingResource extends JsonResource
             'title' => $this->title,
             'status' => $this->status,
             'description' => $this->description,
+            'address' => $this->address,
+            'full_address' => $this->full_address,
+            'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
             'rating' => (float) $this->avg_prop_rating,
             'suburb' => $this->suburb,
             'postcode' => $this->postcode,
+            'images' => $this->whenLoaded('media', function (): array {
+                return $this->media
+                    ->where('media_type', 'image')
+                    ->map(fn ($media): array => [
+                        'id' => $media->id,
+                        'url' => $media->file_url,
+                        'is_primary' => (bool) $media->is_primary,
+                        'sort_order' => (int) $media->sort_order,
+                    ])
+                    ->values()
+                    ->all();
+            }),
+            'videos' => $this->whenLoaded('media', function (): array {
+                return $this->media
+                    ->where('media_type', 'video')
+                    ->map(fn ($media): array => [
+                        'id' => $media->id,
+                        'url' => $media->file_url,
+                        'is_primary' => (bool) $media->is_primary,
+                        'sort_order' => (int) $media->sort_order,
+                    ])
+                    ->values()
+                    ->all();
+            }),
             'organization' => $this->whenLoaded('organization', function (): array {
                 return [
                     'id' => $this->organization?->id,

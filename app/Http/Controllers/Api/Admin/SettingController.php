@@ -6,11 +6,16 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\SuperAdmin\CompanySettingRequest;
 use App\Http\Resources\SuperAdmin\CompanySettingResource;
 use App\Models\CompanySetting;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $organizationId = $request->user()?->organization_id;
@@ -37,6 +42,22 @@ class SettingController extends Controller
                 ]
             );
         }
+
+        $this->notificationService->notifySuperAdmins(
+            $this->notificationService->buildPayload(
+                'system_setting_changed',
+                'Company settings updated',
+                sprintf('Company settings were updated for organisation %s.', $organizationId),
+                CompanySetting::class,
+                $organizationId,
+                '/super-admin/settings',
+                'normal',
+                $request->user()?->id,
+                $organizationId
+            ),
+            'Company settings updated',
+            'Review settings'
+        );
 
         $settings = CompanySetting::query()->where('organization_id', $organizationId)->orderBy('group')->orderBy('key')->get();
 

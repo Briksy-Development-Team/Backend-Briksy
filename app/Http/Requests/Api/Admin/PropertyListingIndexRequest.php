@@ -31,7 +31,9 @@ class PropertyListingIndexRequest extends ApiIndexRequest
         return [
             'filter.status' => ['nullable', 'string', 'max:50'],
             'filter.suburb' => ['nullable', 'string', 'max:100'],
+            'filter.state' => ['nullable', 'string', 'max:50'],
             'filter.postcode' => ['nullable', 'string', 'max:10'],
+            'filter.property_type_id' => ['nullable', 'uuid'],
             'filter.organization_slug' => ['nullable', 'string', 'max:100'],
             'filter.verified_only' => ['nullable', 'boolean'],
         ];

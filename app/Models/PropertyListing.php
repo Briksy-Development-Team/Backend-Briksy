@@ -21,16 +21,27 @@ class PropertyListing extends Model
     protected $fillable = [
         'org_id',
         'creator_id',
+        'property_type_id',
         'avg_prop_rating',
+        'address_line_1',
+        'address_line_2',
         'latitude',
         'longitude',
         'title',
         'description',
         'address',
         'full_address',
+<<<<<<< Updated upstream
+=======
+        'formatted_address',
+        'place_id',
+>>>>>>> Stashed changes
         'status',
         'suburb',
+        'state',
         'postcode',
+        'country',
+        'location_verified',
         'embedding',
     ];
 
@@ -42,6 +53,11 @@ class PropertyListing extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_id');
+    }
+
+    public function propertyType(): BelongsTo
+    {
+        return $this->belongsTo(PropertyType::class, 'property_type_id');
     }
 
     public function media(): HasMany

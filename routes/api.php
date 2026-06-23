@@ -31,6 +31,8 @@ use App\Http\Controllers\Api\SuperAdmin\SubscriptionPlanController as SuperAdmin
 use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerController;
 use App\Http\Controllers\Api\SuperAdmin\StaffController;
 use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -145,11 +147,26 @@ Route::prefix('admin')->group(function (): void {
         Route::get('businesses/{organization}', [AdminOrganizationController::class, 'show'])->middleware('permission:company.view');
 
         Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
+<<<<<<< Updated upstream
+=======
+        Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.view']);
+>>>>>>> Stashed changes
         Route::post('properties', [AdminPropertyController::class, 'store'])->middleware(['module:property_management', 'permission:property.create']);
         Route::get('properties/{propertyListing}', [AdminPropertyController::class, 'show'])->middleware(['module:property_management', 'permission:property.view']);
         Route::put('properties/{propertyListing}', [AdminPropertyController::class, 'update'])->middleware(['module:property_management', 'permission:property.update']);
         Route::delete('properties/{propertyListing}', [AdminPropertyController::class, 'destroy'])->middleware(['module:property_management', 'permission:property.delete']);
 
+<<<<<<< Updated upstream
+=======
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
+        Route::patch('notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::delete('notifications/{notification}', [NotificationController::class, 'destroy']);
+        Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
+        Route::patch('notification-preferences', [NotificationPreferenceController::class, 'update']);
+
+>>>>>>> Stashed changes
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware(['module:service_management', 'permission:service.view']);
         Route::post('services', [SuperAdminServiceController::class, 'store'])->middleware(['module:service_management', 'permission:service.create']);
         Route::get('services/{service}', [SuperAdminServiceController::class, 'show'])->middleware(['module:service_management', 'permission:service.view']);
@@ -203,6 +220,7 @@ Route::prefix('super-admin')->group(function (): void {
         Route::put('organization-types/{organizationType}', [OrganizationTypeController::class, 'update'])->middleware('permission:company.update');
 
         Route::get('properties', [SuperAdminPropertyController::class, 'index'])->middleware('permission:property.view');
+        Route::get('properties/map', [SuperAdminPropertyController::class, 'map'])->middleware('permission:property.view');
         Route::get('properties/{propertyListing}', [SuperAdminPropertyController::class, 'show'])->middleware('permission:property.view');
 
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware('permission:service.view');
@@ -252,6 +270,14 @@ Route::prefix('super-admin')->group(function (): void {
 
         Route::get('settings', [SettingController::class, 'index'])->middleware('permission:settings.view');
         Route::patch('settings', [SettingController::class, 'update'])->middleware('permission:settings.update');
+
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
+        Route::patch('notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::delete('notifications/{notification}', [NotificationController::class, 'destroy']);
+        Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
+        Route::patch('notification-preferences', [NotificationPreferenceController::class, 'update']);
 
         Route::get('plans', [SuperAdminSubscriptionPlanController::class, 'index'])->middleware('permission:plan.view');
         Route::post('plans', [SuperAdminSubscriptionPlanController::class, 'store'])->middleware('permission:plan.create');

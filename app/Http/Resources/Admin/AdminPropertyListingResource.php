@@ -15,12 +15,35 @@ class AdminPropertyListingResource extends JsonResource
             'status' => $this->status,
             'description' => $this->description,
             'address' => $this->address,
+<<<<<<< Updated upstream
             'full_address' => $this->full_address,
+=======
+            'address_line_1' => $this->address_line_1,
+            'address_line_2' => $this->address_line_2,
+            'full_address' => $this->full_address,
+            'formatted_address' => $this->formatted_address,
+            'place_id' => $this->place_id,
+>>>>>>> Stashed changes
             'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
             'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
             'rating' => (float) $this->avg_prop_rating,
             'suburb' => $this->suburb,
+            'state' => $this->state,
             'postcode' => $this->postcode,
+<<<<<<< Updated upstream
+=======
+            'country' => $this->country,
+            'location_verified' => (bool) $this->location_verified,
+            'organization_id' => $this->org_id,
+            'property_type_id' => $this->property_type_id,
+            'property_type' => $this->whenLoaded('propertyType', function (): ?array {
+                return $this->propertyType ? [
+                    'id' => $this->propertyType?->id,
+                    'name' => $this->propertyType?->name,
+                    'slug' => $this->propertyType?->slug,
+                ] : null;
+            }),
+>>>>>>> Stashed changes
             'images' => $this->whenLoaded('media', function (): array {
                 return $this->media
                     ->where('media_type', 'image')

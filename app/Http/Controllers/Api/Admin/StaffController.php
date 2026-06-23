@@ -7,6 +7,10 @@ use App\Http\Resources\Admin\AdminStaffResource;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+<<<<<<< Updated upstream
+=======
+use App\Services\NotificationService;
+>>>>>>> Stashed changes
 use App\Support\Business\BusinessModuleResolver;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +20,14 @@ use Illuminate\Support\Facades\DB;
 
 class StaffController extends Controller
 {
+<<<<<<< Updated upstream
     public function __construct(private readonly BusinessModuleResolver $moduleResolver)
+=======
+    public function __construct(
+        private readonly BusinessModuleResolver $moduleResolver,
+        private readonly NotificationService $notificationService
+    )
+>>>>>>> Stashed changes
     {
     }
 
@@ -108,6 +119,23 @@ class StaffController extends Controller
             return $staff->load('roles');
         });
 
+        $this->notificationService->notifyAdminsForOrganisation(
+            $organizationId,
+            $this->notificationService->buildPayload(
+                'user_invited',
+                'User invited',
+                sprintf('Staff member "%s" has been invited.', $staff->name),
+                User::class,
+                $staff->id,
+                '/admin/users',
+                'normal',
+                $request->user()?->id,
+                $organizationId
+            ),
+            'User invited',
+            'View users'
+        );
+
         return $this->created(
             new AdminStaffResource($staff),
             'Staff member created successfully.'
@@ -149,6 +177,26 @@ class StaffController extends Controller
             $this->syncDirectPermissions($user, $permissionNames);
         }
 
+<<<<<<< Updated upstream
+=======
+        $this->notificationService->notifyAdminsForOrganisation(
+            $organizationId,
+            $this->notificationService->buildPayload(
+                'user_role_changed',
+                'User updated',
+                sprintf('Staff member "%s" was updated.', $user->name),
+                User::class,
+                $user->id,
+                '/admin/users',
+                'normal',
+                $request->user()?->id,
+                $organizationId
+            ),
+            'User updated',
+            'View users'
+        );
+
+>>>>>>> Stashed changes
         return $this->success(
             new AdminStaffResource($user->fresh('roles')),
             'Staff member updated successfully.'

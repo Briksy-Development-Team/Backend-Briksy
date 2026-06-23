@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,10 @@ use Illuminate\Support\Str;
 
 class RegistrationController extends Controller
 {
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
+
     public function store(RegisterSeekerRequest $request): JsonResponse
     {
         $user = DB::transaction(function () use ($request): User {
@@ -191,6 +196,24 @@ class RegistrationController extends Controller
             return $adminUser->load(['roles.permissions', 'directPermissions', 'organization']);
         });
 
+        if ($adminUser->organization_id) {
+            $this->notificationService->notifySuperAdmins(
+                $this->notificationService->buildPayload(
+                    'company_signup',
+                    'New company signup',
+                    sprintf('Company "%s" registered a new admin account.', $adminUser->organization?->name ?? $validated['business_name']),
+                    Organization::class,
+                    $adminUser->organization_id,
+                    "/super-admin/companies/{$adminUser->organization_id}",
+                    'high',
+                    $adminUser->id,
+                    $adminUser->organization_id
+                ),
+                'New company signup',
+                'Review company'
+            );
+        }
+
         $token = $adminUser->createToken('admin-auth', ['admin'])->plainTextToken;
 
         return $this->created([
@@ -284,6 +307,23 @@ class RegistrationController extends Controller
             return $staffUser->load(['roles.permissions', 'directPermissions']);
         });
 
+        $this->notificationService->notifyAdminsForOrganisation(
+            $organizationId,
+            $this->notificationService->buildPayload(
+                'admin_user_invited',
+                'Admin user invited',
+                sprintf('A new staff user "%s" was invited.', $staffUser->name),
+                User::class,
+                $staffUser->id,
+                '/admin/users',
+                'normal',
+                $authUser->id,
+                $organizationId
+            ),
+            'Admin user invited',
+            'View users'
+        );
+
         $token = $staffUser->createToken('admin-staff-auth', ['admin_staff'])->plainTextToken;
 
         return $this->created([
@@ -339,6 +379,24 @@ class RegistrationController extends Controller
 
             return $superAdmin->load(['roles.permissions', 'directPermissions']);
         });
+
+        if ($superRole->users()->count() > 1) {
+            $this->notificationService->notifySuperAdmins(
+                $this->notificationService->buildPayload(
+                    'super_admin_created',
+                    'New super admin created',
+                    sprintf('A new super admin account "%s" has been created.', $superAdmin->name),
+                    User::class,
+                    $superAdmin->id,
+                    '/super-admin/staff',
+                    'normal',
+                    $superAdmin->id,
+                    null
+                ),
+                'New super admin',
+                'View staff'
+            );
+        }
 
         $token = $superAdmin->createToken('super-admin-auth', ['super_admin'])->plainTextToken;
 

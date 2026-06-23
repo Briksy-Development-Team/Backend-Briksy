@@ -9,46 +9,27 @@ use App\Http\Requests\Api\Admin\PropertyListingUpdateRequest;
 use App\Http\Resources\Admin\AdminPropertyListingResource;
 use App\Models\Media;
 use App\Models\PropertyListing;
+use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+<<<<<<< Updated upstream
+=======
+use Illuminate\Database\Eloquent\Builder;
+>>>>>>> Stashed changes
 
 class PropertyController extends Controller
 {
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
+
     public function index(PropertyListingIndexRequest $request): JsonResponse
     {
-        $organizationId = $request->user()?->organization_id;
-
-        if (!$organizationId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Admin account is not assigned to an organization.',
-            ], 403);
-        }
-
-        $query = PropertyListing::query()
-            ->where('org_id', $organizationId)
-            ->with(['organization.organizationType', 'creator']);
-
+        $query = $this->baseQuery($request);
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
-
-        if ($request->filled('filter.status')) {
-            $query->where('status', $request->string('filter.status')->toString());
-        }
-
-        if ($request->filled('filter.suburb')) {
-            $query->where('suburb', $request->string('filter.suburb')->toString());
-        }
-
-        if ($request->filled('filter.postcode')) {
-            $query->where('postcode', $request->string('filter.postcode')->toString());
-        }
-
-        if ($request->boolean('filter.verified_only')) {
-            $query->whereHas('organization', fn ($organizationQuery) => $organizationQuery->where('is_verified', true));
-        }
-
+        $this->applyFilters($query, $request);
         ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
 
         $properties = $query->paginate($request->perPage())->withQueryString();
@@ -60,11 +41,28 @@ class PropertyController extends Controller
         );
     }
 
+    public function map(PropertyListingIndexRequest $request): JsonResponse
+    {
+        $query = $this->baseQuery($request);
+        ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
+        $this->applyFilters($query, $request);
+
+        $properties = $query
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->get();
+
+        return $this->success(
+            AdminPropertyListingResource::collection($properties)->resolve(),
+            'Property map data retrieved successfully.'
+        );
+    }
+
     public function show(Request $request, PropertyListing $propertyListing): JsonResponse
     {
         abort_unless($this->isInAdminOrganization($request, $propertyListing), 403);
 
-        $propertyListing->load(['organization.organizationType', 'creator', 'media']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
 
         return $this->success(
             new AdminPropertyListingResource($propertyListing),
@@ -86,7 +84,10 @@ class PropertyController extends Controller
         $listing = PropertyListing::query()->create([
             'org_id' => $organizationId,
             'creator_id' => $request->user()->id,
+            'property_type_id' => $request->input('property_type_id'),
             'avg_prop_rating' => 0,
+            'address_line_1' => $request->input('address_line_1') ?? $request->input('address'),
+            'address_line_2' => $request->input('address_line_2'),
             'latitude' => $request->input('latitude'),
             'longitude' => $request->input('longitude'),
             'title' => $request->input('title'),
@@ -95,12 +96,37 @@ class PropertyController extends Controller
             'full_address' => $request->input('full_address') ?? $request->input('address'),
             'status' => $request->input('status'),
             'suburb' => $request->input('suburb'),
+            'state' => $request->input('state'),
             'postcode' => $request->input('postcode'),
+            'country' => $request->input('country') ?? 'Australia',
+            'formatted_address' => $request->input('formatted_address') ?? $request->input('full_address'),
+            'place_id' => $request->input('place_id'),
+            'location_verified' => $request->boolean('location_verified'),
         ]);
 
         $this->storeListingMedia($listing, $request);
 
+<<<<<<< Updated upstream
         $listing->load(['organization.organizationType', 'creator', 'media']);
+=======
+        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+
+        $this->notificationService->notifySuperAdmins(
+            $this->notificationService->buildPayload(
+                'property_created',
+                'New property added',
+                sprintf('A new property "%s" was added by %s.', $listing->title, $listing->organization?->name ?? 'an organisation'),
+                PropertyListing::class,
+                $listing->id,
+                "/super-admin/property-management?highlight={$listing->id}",
+                'normal',
+                $request->user()?->id,
+                $organizationId
+            ),
+            'New property added',
+            'Review property'
+        );
+>>>>>>> Stashed changes
 
         return $this->created(
             new AdminPropertyListingResource($listing),
@@ -116,13 +142,48 @@ class PropertyController extends Controller
         if (array_key_exists('address', $validated) && !array_key_exists('full_address', $validated)) {
             $validated['full_address'] = $validated['address'];
         }
+<<<<<<< Updated upstream
+=======
+        if (array_key_exists('address_line_1', $validated) && !array_key_exists('address', $validated)) {
+            $validated['address'] = $validated['address_line_1'];
+        }
+        if (array_key_exists('formatted_address', $validated) && !array_key_exists('full_address', $validated)) {
+            $validated['full_address'] = $validated['formatted_address'];
+        }
+        if (array_key_exists('country', $validated) && blank($validated['country'])) {
+            $validated['country'] = 'Australia';
+        }
+>>>>>>> Stashed changes
 
         $propertyListing->fill($validated);
         $propertyListing->save();
 
         $this->storeListingMedia($propertyListing, $request);
 
+<<<<<<< Updated upstream
         $propertyListing->load(['organization.organizationType', 'creator', 'media']);
+=======
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+
+        if (!$propertyListing->location_verified || $propertyListing->latitude === null || $propertyListing->longitude === null) {
+            $this->notificationService->notifyAdminsForOrganisation(
+                $propertyListing->org_id,
+                $this->notificationService->buildPayload(
+                    'property_location_missing',
+                    'Property missing coordinates',
+                    sprintf('Property "%s" needs verified map coordinates.', $propertyListing->title),
+                    PropertyListing::class,
+                    $propertyListing->id,
+                    "/admin/property-management?highlight={$propertyListing->id}",
+                    'high',
+                    $request->user()?->id,
+                    $propertyListing->org_id
+                ),
+                'Property location needs attention',
+                'Review property'
+            );
+        }
+>>>>>>> Stashed changes
 
         return $this->success(
             new AdminPropertyListingResource($propertyListing),
@@ -146,6 +207,49 @@ class PropertyController extends Controller
         return (bool) $organizationId && $propertyListing->org_id === $organizationId;
     }
 
+<<<<<<< Updated upstream
+=======
+    private function baseQuery(Request $request): Builder
+    {
+        $organizationId = $request->user()?->organization_id;
+
+        if (!$organizationId) {
+            abort(403, 'Admin account is not assigned to an organization.');
+        }
+
+        return PropertyListing::query()
+            ->where('org_id', $organizationId)
+            ->with(['organization.organizationType', 'creator', 'propertyType']);
+    }
+
+    private function applyFilters(Builder $query, PropertyListingIndexRequest $request): void
+    {
+        if ($request->filled('filter.status')) {
+            $query->where('status', $request->string('filter.status')->toString());
+        }
+
+        if ($request->filled('filter.suburb')) {
+            $query->where('suburb', $request->string('filter.suburb')->toString());
+        }
+
+        if ($request->filled('filter.state')) {
+            $query->where('state', $request->string('filter.state')->toString());
+        }
+
+        if ($request->filled('filter.postcode')) {
+            $query->where('postcode', $request->string('filter.postcode')->toString());
+        }
+
+        if ($request->filled('filter.property_type_id')) {
+            $query->where('property_type_id', $request->string('filter.property_type_id')->toString());
+        }
+
+        if ($request->boolean('filter.verified_only')) {
+            $query->whereHas('organization', fn ($organizationQuery) => $organizationQuery->where('is_verified', true));
+        }
+    }
+
+>>>>>>> Stashed changes
     private function storeListingMedia(PropertyListing $listing, Request $request): void
     {
         $uploadedImages = $request->file('images', []);

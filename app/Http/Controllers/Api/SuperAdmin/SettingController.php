@@ -9,6 +9,7 @@ use App\Http\Resources\SuperAdmin\CompanySettingResource;
 use App\Http\Resources\SuperAdmin\PlatformSettingResource;
 use App\Models\CompanySetting;
 use App\Models\PlatformSetting;
+use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 class SettingController extends Controller
 {
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $settings = PlatformSetting::query()->orderBy('group')->orderBy('key')->get();
@@ -42,6 +47,22 @@ class SettingController extends Controller
                 ]
             );
         }
+
+        $this->notificationService->notifySuperAdmins(
+            $this->notificationService->buildPayload(
+                'system_setting_changed',
+                'Platform settings updated',
+                'Platform settings were updated.',
+                PlatformSetting::class,
+                'platform-settings',
+                '/super-admin/settings',
+                'high',
+                $request->user()?->id,
+                null
+            ),
+            'Platform settings updated',
+            'Review settings'
+        );
 
         return $this->success($this->getSettingsPayload(), 'Platform settings updated successfully.');
     }

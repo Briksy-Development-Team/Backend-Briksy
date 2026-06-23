@@ -8,12 +8,17 @@ use App\Http\Requests\Api\SuperAdmin\OrganizationStoreRequest;
 use App\Http\Requests\Api\SuperAdmin\OrganizationUpdateRequest;
 use App\Http\Resources\SuperAdmin\OrganizationResource;
 use App\Models\Organization;
+use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OrganizationController extends Controller
 {
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
+
     public function index(OrganizationIndexRequest $request): JsonResponse
     {
         $query = Organization::query()->with(['organizationType', 'plan']);
@@ -73,6 +78,22 @@ class OrganizationController extends Controller
         $organization = Organization::query()->create($validated);
         $organization->load(['organizationType', 'plan']);
 
+        $this->notificationService->notifySuperAdmins(
+            $this->notificationService->buildPayload(
+                'company_created',
+                'New company signup',
+                sprintf('Company "%s" has been created.', $organization->name),
+                Organization::class,
+                $organization->id,
+                "/super-admin/companies/{$organization->id}",
+                'high',
+                $request->user()?->id,
+                $organization->id
+            ),
+            'New company signup',
+            'Review company'
+        );
+
         return $this->created(
             new OrganizationResource($organization),
             'Organization created successfully.'
@@ -127,6 +148,23 @@ class OrganizationController extends Controller
 
         $organization->load(['organizationType', 'plan']);
 
+        $this->notificationService->notifyAdminsForOrganisation(
+            $organization->id,
+            $this->notificationService->buildPayload(
+                'plan_changed',
+                'Plan updated',
+                sprintf('Your company plan has been updated for "%s".', $organization->name),
+                Organization::class,
+                $organization->id,
+                "/admin/settings",
+                'normal',
+                $request->user()?->id,
+                $organization->id
+            ),
+            'Plan updated',
+            'Open settings'
+        );
+
         return $this->success(
             new OrganizationResource($organization),
             'Plan assigned successfully.'
@@ -142,6 +180,26 @@ class OrganizationController extends Controller
 
         $organization->load(['organizationType', 'plan']);
 
+<<<<<<< Updated upstream
+=======
+        $this->notificationService->notifyAdminsForOrganisation(
+            $organization->id,
+            $this->notificationService->buildPayload(
+                'abn_verified',
+                'ABN verification completed',
+                sprintf('Your organisation "%s" has been verified.', $organization->name),
+                Organization::class,
+                $organization->id,
+                "/admin/settings",
+                'high',
+                request()->user()?->id,
+                $organization->id
+            ),
+            'ABN verified',
+            'View company'
+        );
+
+>>>>>>> Stashed changes
         return $this->success(
             new OrganizationResource($organization),
             'Business verification approved successfully.'
@@ -157,6 +215,26 @@ class OrganizationController extends Controller
 
         $organization->load(['organizationType', 'plan']);
 
+<<<<<<< Updated upstream
+=======
+        $this->notificationService->notifyAdminsForOrganisation(
+            $organization->id,
+            $this->notificationService->buildPayload(
+                'abn_rejected',
+                'ABN verification failed',
+                sprintf('Your organisation "%s" verification was rejected.', $organization->name),
+                Organization::class,
+                $organization->id,
+                "/admin/settings",
+                'high',
+                request()->user()?->id,
+                $organization->id
+            ),
+            'ABN verification rejected',
+            'View company'
+        );
+
+>>>>>>> Stashed changes
         return $this->success(
             new OrganizationResource($organization),
             'Business verification rejected successfully.'

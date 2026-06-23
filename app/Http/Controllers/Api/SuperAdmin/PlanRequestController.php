@@ -12,6 +12,7 @@ use App\Http\Resources\SuperAdmin\PlanRequestResource;
 use App\Models\Order;
 use App\Models\PlanRequest as PlanRequestModel;
 use App\Models\SubscriptionPlan;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -21,6 +22,10 @@ use Illuminate\Support\Str;
 class PlanRequestController extends Controller
 {
     use AppliesOrganizationScope;
+
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
 
     public function index(PlanRequestIndexRequest $request): JsonResponse
     {
@@ -56,6 +61,24 @@ class PlanRequestController extends Controller
         ]);
 
         $planRequest->load(['organization', 'plan']);
+
+        if ($planRequest->organization_id) {
+            $this->notificationService->notifySuperAdmins(
+                $this->notificationService->buildPayload(
+                    'plan_request_created',
+                    'New plan request',
+                    sprintf('A new plan request was created for "%s".', $planRequest->organization?->name ?? 'an organisation'),
+                    PlanRequestModel::class,
+                    $planRequest->id,
+                    '/super-admin/plan-requests',
+                    'high',
+                    $request->user()?->id,
+                    $planRequest->organization_id
+                ),
+                'New plan request',
+                'Review request'
+            );
+        }
 
         return $this->created(new PlanRequestResource($planRequest), 'Plan request created successfully.');
     }
@@ -164,6 +187,25 @@ class PlanRequestController extends Controller
                         ]
                     );
                 }
+            }
+
+            if ($organizationId) {
+                $this->notificationService->notifyAdminsForOrganisation(
+                    $organizationId,
+                    $this->notificationService->buildPayload(
+                        $status === 'approved' ? 'plan_request_approved' : 'plan_request_rejected',
+                        $status === 'approved' ? 'Plan request approved' : 'Plan request rejected',
+                        sprintf('Your plan request for "%s" has been %s.', $model->requested_plan_name ?? 'your plan', $status),
+                        PlanRequestModel::class,
+                        $model->id,
+                        '/admin/plan-requests',
+                        $status === 'approved' ? 'high' : 'normal',
+                        $request->user()?->id,
+                        $organizationId
+                    ),
+                    $status === 'approved' ? 'Plan request approved' : 'Plan request rejected',
+                    'View requests'
+                );
             }
         });
 

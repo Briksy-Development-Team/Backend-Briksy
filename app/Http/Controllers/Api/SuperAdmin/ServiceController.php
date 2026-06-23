@@ -8,12 +8,23 @@ use App\Http\Requests\Api\SuperAdmin\ServiceStoreRequest;
 use App\Http\Requests\Api\SuperAdmin\ServiceUpdateRequest;
 use App\Http\Resources\SuperAdmin\ServiceResource;
 use App\Models\Service;
+<<<<<<< Updated upstream
+=======
+use App\Services\NotificationService;
+>>>>>>> Stashed changes
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
+<<<<<<< Updated upstream
+=======
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
+
+>>>>>>> Stashed changes
     public function index(ServiceIndexRequest $request): JsonResponse
     {
         $query = Service::query()
@@ -81,6 +92,46 @@ class ServiceController extends Controller
         $service->load(['organizationType', 'organization'])
             ->loadCount(['organizations', 'serviceGroups']);
 
+<<<<<<< Updated upstream
+=======
+        if ($service->organization_id) {
+            $this->notificationService->notifyAdminsForOrganisation(
+                $service->organization_id,
+                $this->notificationService->buildPayload(
+                    'service_created',
+                    'Service added',
+                    sprintf('Service "%s" has been added.', $service->title ?? $service->name),
+                    Service::class,
+                    $service->id,
+                    '/admin/services',
+                    'normal',
+                    $request->user()?->id,
+                    $service->organization_id
+                ),
+                'Service added',
+                'View service'
+            );
+        }
+
+        if ($request->user()?->hasRole('super_admin')) {
+            $this->notificationService->notifySuperAdmins(
+                $this->notificationService->buildPayload(
+                    'service_created',
+                    'Service added',
+                    sprintf('Service "%s" has been added.', $service->title ?? $service->name),
+                    Service::class,
+                    $service->id,
+                    '/super-admin/services',
+                    'normal',
+                    $request->user()?->id,
+                    $service->organization_id
+                ),
+                'Service added',
+                'View service'
+            );
+        }
+
+>>>>>>> Stashed changes
         return $this->created(
             new ServiceResource($service),
             'Service created successfully.'
@@ -96,6 +147,28 @@ class ServiceController extends Controller
         $service->load(['organizationType', 'organization'])
             ->loadCount(['organizations', 'serviceGroups']);
 
+<<<<<<< Updated upstream
+=======
+        if ($service->organization_id) {
+            $this->notificationService->notifyAdminsForOrganisation(
+                $service->organization_id,
+                $this->notificationService->buildPayload(
+                    'service_updated',
+                    'Service updated',
+                    sprintf('Service "%s" has been updated.', $service->title ?? $service->name),
+                    Service::class,
+                    $service->id,
+                    '/admin/services',
+                    'normal',
+                    $request->user()?->id,
+                    $service->organization_id
+                ),
+                'Service updated',
+                'View service'
+            );
+        }
+
+>>>>>>> Stashed changes
         return $this->success(
             new ServiceResource($service),
             'Service updated successfully.'

@@ -10,6 +10,7 @@ use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\SubscriptionPlan;
 use App\Http\Controllers\Api\Concerns\AppliesOrganizationScope;
+use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,10 @@ use Illuminate\Support\Str;
 class OrderController extends Controller
 {
     use AppliesOrganizationScope;
+
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
 
     public function index(OrderIndexRequest $request): JsonResponse
     {
@@ -83,6 +88,25 @@ class OrderController extends Controller
             $coupon->increment('usage_count');
         }
 
+        if ($order->organization_id) {
+            $this->notificationService->notifyAdminsForOrganisation(
+                $order->organization_id,
+                $this->notificationService->buildPayload(
+                    'order_created',
+                    'New order created',
+                    sprintf('Order %s has been created.', $order->order_number),
+                    Order::class,
+                    $order->id,
+                    '/admin/orders',
+                    'normal',
+                    $request->user()?->id,
+                    $order->organization_id
+                ),
+                'New order created',
+                'View order'
+            );
+        }
+
         return $this->created(new OrderResource($order->load(['organization', 'user', 'plan', 'coupon'])), 'Order created successfully.');
     }
 
@@ -106,6 +130,26 @@ class OrderController extends Controller
         $model->payment_status = 'paid';
         $model->order_status = 'active';
         $model->save();
+
+        if ($model->organization_id) {
+            $this->notificationService->notifyAdminsForOrganisation(
+                $model->organization_id,
+                $this->notificationService->buildPayload(
+                    'payment_status_changed',
+                    'Payment marked paid',
+                    sprintf('Order %s was marked as paid.', $model->order_number),
+                    Order::class,
+                    $model->id,
+                    '/admin/orders',
+                    'normal',
+                    request()->user()?->id,
+                    $model->organization_id
+                ),
+                'Payment updated',
+                'View order'
+            );
+        }
+
         return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon'])), 'Order marked as paid.');
     }
 
@@ -115,6 +159,26 @@ class OrderController extends Controller
         $model->payment_status = 'cancelled';
         $model->order_status = 'cancelled';
         $model->save();
+
+        if ($model->organization_id) {
+            $this->notificationService->notifyAdminsForOrganisation(
+                $model->organization_id,
+                $this->notificationService->buildPayload(
+                    'payment_failed',
+                    'Order cancelled',
+                    sprintf('Order %s was cancelled.', $model->order_number),
+                    Order::class,
+                    $model->id,
+                    '/admin/orders',
+                    'high',
+                    request()->user()?->id,
+                    $model->organization_id
+                ),
+                'Order cancelled',
+                'View order'
+            );
+        }
+
         return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon'])), 'Order cancelled.');
     }
 

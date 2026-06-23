@@ -9,6 +9,7 @@ use App\Http\Requests\Api\SuperAdmin\CouponValidateRequest;
 use App\Http\Resources\SuperAdmin\CouponResource;
 use App\Models\Coupon;
 use App\Models\Order;
+use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,10 @@ use Illuminate\Support\Carbon;
 
 class CouponController extends Controller
 {
+    public function __construct(private readonly NotificationService $notificationService)
+    {
+    }
+
     public function index(CouponIndexRequest $request): JsonResponse
     {
         $query = Coupon::query();
@@ -33,6 +38,22 @@ class CouponController extends Controller
         $validated['created_by'] = $request->user()?->id;
         $validated['status'] = $validated['status'] ?? 'active';
         $coupon = Coupon::query()->create($validated);
+
+        $this->notificationService->notifySuperAdmins(
+            $this->notificationService->buildPayload(
+                'coupon_created',
+                'Coupon created',
+                sprintf('Coupon "%s" has been created.', $coupon->code),
+                Coupon::class,
+                $coupon->id,
+                '/super-admin/coupons',
+                'normal',
+                $request->user()?->id,
+                null
+            ),
+            'Coupon created',
+            'View coupon'
+        );
 
         return $this->created(new CouponResource($coupon), 'Coupon created successfully.');
     }
@@ -57,6 +78,22 @@ class CouponController extends Controller
         $model->status = 'active';
         $model->save();
 
+        $this->notificationService->notifySuperAdmins(
+            $this->notificationService->buildPayload(
+                'coupon_activated',
+                'Coupon activated',
+                sprintf('Coupon "%s" is now active.', $model->code),
+                Coupon::class,
+                $model->id,
+                '/super-admin/coupons',
+                'normal',
+                request()->user()?->id,
+                null
+            ),
+            'Coupon activated',
+            'View coupon'
+        );
+
         return $this->success(new CouponResource($model), 'Coupon activated successfully.');
     }
 
@@ -65,6 +102,22 @@ class CouponController extends Controller
         $model = Coupon::query()->findOrFail($coupon);
         $model->status = 'inactive';
         $model->save();
+
+        $this->notificationService->notifySuperAdmins(
+            $this->notificationService->buildPayload(
+                'coupon_expired',
+                'Coupon deactivated',
+                sprintf('Coupon "%s" has been deactivated.', $model->code),
+                Coupon::class,
+                $model->id,
+                '/super-admin/coupons',
+                'normal',
+                request()->user()?->id,
+                null
+            ),
+            'Coupon deactivated',
+            'View coupon'
+        );
 
         return $this->success(new CouponResource($model), 'Coupon deactivated successfully.');
     }

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\Permission;
 
@@ -73,6 +74,91 @@ class User extends Authenticatable
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class, 'organization_id');
+    }
+
+    public function hasActiveSubscriptionAccess(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $this->loadMissing(['organization.plan', 'organization.currentSubscription']);
+
+        $organization = $this->organization;
+        if (!$organization) {
+            return false;
+        }
+
+        if ($this->isTrialActive()) {
+            return true;
+        }
+
+        if ($organization->plan_id && $organization->currentSubscription?->status === 'active') {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function isTrialActive(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $this->loadMissing('organization');
+
+        $trialEndsAt = $this->organization?->trial_ends_at;
+
+        return $trialEndsAt instanceof Carbon && now()->lessThanOrEqualTo($trialEndsAt);
+    }
+
+    public function subscriptionStatus(): string
+    {
+        if ($this->isSuperAdmin()) {
+            return 'active';
+        }
+
+        $this->loadMissing(['organization.plan', 'organization.currentSubscription']);
+
+        $organization = $this->organization;
+        if (!$organization) {
+            return 'inactive';
+        }
+
+        if ($organization->plan_id && $organization->currentSubscription?->status === 'active') {
+            return 'active';
+        }
+
+        if ($this->isTrialActive()) {
+            return 'trialing';
+        }
+
+        return 'expired';
+    }
+
+    public function subscriptionSummary(): array
+    {
+        $this->loadMissing(['organization.plan', 'organization.currentSubscription']);
+
+        return [
+            'status' => $this->subscriptionStatus(),
+            'is_trial_active' => $this->isTrialActive(),
+            'trial_started_at' => $this->organization?->trial_started_at?->toISOString(),
+            'trial_ends_at' => $this->organization?->trial_ends_at?->toISOString(),
+            'subscription_activated_at' => $this->organization?->subscription_activated_at?->toISOString(),
+            'plan' => $this->organization?->plan ? [
+                'id' => $this->organization->plan->id,
+                'name' => $this->organization->plan->name,
+                'price' => (int) $this->organization->plan->price,
+            ] : null,
+            'current_subscription' => $this->organization?->currentSubscription ? [
+                'id' => $this->organization->currentSubscription->id,
+                'status' => $this->organization->currentSubscription->status,
+                'current_period_start' => $this->organization->currentSubscription->current_period_start?->toISOString(),
+                'current_period_end' => $this->organization->currentSubscription->current_period_end?->toISOString(),
+            ] : null,
+        ];
     }
 
     public function propertyListings(): HasMany
@@ -174,6 +260,10 @@ class User extends Authenticatable
             return true;
         }
 
+        if (!$this->hasActiveSubscriptionAccess()) {
+            return false;
+        }
+
         $this->loadMissing(['roles.permissions', 'directPermissions']);
 
         if ($this->directPermissions->firstWhere('name', $permission)?->pivot?->effect === 'deny') {
@@ -219,6 +309,10 @@ class User extends Authenticatable
     {
         if ($this->isSuperAdmin()) {
             return Permission::query()->orderBy('module')->orderBy('action')->get();
+        }
+
+        if (!$this->hasActiveSubscriptionAccess()) {
+            return collect();
         }
 
         $this->loadMissing(['roles.permissions', 'directPermissions']);

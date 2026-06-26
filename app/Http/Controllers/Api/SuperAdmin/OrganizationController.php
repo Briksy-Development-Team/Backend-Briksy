@@ -180,8 +180,6 @@ class OrganizationController extends Controller
 
         $organization->load(['organizationType', 'plan']);
 
-<<<<<<< Updated upstream
-=======
         $this->notificationService->notifyAdminsForOrganisation(
             $organization->id,
             $this->notificationService->buildPayload(
@@ -199,7 +197,6 @@ class OrganizationController extends Controller
             'View company'
         );
 
->>>>>>> Stashed changes
         return $this->success(
             new OrganizationResource($organization),
             'Business verification approved successfully.'
@@ -215,8 +212,6 @@ class OrganizationController extends Controller
 
         $organization->load(['organizationType', 'plan']);
 
-<<<<<<< Updated upstream
-=======
         $this->notificationService->notifyAdminsForOrganisation(
             $organization->id,
             $this->notificationService->buildPayload(
@@ -234,7 +229,6 @@ class OrganizationController extends Controller
             'View company'
         );
 
->>>>>>> Stashed changes
         return $this->success(
             new OrganizationResource($organization),
             'Business verification rejected successfully.'

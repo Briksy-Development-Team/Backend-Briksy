@@ -13,6 +13,10 @@ class BusinessModuleResolver
             return BusinessModules::all();
         }
 
+        if (!$user->hasActiveSubscriptionAccess()) {
+            return [];
+        }
+
         $organization = $user->organization;
         $businessType = strtolower((string) ($organization?->business_type ?? 'organisation'));
 
@@ -50,6 +54,10 @@ class BusinessModuleResolver
             return true;
         }
 
+        if (!$user->hasActiveSubscriptionAccess()) {
+            return false;
+        }
+
         $businessType = strtolower((string) $this->businessType($user));
 
         return in_array($businessType, ['organisation', 'company'], true)
@@ -60,6 +68,10 @@ class BusinessModuleResolver
     {
         if ($user->hasRole('super_admin')) {
             return true;
+        }
+
+        if (!$user->hasActiveSubscriptionAccess()) {
+            return false;
         }
 
         $businessType = strtolower((string) $this->businessType($user));

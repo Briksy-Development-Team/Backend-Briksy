@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -36,7 +37,20 @@ class Organization extends Model
         'stripe_customer_id',
         'is_verified',
         'slug',
+        'trial_started_at',
+        'trial_ends_at',
+        'subscription_status',
+        'subscription_activated_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'trial_started_at' => 'datetime',
+            'trial_ends_at' => 'datetime',
+            'subscription_activated_at' => 'datetime',
+        ];
+    }
 
     public function users(): HasMany
     {
@@ -56,6 +70,31 @@ class Organization extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(SubscriptionPlan::class, 'plan_id');
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class, 'organization_id');
+    }
+
+    public function currentSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class, 'organization_id')
+            ->whereIn('status', ['active', 'trialing'])
+            ->latestOfMany();
+    }
+
+    public function subscriptionStatus(): string
+    {
+        if ($this->plan_id && $this->currentSubscription?->status === 'active') {
+            return 'active';
+        }
+
+        if ($this->trial_ends_at && now()->lessThanOrEqualTo($this->trial_ends_at)) {
+            return 'trialing';
+        }
+
+        return $this->subscription_status ?? 'expired';
     }
 
     public function propertyListings(): HasMany

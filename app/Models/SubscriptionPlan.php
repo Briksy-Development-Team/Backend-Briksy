@@ -22,6 +22,7 @@ class SubscriptionPlan extends Model
         'property_limit',
         'popular',
         'features',
+        'permissions',
         'is_active',
         'staff_seat_limit',
         'has_visitor_analytics',
@@ -37,6 +38,7 @@ class SubscriptionPlan extends Model
             'is_active' => 'boolean',
             'has_visitor_analytics' => 'boolean',
             'features' => 'array',
+            'permissions' => 'array',
         ];
     }
 

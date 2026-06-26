@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\OrganizationController as AdminOrganizationCo
 use App\Http\Controllers\Api\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Api\Admin\PlanRequestController as AdminPlanRequestController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Api\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Api\Seeker\InquiryController;
@@ -122,9 +123,13 @@ Route::prefix('admin')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'registerAdmin']);
     Route::post('auth/login', [RegistrationController::class, 'loginAdmin']);
 
-    Route::middleware(['auth:sanctum', 'role:admin,admin_staff'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'role:admin,admin_staff', 'subscription'])->group(function (): void {
         Route::get('auth/me', [RegistrationController::class, 'me']);
         Route::post('auth/logout', [RegistrationController::class, 'logoutSeeker']);
+
+        Route::get('plans', [AdminSubscriptionController::class, 'index']);
+        Route::post('plans/{subscriptionPlan}/select', [AdminSubscriptionController::class, 'select']);
+        Route::get('subscription', [AdminSubscriptionController::class, 'show']);
 
         Route::get('plan-requests', [AdminPlanRequestController::class, 'index'])->middleware('permission:plan_request.view');
         Route::post('plan-requests', [AdminPlanRequestController::class, 'store'])->middleware('permission:plan_request.create');
@@ -147,17 +152,12 @@ Route::prefix('admin')->group(function (): void {
         Route::get('businesses/{organization}', [AdminOrganizationController::class, 'show'])->middleware('permission:company.view');
 
         Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
-<<<<<<< Updated upstream
-=======
         Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.view']);
->>>>>>> Stashed changes
         Route::post('properties', [AdminPropertyController::class, 'store'])->middleware(['module:property_management', 'permission:property.create']);
         Route::get('properties/{propertyListing}', [AdminPropertyController::class, 'show'])->middleware(['module:property_management', 'permission:property.view']);
         Route::put('properties/{propertyListing}', [AdminPropertyController::class, 'update'])->middleware(['module:property_management', 'permission:property.update']);
         Route::delete('properties/{propertyListing}', [AdminPropertyController::class, 'destroy'])->middleware(['module:property_management', 'permission:property.delete']);
 
-<<<<<<< Updated upstream
-=======
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
@@ -166,7 +166,6 @@ Route::prefix('admin')->group(function (): void {
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::patch('notification-preferences', [NotificationPreferenceController::class, 'update']);
 
->>>>>>> Stashed changes
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware(['module:service_management', 'permission:service.view']);
         Route::post('services', [SuperAdminServiceController::class, 'store'])->middleware(['module:service_management', 'permission:service.create']);
         Route::get('services/{service}', [SuperAdminServiceController::class, 'show'])->middleware(['module:service_management', 'permission:service.view']);

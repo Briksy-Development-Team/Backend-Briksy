@@ -8,23 +8,17 @@ use App\Http\Requests\Api\SuperAdmin\ServiceStoreRequest;
 use App\Http\Requests\Api\SuperAdmin\ServiceUpdateRequest;
 use App\Http\Resources\SuperAdmin\ServiceResource;
 use App\Models\Service;
-<<<<<<< Updated upstream
-=======
 use App\Services\NotificationService;
->>>>>>> Stashed changes
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
-<<<<<<< Updated upstream
-=======
     public function __construct(private readonly NotificationService $notificationService)
     {
     }
 
->>>>>>> Stashed changes
     public function index(ServiceIndexRequest $request): JsonResponse
     {
         $query = Service::query()
@@ -92,8 +86,6 @@ class ServiceController extends Controller
         $service->load(['organizationType', 'organization'])
             ->loadCount(['organizations', 'serviceGroups']);
 
-<<<<<<< Updated upstream
-=======
         if ($service->organization_id) {
             $this->notificationService->notifyAdminsForOrganisation(
                 $service->organization_id,
@@ -131,7 +123,6 @@ class ServiceController extends Controller
             );
         }
 
->>>>>>> Stashed changes
         return $this->created(
             new ServiceResource($service),
             'Service created successfully.'
@@ -147,8 +138,6 @@ class ServiceController extends Controller
         $service->load(['organizationType', 'organization'])
             ->loadCount(['organizations', 'serviceGroups']);
 
-<<<<<<< Updated upstream
-=======
         if ($service->organization_id) {
             $this->notificationService->notifyAdminsForOrganisation(
                 $service->organization_id,
@@ -168,7 +157,6 @@ class ServiceController extends Controller
             );
         }
 
->>>>>>> Stashed changes
         return $this->success(
             new ServiceResource($service),
             'Service updated successfully.'

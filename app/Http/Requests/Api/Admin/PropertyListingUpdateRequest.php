@@ -17,12 +17,9 @@ class PropertyListingUpdateRequest extends FormRequest
         return [
             'title' => ['sometimes', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
-<<<<<<< Updated upstream
-=======
             'property_type_id' => ['sometimes', 'nullable', 'uuid', 'exists:property_types,id'],
             'address_line_1' => ['sometimes', 'nullable', 'string', 'max:500'],
             'address_line_2' => ['sometimes', 'nullable', 'string', 'max:500'],
->>>>>>> Stashed changes
             'address' => ['nullable', 'string', 'max:500'],
             'full_address' => ['nullable', 'string'],
             'status' => ['sometimes', Rule::in(['Draft', 'Published', 'Archived'])],
@@ -34,10 +31,7 @@ class PropertyListingUpdateRequest extends FormRequest
             'formatted_address' => ['sometimes', 'nullable', 'string'],
             'place_id' => ['sometimes', 'nullable', 'string', 'max:255'],
             'longitude' => ['nullable', 'numeric'],
-<<<<<<< Updated upstream
-=======
             'location_verified' => ['sometimes', 'boolean'],
->>>>>>> Stashed changes
             'images' => ['nullable', 'array'],
             'images.*' => ['file', 'image', 'max:5120'],
             'videos' => ['nullable', 'array'],

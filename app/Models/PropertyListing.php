@@ -31,11 +31,8 @@ class PropertyListing extends Model
         'description',
         'address',
         'full_address',
-<<<<<<< Updated upstream
-=======
         'formatted_address',
         'place_id',
->>>>>>> Stashed changes
         'status',
         'suburb',
         'state',

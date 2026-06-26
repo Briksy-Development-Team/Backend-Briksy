@@ -22,6 +22,9 @@ class SubscriptionPlanStoreRequest extends FormRequest
             'features' => ['required', 'array'],
             'features.*.name' => ['required', 'string', 'max:100'],
             'features.*.enabled' => ['required', 'boolean'],
+            'features.*.value' => ['nullable', 'numeric', 'min:0'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ];
     }
 }

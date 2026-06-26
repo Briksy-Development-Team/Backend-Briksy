@@ -183,6 +183,20 @@ class StaffController extends Controller
         );
     }
 
+    public function destroy(User $staff): JsonResponse
+    {
+        if (!$staff->hasRole('admin_staff')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff member not found.',
+            ], 404);
+        }
+
+        $staff->delete();
+
+        return $this->success([], 'Staff member deleted successfully.');
+    }
+
     private function syncDirectPermissions(User $user, array $permissionNames): void
     {
         $permissionIds = Permission::query()

@@ -128,4 +128,18 @@ class SeekerController extends Controller
             'Seeker updated successfully.'
         );
     }
+
+    public function destroy(User $seeker): JsonResponse
+    {
+        if (!$seeker->hasRole('seeker')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seeker not found.',
+            ], 404);
+        }
+
+        $seeker->delete();
+
+        return $this->success([], 'Seeker deleted successfully.');
+    }
 }

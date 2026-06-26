@@ -77,8 +77,26 @@ class NotificationController extends Controller
 
         abort_unless($user, 401);
 
-        return DatabaseNotification::query()
+        $query = DatabaseNotification::query()
             ->where('notifiable_type', $user::class)
             ->where('notifiable_id', $user->id);
+
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $permissions = $user->getPermissionNames();
+
+        if ($permissions === []) {
+            return $query->whereNull('data->required_permission');
+        }
+
+        return $query->where(function (Builder $builder) use ($permissions): void {
+            $builder->whereNull('data->required_permission');
+
+            foreach ($permissions as $permission) {
+                $builder->orWhere('data->required_permission', $permission);
+            }
+        });
     }
 }

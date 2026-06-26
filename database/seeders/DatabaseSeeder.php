@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             SeekerSeeder::class,
             SuperAdminSeeder::class,
+            NotificationPreferenceSeeder::class,
+            NotificationSeeder::class,
             CommerceModuleSeeder::class,
             PropertyListingSeeder::class,
             PropertyListingFeatureSeeder::class,

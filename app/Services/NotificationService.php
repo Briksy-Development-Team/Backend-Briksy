@@ -11,6 +11,35 @@ use Throwable;
 
 class NotificationService
 {
+    private const REQUIRED_PERMISSION_MAP = [
+        'company_signup' => 'company.view',
+        'organization_created' => 'company.view',
+        'organization_updated' => 'company.view',
+        'organization_deleted' => 'company.view',
+        'property_created' => 'property.view',
+        'property_location_missing' => 'property.update',
+        'admin_user_invited' => 'user.view',
+        'user_invited' => 'user.view',
+        'user_role_changed' => 'user.update',
+        'order_created' => 'order.view',
+        'payment_status_changed' => 'order.update',
+        'payment_failed' => 'order.update',
+        'plan_request_created' => 'plan_request.view',
+        'plan_request_approved' => 'plan_request.view',
+        'plan_request_rejected' => 'plan_request.view',
+        'coupon_created' => 'coupon.view',
+        'coupon_updated' => 'coupon.view',
+        'coupon_activated' => 'coupon.view',
+        'coupon_deactivated' => 'coupon.view',
+        'service_created' => 'service.view',
+        'service_updated' => 'service.view',
+        'service_deleted' => 'service.view',
+        'setting_updated' => 'settings.view',
+        'email_template_created' => 'email_template.view',
+        'email_template_updated' => 'email_template.view',
+        'email_template_deleted' => 'email_template.view',
+    ];
+
     public function notifySuperAdmins(array $payload, ?string $mailSubject = null, ?string $mailCtaLabel = null): void
     {
         $users = User::query()
@@ -40,9 +69,15 @@ class NotificationService
      */
     private function notifyUsers(Collection $users, array $payload, ?string $mailSubject, ?string $mailCtaLabel): void
     {
+        $payload['required_permission'] ??= $this->resolveRequiredPermission($payload['type'] ?? '');
+
         $users
             ->unique('id')
             ->each(function (User $user) use ($payload, $mailSubject, $mailCtaLabel): void {
+                if (!$this->canReceiveNotification($user, $payload)) {
+                    return;
+                }
+
                 if ($this->isDuplicate($user, $payload)) {
                     return;
                 }
@@ -83,6 +118,7 @@ class NotificationService
         string $priority = 'normal',
         ?string $actorId = null,
         ?string $organisationId = null,
+        ?string $requiredPermission = null,
     ): array {
         return [
             'type' => $type,
@@ -94,6 +130,7 @@ class NotificationService
             'priority' => $priority,
             'actor_id' => $actorId,
             'organisation_id' => $organisationId,
+            'required_permission' => $requiredPermission ?? $this->resolveRequiredPermission($type),
         ];
     }
 
@@ -104,5 +141,21 @@ class NotificationService
             'email_enabled' => true,
             'type_preferences' => [],
         ];
+    }
+
+    public function resolveRequiredPermission(string $type): ?string
+    {
+        return self::REQUIRED_PERMISSION_MAP[$type] ?? null;
+    }
+
+    private function canReceiveNotification(User $user, array $payload): bool
+    {
+        $requiredPermission = $payload['required_permission'] ?? null;
+
+        if (!$requiredPermission) {
+            return true;
+        }
+
+        return $user->hasPermission($requiredPermission);
     }
 }

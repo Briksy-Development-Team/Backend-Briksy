@@ -150,6 +150,7 @@ Route::prefix('admin')->group(function (): void {
 
         Route::get('businesses', [AdminOrganizationController::class, 'index'])->middleware('permission:company.view');
         Route::get('businesses/{organization}', [AdminOrganizationController::class, 'show'])->middleware('permission:company.view');
+        Route::put('businesses/{organization}', [AdminOrganizationController::class, 'update'])->middleware('permission:company.update');
 
         Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
         Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.view']);
@@ -198,11 +199,13 @@ Route::prefix('super-admin')->group(function (): void {
         Route::post('seekers', [SuperAdminSeekerController::class, 'store'])->middleware('permission:user.create');
         Route::get('seekers/{seeker}', [SuperAdminSeekerController::class, 'show'])->middleware('permission:user.view');
         Route::put('seekers/{seeker}', [SuperAdminSeekerController::class, 'update'])->middleware('permission:user.update');
+        Route::delete('seekers/{seeker}', [SuperAdminSeekerController::class, 'destroy'])->middleware('permission:user.delete');
 
         Route::get('staff', [StaffController::class, 'index'])->middleware('permission:user.view');
         Route::post('staff', [StaffController::class, 'store'])->middleware('permission:user.create');
         Route::get('staff/{staff}', [StaffController::class, 'show'])->middleware('permission:user.view');
         Route::put('staff/{staff}', [StaffController::class, 'update'])->middleware('permission:user.update');
+        Route::delete('staff/{staff}', [StaffController::class, 'destroy'])->middleware('permission:user.delete');
 
         Route::get('organizations', [OrganizationController::class, 'index'])->middleware('permission:company.view');
         Route::post('organizations', [OrganizationController::class, 'store'])->middleware('permission:company.create');

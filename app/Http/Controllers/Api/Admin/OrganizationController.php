@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin; 
 
 use App\Http\Controllers\Api\Controller; 
+use App\Http\Requests\Api\SuperAdmin\OrganizationUpdateRequest;
 use App\Http\Resources\Admin\AdminOrganizationResource; 
 use App\Models\Organization; 
 use App\Support\Query\ApiQueryBuilder; 
@@ -87,4 +88,26 @@ class OrganizationController extends Controller
             'Organization retrieved successfully.' 
         ); 
     } 
-}
+
+    public function update(OrganizationUpdateRequest $request, Organization $organization): JsonResponse
+    {
+        $organizationId = $request->user()?->organization_id;
+
+        abort_unless($organizationId && $organization->id === $organizationId, 403);
+
+        $validated = $request->validated();
+
+        if (array_key_exists('abn', $validated)) {
+            $validated['abn'] = preg_replace('/\s+/', '', (string) $validated['abn']);
+        }
+
+        $organization->fill($validated);
+        $organization->save();
+        $organization->loadMissing('organizationType');
+
+        return $this->success(
+            new AdminOrganizationResource($organization),
+            'Organization updated successfully.'
+        );
+    }
+} 

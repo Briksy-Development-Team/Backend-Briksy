@@ -30,6 +30,9 @@ class SubscriptionPlanUpdateRequest extends FormRequest
             'features' => ['sometimes', 'array'],
             'features.*.name' => ['required_with:features', 'string', 'max:100'],
             'features.*.enabled' => ['required_with:features', 'boolean'],
+            'features.*.value' => ['nullable', 'numeric', 'min:0'],
+            'permissions' => ['sometimes', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ];
     }
 }

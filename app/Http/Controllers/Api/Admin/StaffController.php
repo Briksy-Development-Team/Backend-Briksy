@@ -7,10 +7,7 @@ use App\Http\Resources\Admin\AdminStaffResource;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-<<<<<<< Updated upstream
-=======
 use App\Services\NotificationService;
->>>>>>> Stashed changes
 use App\Support\Business\BusinessModuleResolver;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
@@ -20,14 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 class StaffController extends Controller
 {
-<<<<<<< Updated upstream
-    public function __construct(private readonly BusinessModuleResolver $moduleResolver)
-=======
     public function __construct(
         private readonly BusinessModuleResolver $moduleResolver,
         private readonly NotificationService $notificationService
     )
->>>>>>> Stashed changes
     {
     }
 
@@ -177,8 +170,6 @@ class StaffController extends Controller
             $this->syncDirectPermissions($user, $permissionNames);
         }
 
-<<<<<<< Updated upstream
-=======
         $this->notificationService->notifyAdminsForOrganisation(
             $organizationId,
             $this->notificationService->buildPayload(
@@ -196,7 +187,6 @@ class StaffController extends Controller
             'View users'
         );
 
->>>>>>> Stashed changes
         return $this->success(
             new AdminStaffResource($user->fresh('roles')),
             'Staff member updated successfully.'

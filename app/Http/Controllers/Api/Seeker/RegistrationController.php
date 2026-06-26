@@ -171,6 +171,10 @@ class RegistrationController extends Controller
                 'slug' => $slug,
                 'stripe_customer_id' => null,
                 'is_verified' => false,
+                'trial_started_at' => now(),
+                'trial_ends_at' => now()->addDays(15),
+                'subscription_status' => 'trialing',
+                'subscription_activated_at' => null,
             ]);
 
             $adminUser = User::create([
@@ -193,7 +197,7 @@ class RegistrationController extends Controller
                 ],
             ]);
 
-            return $adminUser->load(['roles.permissions', 'directPermissions', 'organization']);
+            return $adminUser->load(['roles.permissions', 'directPermissions', 'organization.plan', 'organization.currentSubscription']);
         });
 
         if ($adminUser->organization_id) {
@@ -233,7 +237,7 @@ class RegistrationController extends Controller
 
         $user = User::query()
             ->where('email', $validated['email'])
-            ->with(['roles.permissions', 'directPermissions'])
+            ->with(['roles.permissions', 'directPermissions', 'organization.plan', 'organization.currentSubscription'])
             ->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
@@ -250,6 +254,15 @@ class RegistrationController extends Controller
                 'success' => false,
                 'message' => 'This account is not authorized for admin APIs.',
             ], 403);
+        }
+
+        if ($user->organization && !$user->organization->trial_started_at && !$user->organization->plan_id) {
+            $user->organization->forceFill([
+                'trial_started_at' => now(),
+                'trial_ends_at' => now()->addDays(15),
+                'subscription_status' => 'trialing',
+            ])->save();
+            $user->load(['organization.plan', 'organization.currentSubscription']);
         }
 
         $token = $user->createToken('admin-auth', $abilities)->plainTextToken;
@@ -304,7 +317,7 @@ class RegistrationController extends Controller
                 ],
             ]);
 
-            return $staffUser->load(['roles.permissions', 'directPermissions']);
+            return $staffUser->load(['roles.permissions', 'directPermissions', 'organization.plan', 'organization.currentSubscription']);
         });
 
         $this->notificationService->notifyAdminsForOrganisation(

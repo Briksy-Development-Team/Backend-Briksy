@@ -158,8 +158,6 @@ class StaffController extends Controller
             $this->syncDirectPermissions($staff, $permissionNames);
         }
 
-<<<<<<< Updated upstream
-=======
         if ($staff->organization_id) {
             $this->notificationService->notifyAdminsForOrganisation(
                 $staff->organization_id,
@@ -179,7 +177,6 @@ class StaffController extends Controller
             );
         }
 
->>>>>>> Stashed changes
         return $this->success(
             new UserResource($staff->fresh()->load(['roles', 'organization'])),
             'Staff member updated successfully.'

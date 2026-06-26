@@ -14,10 +14,7 @@ use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-<<<<<<< Updated upstream
-=======
 use Illuminate\Database\Eloquent\Builder;
->>>>>>> Stashed changes
 
 class PropertyController extends Controller
 {
@@ -106,9 +103,6 @@ class PropertyController extends Controller
 
         $this->storeListingMedia($listing, $request);
 
-<<<<<<< Updated upstream
-        $listing->load(['organization.organizationType', 'creator', 'media']);
-=======
         $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
 
         $this->notificationService->notifySuperAdmins(
@@ -126,7 +120,6 @@ class PropertyController extends Controller
             'New property added',
             'Review property'
         );
->>>>>>> Stashed changes
 
         return $this->created(
             new AdminPropertyListingResource($listing),
@@ -142,8 +135,6 @@ class PropertyController extends Controller
         if (array_key_exists('address', $validated) && !array_key_exists('full_address', $validated)) {
             $validated['full_address'] = $validated['address'];
         }
-<<<<<<< Updated upstream
-=======
         if (array_key_exists('address_line_1', $validated) && !array_key_exists('address', $validated)) {
             $validated['address'] = $validated['address_line_1'];
         }
@@ -153,16 +144,12 @@ class PropertyController extends Controller
         if (array_key_exists('country', $validated) && blank($validated['country'])) {
             $validated['country'] = 'Australia';
         }
->>>>>>> Stashed changes
 
         $propertyListing->fill($validated);
         $propertyListing->save();
 
         $this->storeListingMedia($propertyListing, $request);
 
-<<<<<<< Updated upstream
-        $propertyListing->load(['organization.organizationType', 'creator', 'media']);
-=======
         $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
 
         if (!$propertyListing->location_verified || $propertyListing->latitude === null || $propertyListing->longitude === null) {
@@ -183,7 +170,6 @@ class PropertyController extends Controller
                 'Review property'
             );
         }
->>>>>>> Stashed changes
 
         return $this->success(
             new AdminPropertyListingResource($propertyListing),
@@ -207,8 +193,6 @@ class PropertyController extends Controller
         return (bool) $organizationId && $propertyListing->org_id === $organizationId;
     }
 
-<<<<<<< Updated upstream
-=======
     private function baseQuery(Request $request): Builder
     {
         $organizationId = $request->user()?->organization_id;
@@ -249,7 +233,6 @@ class PropertyController extends Controller
         }
     }
 
->>>>>>> Stashed changes
     private function storeListingMedia(PropertyListing $listing, Request $request): void
     {
         $uploadedImages = $request->file('images', []);

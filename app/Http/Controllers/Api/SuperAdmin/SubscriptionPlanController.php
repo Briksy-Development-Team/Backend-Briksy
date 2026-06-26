@@ -35,12 +35,22 @@ class SubscriptionPlanController extends Controller
     {
         $validated = $request->validated();
 
+        $features = collect($validated['features'] ?? [])
+            ->map(fn (array $feature): array => [
+                'name' => $feature['name'],
+                'enabled' => (bool) ($feature['enabled'] ?? false),
+                'value' => array_key_exists('value', $feature) && $feature['value'] !== null ? (int) $feature['value'] : null,
+            ])
+            ->values()
+            ->all();
+
         $plan = SubscriptionPlan::query()->create([
             'name' => $validated['name'],
             'price' => $validated['price'],
             'property_limit' => $validated['propertyLimit'],
             'popular' => $validated['popular'],
-            'features' => $validated['features'],
+            'features' => $features,
+            'permissions' => collect($validated['permissions'] ?? [])->values()->all(),
             'is_active' => $validated['is_active'] ?? true,
             'stripe_price_id' => $validated['stripe_price_id'] ?? 'manual-' . str()->uuid(),
             'staff_seat_limit' => $validated['staff_seat_limit'] ?? 0,
@@ -66,6 +76,17 @@ class SubscriptionPlanController extends Controller
     {
         $validated = $request->validated();
 
+        if (array_key_exists('features', $validated)) {
+            $validated['features'] = collect($validated['features'] ?? [])
+                ->map(fn (array $feature): array => [
+                    'name' => $feature['name'],
+                    'enabled' => (bool) ($feature['enabled'] ?? false),
+                    'value' => array_key_exists('value', $feature) && $feature['value'] !== null ? (int) $feature['value'] : null,
+                ])
+                ->values()
+                ->all();
+        }
+
         if (array_key_exists('propertyLimit', $validated)) {
             $validated['property_limit'] = $validated['propertyLimit'];
             unset($validated['propertyLimit']);
@@ -81,6 +102,7 @@ class SubscriptionPlanController extends Controller
             'property_limit' => $validated['property_limit'] ?? $subscriptionPlan->property_limit,
             'popular' => $validated['popular'] ?? $subscriptionPlan->popular,
             'features' => $validated['features'] ?? $subscriptionPlan->features,
+            'permissions' => $validated['permissions'] ?? $subscriptionPlan->permissions,
             'is_active' => $validated['is_active'] ?? $subscriptionPlan->is_active,
         ]);
         $subscriptionPlan->save();

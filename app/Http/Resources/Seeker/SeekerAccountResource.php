@@ -25,6 +25,22 @@ class SeekerAccountResource extends JsonResource
                     ->all();
             }),
             'permission_names' => $this->whenLoaded('directPermissions', fn (): array => $this->directPermissions->pluck('name')->values()->all()),
+            'subscription' => $this->whenLoaded('organization', function () {
+                return $this->organization ? [
+                    'organization_id' => $this->organization->id,
+                    'plan_id' => $this->organization->plan_id,
+                    'plan' => $this->organization->plan ? [
+                        'id' => $this->organization->plan->id,
+                        'name' => $this->organization->plan->name,
+                        'price' => (int) $this->organization->plan->price,
+                    ] : null,
+                    'status' => $this->organization->subscription_status ?? $this->organization->subscriptionStatus(),
+                    'is_trial_active' => $this->organization->trial_ends_at ? now()->lessThanOrEqualTo($this->organization->trial_ends_at) : false,
+                    'trial_started_at' => $this->organization->trial_started_at?->toISOString(),
+                    'trial_ends_at' => $this->organization->trial_ends_at?->toISOString(),
+                    'subscription_activated_at' => $this->organization->subscription_activated_at?->toISOString(),
+                ] : null;
+            }),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

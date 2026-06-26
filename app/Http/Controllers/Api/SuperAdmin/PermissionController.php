@@ -176,7 +176,7 @@ class PermissionController extends Controller
     public function me(Request $request): JsonResponse
     {
         /** @var User $user */
-        $user = $request->user()->loadMissing(['roles.permissions', 'directPermissions']);
+        $user = $request->user()->loadMissing(['roles.permissions', 'directPermissions', 'organization.plan', 'organization.currentSubscription']);
 
         return $this->success($this->buildUserPermissionPayload($user), 'Current permissions retrieved successfully.');
     }
@@ -231,6 +231,7 @@ class PermissionController extends Controller
                 'business_type' => $this->moduleResolver->businessType($user),
                 'business_verification_status' => $this->moduleResolver->verificationStatus($user),
                 'roles' => $user->roles->pluck('name')->values()->all(),
+                'subscription' => $user->subscriptionSummary(),
             ],
             'roles' => $user->roles->pluck('name')->values()->all(),
             'role_permissions' => $rolePermissions,

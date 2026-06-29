@@ -228,6 +228,10 @@ class PropertyController extends Controller
             $query->where('property_type_id', $request->string('filter.property_type_id')->toString());
         }
 
+        if ($request->filled('filter.organization_id')) {
+            $query->where('org_id', $request->string('filter.organization_id')->toString());
+        }
+
         if ($request->boolean('filter.verified_only')) {
             $query->whereHas('organization', fn ($organizationQuery) => $organizationQuery->where('is_verified', true));
         }

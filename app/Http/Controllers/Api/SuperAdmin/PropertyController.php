@@ -83,6 +83,10 @@ class PropertyController extends Controller
             $query->where('property_type_id', $request->string('filter.property_type_id')->toString());
         }
 
+        if ($request->filled('filter.organization_id')) {
+            $query->where('org_id', $request->string('filter.organization_id')->toString());
+        }
+
         if ($request->filled('filter.organization_slug')) {
             $query->whereHas('organization', function ($organizationQuery) use ($request): void {
                 $organizationQuery->where('slug', $request->string('filter.organization_slug')->toString());

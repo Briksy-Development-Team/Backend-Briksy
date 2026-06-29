@@ -45,6 +45,10 @@ class ServiceController extends Controller
             $query->whereHas('organizationType', fn ($typeQuery) => $typeQuery->where('slug', $typeSlug));
         }
 
+        if ($request->filled('filter.organization_id')) {
+            $query->where('organization_id', $request->string('filter.organization_id')->toString());
+        }
+
         if ($request->filled('filter.is_active')) {
             $query->where('is_active', $request->boolean('filter.is_active'));
         }

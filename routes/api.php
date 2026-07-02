@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\Admin\CouponController as AdminCouponController;
+use App\Http\Controllers\Api\Admin\ActivityLogController as AdminActivityLogController;
 use App\Http\Controllers\Api\Seeker\InquiryController;
 use App\Http\Controllers\Api\Seeker\OrganizationSearchController;
 use App\Http\Controllers\Api\Seeker\PropertySearchController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminProperty
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionPlanController as SuperAdminSubscriptionPlanController;
 use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerController;
 use App\Http\Controllers\Api\SuperAdmin\StaffController;
+use App\Http\Controllers\Api\SuperAdmin\ActivityLogController as SuperAdminActivityLogController;
 use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
@@ -143,6 +145,9 @@ Route::prefix('admin')->group(function (): void {
         Route::get('settings', [AdminSettingController::class, 'index'])->middleware('permission:settings.view');
         Route::patch('settings', [AdminSettingController::class, 'update'])->middleware('permission:settings.update');
 
+        Route::get('activity-logs', [AdminActivityLogController::class, 'index'])->middleware('permission:activity_logs.view');
+        Route::get('activity-logs/{id}', [AdminActivityLogController::class, 'show'])->middleware('permission:activity_logs.view');
+
         Route::post('coupons/validate', [AdminCouponController::class, 'validateCoupon'])->middleware('permission:coupon.view');
 
         Route::get('seekers', [AdminSeekerController::class, 'index'])->middleware('permission:user.view');
@@ -216,6 +221,9 @@ Route::prefix('super-admin')->group(function (): void {
         Route::patch('organizations/{organization}/assign-plan', [OrganizationController::class, 'assignPlan'])->middleware('permission:company.update');
         Route::patch('organizations/{organization}/approve-verification', [OrganizationController::class, 'approveVerification'])->middleware('permission:company.update');
         Route::patch('organizations/{organization}/reject-verification', [OrganizationController::class, 'rejectVerification'])->middleware('permission:company.update');
+
+        Route::get('activity-logs', [SuperAdminActivityLogController::class, 'index'])->middleware('permission:activity_logs.view');
+        Route::get('activity-logs/{id}', [SuperAdminActivityLogController::class, 'show'])->middleware('permission:activity_logs.view');
 
         Route::get('organization-types', [OrganizationTypeController::class, 'index'])->middleware('permission:company.view');
         Route::post('organization-types', [OrganizationTypeController::class, 'store'])->middleware('permission:company.create');

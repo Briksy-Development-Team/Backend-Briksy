@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,8 +20,10 @@ use Illuminate\Support\Str;
 
 class RegistrationController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
-    {
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly ActivityLogService $activityLogService,
+    ) {
     }
 
     public function store(RegisterSeekerRequest $request): JsonResponse
@@ -76,6 +79,10 @@ class RegistrationController extends Controller
             ->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
+            $this->activityLogService->logFailedLogin($validated['email'], [
+                'portal' => 'seeker',
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password.',
@@ -83,6 +90,10 @@ class RegistrationController extends Controller
         }
 
         $token = $user->createToken('seeker-auth', ['seeker'])->plainTextToken;
+
+        $this->activityLogService->logLogin($user, [
+            'portal' => 'seeker',
+        ]);
 
         return $this->success([
             'user' => new SeekerAccountResource($user),
@@ -104,6 +115,12 @@ class RegistrationController extends Controller
 
     public function logoutSeeker(Request $request): JsonResponse
     {
+        if ($request->user()) {
+            $this->activityLogService->logLogout($request->user(), [
+                'portal' => 'seeker',
+            ]);
+        }
+
         $request->user()?->currentAccessToken()?->delete();
 
         return $this->success([], 'Logout successful.');
@@ -241,6 +258,10 @@ class RegistrationController extends Controller
             ->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
+            $this->activityLogService->logFailedLogin($validated['email'], [
+                'portal' => 'admin',
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password.',
@@ -266,6 +287,10 @@ class RegistrationController extends Controller
         }
 
         $token = $user->createToken('admin-auth', $abilities)->plainTextToken;
+
+        $this->activityLogService->logLogin($user, [
+            'portal' => 'admin',
+        ]);
 
         return $this->success([
             'user' => new SeekerAccountResource($user),
@@ -434,6 +459,10 @@ class RegistrationController extends Controller
             ->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
+            $this->activityLogService->logFailedLogin($validated['email'], [
+                'portal' => 'super-admin',
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password.',
@@ -448,6 +477,10 @@ class RegistrationController extends Controller
         }
 
         $token = $user->createToken('super-admin-auth', ['super_admin'])->plainTextToken;
+
+        $this->activityLogService->logLogin($user, [
+            'portal' => 'super-admin',
+        ]);
 
         return $this->success([
             'user' => new SeekerAccountResource($user),

@@ -59,6 +59,7 @@ class PermissionSeeder extends Seeder
             ['module' => 'user', 'action' => 'delete', 'name' => 'user.delete', 'display_name' => 'Delete Users'],
             ['module' => 'settings', 'action' => 'view', 'name' => 'settings.view', 'display_name' => 'View Settings'],
             ['module' => 'settings', 'action' => 'update', 'name' => 'settings.update', 'display_name' => 'Update Settings'],
+            ['module' => 'activity_logs', 'action' => 'view', 'name' => 'activity_logs.view', 'display_name' => 'View Activity Logs'],
             ['module' => 'permission', 'action' => 'view', 'name' => 'permission.view', 'display_name' => 'View Permissions'],
             ['module' => 'permission', 'action' => 'manage', 'name' => 'permission.manage', 'display_name' => 'Manage Permissions'],
         ];
@@ -105,6 +106,7 @@ class PermissionSeeder extends Seeder
             'user.update',
             'settings.view',
             'settings.update',
+            'activity_logs.view',
             'order.view',
             'order.create',
             'order.cancel',

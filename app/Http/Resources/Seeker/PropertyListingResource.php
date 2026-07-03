@@ -11,6 +11,8 @@ class PropertyListingResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'generated_id' => $this->generated_id,
+            'display_id' => $this->generated_id ?: $this->id,
             'title' => $this->title,
             'description' => $this->description,
             'address' => $this->address,

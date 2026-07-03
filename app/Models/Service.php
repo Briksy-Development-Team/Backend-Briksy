@@ -23,6 +23,7 @@ class Service extends Model
         'title',
         'category',
         'slug',
+        'generated_id',
         'description',
         'service_area',
         'rate_from',

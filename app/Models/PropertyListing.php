@@ -21,6 +21,7 @@ class PropertyListing extends Model
     protected $fillable = [
         'org_id',
         'creator_id',
+        'generated_id',
         'property_type_id',
         'avg_prop_rating',
         'address_line_1',

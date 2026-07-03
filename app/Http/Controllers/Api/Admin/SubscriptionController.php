@@ -71,6 +71,8 @@ class SubscriptionController extends Controller
                     'subscription_plan_id' => $subscriptionPlan->id,
                     'stripe_subscription_id' => 'manual-' . Str::uuid(),
                     'status' => 'active',
+                    'currency' => 'AUD',
+                    'amount' => (float) ($subscriptionPlan->monthly_price ?? $subscriptionPlan->price ?? 0),
                     'current_period_start' => now(),
                     'current_period_end' => now()->addMonth(),
                 ]

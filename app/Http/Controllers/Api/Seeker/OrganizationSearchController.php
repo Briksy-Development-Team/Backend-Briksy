@@ -6,7 +6,10 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\Seeker\OrganizationIndexRequest;
 use App\Http\Resources\Seeker\OrganizationResource;
 use App\Models\Organization;
+use App\Models\VisitorLog;
 use App\Support\Query\ApiQueryBuilder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class OrganizationSearchController extends Controller
 {
@@ -51,10 +54,25 @@ class OrganizationSearchController extends Controller
     public function show(Organization $organization)
     {
         $organization->load(['organizationType', 'services', 'serviceGroups']);
+        $this->recordVisit($organization, request());
 
         return $this->success(
             new OrganizationResource($organization),
             'Organization retrieved successfully.'
         );
+    }
+
+    private function recordVisit(Organization $organization, Request $request): void
+    {
+        if (!Schema::hasTable('visitor_logs')) {
+            return;
+        }
+
+        VisitorLog::query()->create([
+            'viewer_id' => $request->user()?->id,
+            'organization_id' => $organization->id,
+            'property_listing_id' => null,
+            'ip_address' => $request->ip(),
+        ]);
     }
 }

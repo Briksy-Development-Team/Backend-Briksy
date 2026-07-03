@@ -24,7 +24,7 @@ class StaffController extends Controller
     public function index(StaffIndexRequest $request): JsonResponse
     {
         $query = User::query()
-            ->whereHas('roles', fn ($role) => $role->where('name', 'admin_staff'))
+            ->whereHas('roles', fn ($role) => $role->where('name', 'super_admin_employee'))
             ->with(['roles', 'organization']);
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
@@ -42,7 +42,7 @@ class StaffController extends Controller
 
     public function show(User $staff): JsonResponse
     {
-        if (!$staff->hasRole('admin_staff')) {
+        if (!$staff->hasRole('super_admin_employee')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Staff member not found.',
@@ -66,19 +66,19 @@ class StaffController extends Controller
                 'password_hash' => $request->input('password'),
                 'mobile_number' => $request->input('mobile_number'),
                 'display_name' => $request->input('display_name'),
-                'organization_id' => $request->input('organization_id'),
+                'organization_id' => null,
                 'id_verified' => false,
             ]);
 
             $role = Role::query()->firstOrCreate(
-                ['name' => 'admin_staff'],
-                ['scope' => 'tenant', 'is_system' => true]
+                ['name' => 'super_admin_employee'],
+                ['scope' => 'global', 'is_system' => true]
             );
 
             $user->roles()->syncWithoutDetaching([
                 $role->id => [
                     'id' => (string) str()->uuid(),
-                    'organization_id' => $request->input('organization_id'),
+                    'organization_id' => null,
                 ],
             ]);
 
@@ -86,25 +86,6 @@ class StaffController extends Controller
 
             return $user->load(['roles', 'organization']);
         });
-
-        if ($user->organization_id) {
-            $this->notificationService->notifyAdminsForOrganisation(
-                $user->organization_id,
-                $this->notificationService->buildPayload(
-                    'admin_user_invited',
-                    'Admin user invited',
-                    sprintf('Staff member "%s" was created for your organisation.', $user->name),
-                    User::class,
-                    $user->id,
-                    '/admin/users',
-                    'normal',
-                    $request->user()?->id,
-                    $user->organization_id
-                ),
-                'Admin user invited',
-                'View users'
-            );
-        }
 
         return $this->created(
             new UserResource($user),
@@ -114,7 +95,7 @@ class StaffController extends Controller
 
     public function update(StaffUpdateRequest $request, User $staff): JsonResponse
     {
-        if (!$staff->hasRole('admin_staff')) {
+        if (!$staff->hasRole('super_admin_employee')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Staff member not found.',
@@ -136,45 +117,24 @@ class StaffController extends Controller
         $staff->fill($validatedData);
         $staff->save();
 
-        if (array_key_exists('organization_id', $validatedData) && $validatedData['organization_id']) {
+        if ($staff->roles()->exists()) {
             $role = Role::query()->firstOrCreate(
-                ['name' => 'admin_staff'],
-                ['scope' => 'tenant', 'is_system' => true]
+                ['name' => 'super_admin_employee'],
+                ['scope' => 'global', 'is_system' => true]
             );
 
             if ($staff->roles()->where('roles.id', $role->id)->exists()) {
-                $staff->roles()->updateExistingPivot($role->id, [
-                    'organization_id' => $validatedData['organization_id'],
-                ]);
+                $staff->roles()->updateExistingPivot($role->id, ['organization_id' => null]);
             } else {
                 $staff->roles()->attach($role->id, [
                     'id' => (string) str()->uuid(),
-                    'organization_id' => $validatedData['organization_id'],
+                    'organization_id' => null,
                 ]);
             }
         }
 
         if ($permissionNames !== null) {
             $this->syncDirectPermissions($staff, $permissionNames);
-        }
-
-        if ($staff->organization_id) {
-            $this->notificationService->notifyAdminsForOrganisation(
-                $staff->organization_id,
-                $this->notificationService->buildPayload(
-                    'user_role_changed',
-                    'Staff permissions updated',
-                    sprintf('Staff member "%s" permissions changed.', $staff->name),
-                    User::class,
-                    $staff->id,
-                    '/admin/users',
-                    'normal',
-                    $request->user()?->id,
-                    $staff->organization_id
-                ),
-                'Staff permissions updated',
-                'View users'
-            );
         }
 
         return $this->success(
@@ -185,7 +145,7 @@ class StaffController extends Controller
 
     public function destroy(User $staff): JsonResponse
     {
-        if (!$staff->hasRole('admin_staff')) {
+        if (!$staff->hasRole('super_admin_employee')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Staff member not found.',

@@ -11,6 +11,7 @@ class PlanRequestResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'request_code' => $this->request_code,
             'organization_id' => $this->organization_id,
             'plan_id' => $this->plan_id,
             'company_name' => $this->company_name,

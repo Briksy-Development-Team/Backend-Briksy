@@ -12,6 +12,7 @@ use App\Http\Resources\SuperAdmin\PlanRequestResource;
 use App\Models\Order;
 use App\Models\PlanRequest as PlanRequestModel;
 use App\Models\SubscriptionPlan;
+use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,10 @@ class PlanRequestController extends Controller
 {
     use AppliesOrganizationScope;
 
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly DynamicIdGeneratorService $idGenerator
+    )
     {
     }
 
@@ -44,8 +48,10 @@ class PlanRequestController extends Controller
         $validated = $request->validated();
         $organizationId = $validated['organization_id'] ?? null;
         $organizationId = $organizationId ?? $this->organizationId($request);
+        $requestCode = $this->idGenerator->generate('plan_requests', 'PRQ') ?? 'PRQ-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
 
         $planRequest = PlanRequestModel::query()->create([
+            'request_code' => $requestCode,
             'organization_id' => $organizationId,
             'requested_by' => $validated['requested_by'] ?? $request->user()?->id,
             'plan_id' => $validated['plan_id'] ?? null,
@@ -146,9 +152,11 @@ class PlanRequestController extends Controller
             if ($status === 'approved' && ($validated['create_order'] ?? true) && $organizationId && $planId) {
                 $plan = SubscriptionPlan::query()->find($planId);
                 if ($plan) {
+                    $orderNumber = $this->idGenerator->generate('orders', 'ORD') ?? 'ORD-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
                     $subtotal = (float) $plan->price;
                     $order = Order::query()->create([
-                        'order_number' => 'ORD-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)),
+                        'order_number' => $orderNumber,
+                        'reference_no' => $orderNumber,
                         'organization_id' => $organizationId,
                         'user_id' => $model->requested_by,
                         'plan_id' => $plan->id,
@@ -157,7 +165,7 @@ class PlanRequestController extends Controller
                         'discount_amount' => 0,
                         'tax_amount' => 0,
                         'total_amount' => $subtotal,
-                        'currency' => 'INR',
+                        'currency' => 'AUD',
                         'billing_cycle' => $model->billing_cycle,
                         'payment_status' => 'paid',
                         'order_status' => 'active',

@@ -15,7 +15,14 @@ class SubscriptionPlanStoreRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:50', 'unique:subscription_plans,name'],
-            'price' => ['required', 'integer', 'min:0'],
+            'price' => ['nullable', 'integer', 'min:0'],
+            'monthly_price' => ['nullable', 'numeric', 'min:0'],
+            'yearly_price' => ['nullable', 'numeric', 'min:0'],
+            'currency' => ['nullable', 'string', 'size:3'],
+            'billing_enabled' => ['sometimes', 'boolean'],
+            'stripe_monthly_price_id' => ['nullable', 'string', 'max:255'],
+            'stripe_yearly_price_id' => ['nullable', 'string', 'max:255'],
+            'trial_days' => ['nullable', 'integer', 'min:0'],
             'propertyLimit' => ['required', 'integer', 'min:0'],
             'popular' => ['required', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],

@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\Seeker\PropertyListingIndexRequest;
 use App\Http\Resources\Seeker\PropertyListingResource;
 use App\Models\PropertyListing;
+use App\Models\VisitorLog;
 use App\Support\Query\ApiQueryBuilder;
+use Illuminate\Support\Facades\Schema;
 
 class PropertySearchController extends Controller
 {
@@ -56,9 +58,25 @@ class PropertySearchController extends Controller
             ->with('organization.organizationType')
             ->findOrFail($propertyListing->id);
 
+        $this->recordVisit($property, request());
+
         return $this->success(
             new PropertyListingResource($property),
             'Property listing retrieved successfully.'
         );
+    }
+
+    private function recordVisit(PropertyListing $property, \Illuminate\Http\Request $request): void
+    {
+        if (!Schema::hasTable('visitor_logs')) {
+            return;
+        }
+
+        VisitorLog::query()->create([
+            'viewer_id' => $request->user()?->id,
+            'organization_id' => $property->org_id,
+            'property_listing_id' => $property->id,
+            'ip_address' => $request->ip(),
+        ]);
     }
 }

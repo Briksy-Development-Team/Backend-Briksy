@@ -12,6 +12,7 @@ class AdminPropertyListingResource extends JsonResource
         return [
             'id' => $this->id,
             'generated_id' => $this->generated_id,
+            'display_id' => $this->generated_id ?: $this->id,
             'title' => $this->title,
             'status' => $this->status,
             'description' => $this->description,

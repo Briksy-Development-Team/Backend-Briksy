@@ -16,6 +16,7 @@ class PlanRequest extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'request_code',
         'organization_id',
         'requested_by',
         'plan_id',

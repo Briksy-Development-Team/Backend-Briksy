@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\ReferralService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,10 @@ use Illuminate\Support\Str;
 
 class RegistrationController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly ReferralService $referralService
+    )
     {
     }
 
@@ -118,6 +122,7 @@ class RegistrationController extends Controller
             'business_name' => ['required', 'string', 'max:200'],
             'trading_name' => ['nullable', 'string', 'max:200'],
             'business_type' => ['required', 'in:organisation,company,solo_trader'],
+            'referral_code' => ['nullable', 'string', 'max:50'],
             'abn_number' => [
                 'required',
                 'string',
@@ -145,6 +150,7 @@ class RegistrationController extends Controller
             $organizationType = OrganizationType::query()
                 ->where('slug', $organizationTypeSlug)
                 ->firstOrFail();
+            $referrer = $this->referralService->resolveReferrer($validated['referral_code'] ?? null);
 
             $slugBase = Str::slug($validated['business_name']);
             $slug = $slugBase;
@@ -159,6 +165,8 @@ class RegistrationController extends Controller
                 'contact_email' => $validated['contact_email'] ?? $validated['email'],
                 'contact_phone' => $validated['contact_phone'] ?? null,
                 'abn' => $abn,
+                'referral_code' => $this->referralService->generateCode(),
+                'referred_by_organization_id' => $referrer?->id,
                 'business_type' => $businessType,
                 'business_verification_status' => 'pending',
                 'address' => $validated['address'] ?? null,
@@ -440,20 +448,21 @@ class RegistrationController extends Controller
             ], 401);
         }
 
-        if (!$user->hasRole('super_admin')) {
+        if (!$user->hasAnyRole(['super_admin', 'super_admin_employee'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'This account is not authorized for super admin APIs.',
             ], 403);
         }
 
-        $token = $user->createToken('super-admin-auth', ['super_admin'])->plainTextToken;
+        $abilities = $this->resolveSuperAdminAbilities($user);
+        $token = $user->createToken('super-admin-auth', $abilities)->plainTextToken;
 
         return $this->success([
             'user' => new SeekerAccountResource($user),
             'token' => $token,
             'token_type' => 'Bearer',
-            'abilities' => ['super_admin'],
+            'abilities' => $abilities,
         ], 'Login successful.');
     }
 
@@ -465,6 +474,19 @@ class RegistrationController extends Controller
 
         if ($user->hasRole('admin_staff')) {
             return ['admin_staff'];
+        }
+
+        return [];
+    }
+
+    private function resolveSuperAdminAbilities(User $user): array
+    {
+        if ($user->hasRole('super_admin')) {
+            return ['super_admin'];
+        }
+
+        if ($user->hasRole('super_admin_employee')) {
+            return ['super_admin_employee'];
         }
 
         return [];

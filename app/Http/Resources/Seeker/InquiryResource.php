@@ -14,6 +14,7 @@ class InquiryResource extends JsonResource
             'organization_id' => $this->organization_id,
             'property_listing_id' => $this->property_listing_id,
             'staff_id' => $this->staff_id,
+            'lead_source' => $this->lead_source,
             'status' => $this->status,
             'subject' => $this->subject,
             'message' => $this->message,

@@ -13,6 +13,7 @@ class AdminOrganizationResource extends JsonResource
             'id' => $this->id,
             'image' => $this->logo_url ?: '/media/avatars/blank.png',
             'name' => $this->name,
+            'referral_code' => $this->referral_code,
             'trading_name' => $this->trading_name,
             'email' => $this->contact_email,
             'status' => $this->deleted_at === null ? 'Active' : 'Blocked',

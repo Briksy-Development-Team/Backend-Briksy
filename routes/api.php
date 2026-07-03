@@ -7,9 +7,12 @@ use App\Http\Controllers\Api\Admin\OrganizationController as AdminOrganizationCo
 use App\Http\Controllers\Api\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Api\Admin\PlanRequestController as AdminPlanRequestController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\Admin\CouponController as AdminCouponController;
+use App\Http\Controllers\Api\Admin\ActivityLogController as AdminActivityLogController;
+use App\Http\Controllers\Api\Admin\ReferralController as AdminReferralController;
 use App\Http\Controllers\Api\Seeker\InquiryController;
 use App\Http\Controllers\Api\Seeker\OrganizationSearchController;
 use App\Http\Controllers\Api\Seeker\PropertySearchController;
@@ -29,9 +32,16 @@ use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionPlanController as SuperAdminSubscriptionPlanController;
+use App\Http\Controllers\Api\SuperAdmin\DynamicIdSettingController as SuperAdminDynamicIdSettingController;
+use App\Http\Controllers\Api\SuperAdmin\AddonController as SuperAdminAddonController;
+use App\Http\Controllers\Api\SuperAdmin\SubscriptionController as SuperAdminSubscriptionController;
+use App\Http\Controllers\Api\SuperAdmin\ActivityLogController as SuperAdminActivityLogController;
+use App\Http\Controllers\Api\SuperAdmin\ReferralController as SuperAdminReferralController;
 use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerController;
 use App\Http\Controllers\Api\SuperAdmin\StaffController;
 use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController;
+use App\Http\Controllers\Api\Admin\BillingController as AdminBillingController;
+use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
 use Illuminate\Http\Request;
@@ -44,10 +54,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->get('me/permissions', [SuperAdminPermissionController::class, 'me']);
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('social/{provider}', [SocialAuthController::class, 'login']);
+Route::post('social/{provider}', [SocialAuthController::class, 'login']);
 });
 
 Route::get('settings/public', [SettingController::class, 'publicSettings']);
+Route::post('stripe/webhook', [StripeWebhookController::class, 'handle']);
 
 Route::prefix('seeker')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'store']);
@@ -123,6 +134,18 @@ Route::prefix('admin')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'registerAdmin']);
     Route::post('auth/login', [RegistrationController::class, 'loginAdmin']);
 
+    Route::middleware(['auth:sanctum', 'role:admin,admin_staff'])->group(function (): void {
+        Route::get('dashboard', [AdminDashboardController::class, 'index'])->middleware('permission:dashboard.view');
+    });
+
+    Route::middleware(['auth:sanctum', 'role:admin,admin_staff'])->prefix('billing')->group(function (): void {
+        Route::get('current-subscription', [AdminBillingController::class, 'currentSubscription']);
+        Route::get('plans', [AdminBillingController::class, 'plans']);
+        Route::get('addons', [AdminBillingController::class, 'addons']);
+        Route::post('checkout', [AdminBillingController::class, 'checkout']);
+        Route::get('subscriptions', [AdminBillingController::class, 'subscriptions']);
+    });
+
     Route::middleware(['auth:sanctum', 'role:admin,admin_staff', 'subscription'])->group(function (): void {
         Route::get('auth/me', [RegistrationController::class, 'me']);
         Route::post('auth/logout', [RegistrationController::class, 'logoutSeeker']);
@@ -166,6 +189,9 @@ Route::prefix('admin')->group(function (): void {
         Route::delete('notifications/{notification}', [NotificationController::class, 'destroy']);
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::patch('notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::get('activity-logs', [AdminActivityLogController::class, 'index'])->middleware('permission:activity_logs.view');
+        Route::get('activity-logs/{activityLog}', [AdminActivityLogController::class, 'show'])->middleware('permission:activity_logs.view');
+        Route::get('referrals', [AdminReferralController::class, 'index'])->middleware('permission:referral.view');
 
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware(['module:service_management', 'permission:service.view']);
         Route::post('services', [SuperAdminServiceController::class, 'store'])->middleware(['module:service_management', 'permission:service.create']);
@@ -191,9 +217,22 @@ Route::prefix('super-admin')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'registerSuperAdmin']);
     Route::post('auth/login', [RegistrationController::class, 'loginSuperAdmin']);
 
-    Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'role:super_admin,super_admin_employee'])->group(function (): void {
         Route::get('auth/me', [RegistrationController::class, 'me']);
         Route::post('auth/logout', [RegistrationController::class, 'logoutSeeker']);
+
+        Route::get('dynamic-id-settings', [SuperAdminDynamicIdSettingController::class, 'index'])->middleware('permission:dynamic_id.view');
+        Route::post('dynamic-id-settings', [SuperAdminDynamicIdSettingController::class, 'store'])->middleware('permission:dynamic_id.manage');
+        Route::get('dynamic-id-settings/{dynamicIdSetting}', [SuperAdminDynamicIdSettingController::class, 'show'])->middleware('permission:dynamic_id.view');
+        Route::put('dynamic-id-settings/{dynamicIdSetting}', [SuperAdminDynamicIdSettingController::class, 'update'])->middleware('permission:dynamic_id.manage');
+        Route::delete('dynamic-id-settings/{dynamicIdSetting}', [SuperAdminDynamicIdSettingController::class, 'destroy'])->middleware('permission:dynamic_id.manage');
+
+        Route::get('addons', [SuperAdminAddonController::class, 'index'])->middleware('permission:addon.view');
+        Route::post('addons', [SuperAdminAddonController::class, 'store'])->middleware('permission:addon.create');
+        Route::get('addons/{addon}', [SuperAdminAddonController::class, 'show'])->middleware('permission:addon.view');
+        Route::put('addons/{addon}', [SuperAdminAddonController::class, 'update'])->middleware('permission:addon.update');
+        Route::patch('addons/{addon}/toggle', [SuperAdminAddonController::class, 'toggle'])->middleware('permission:addon.update');
+        Route::delete('addons/{addon}', [SuperAdminAddonController::class, 'destroy'])->middleware('permission:addon.delete');
 
         Route::get('seekers', [SuperAdminSeekerController::class, 'index'])->middleware('permission:user.view');
         Route::post('seekers', [SuperAdminSeekerController::class, 'store'])->middleware('permission:user.create');
@@ -264,8 +303,10 @@ Route::prefix('super-admin')->group(function (): void {
         Route::get('email-templates', [EmailTemplateController::class, 'index'])->middleware('permission:email_template.view');
         Route::post('email-templates', [EmailTemplateController::class, 'store'])->middleware('permission:email_template.create');
         Route::get('email-templates/{emailTemplate}', [EmailTemplateController::class, 'show'])->middleware('permission:email_template.view');
+        Route::put('email-templates/{emailTemplate}', [EmailTemplateController::class, 'update'])->middleware('permission:email_template.update');
         Route::patch('email-templates/{emailTemplate}', [EmailTemplateController::class, 'update'])->middleware('permission:email_template.update');
         Route::post('email-templates/{emailTemplate}/preview', [EmailTemplateController::class, 'preview'])->middleware('permission:email_template.view');
+        Route::post('email-templates/{emailTemplate}/send-test', [EmailTemplateController::class, 'sendTest'])->middleware('permission:email_template.update');
         Route::post('email-templates/{emailTemplate}/activate', [EmailTemplateController::class, 'activate'])->middleware('permission:email_template.update');
         Route::post('email-templates/{emailTemplate}/deactivate', [EmailTemplateController::class, 'deactivate'])->middleware('permission:email_template.update');
         Route::delete('email-templates/{emailTemplate}', [EmailTemplateController::class, 'destroy'])->middleware('permission:email_template.delete');
@@ -286,7 +327,14 @@ Route::prefix('super-admin')->group(function (): void {
         Route::get('plans/{subscriptionPlan}', [SuperAdminSubscriptionPlanController::class, 'show'])->middleware('permission:plan.view');
         Route::put('plans/{subscriptionPlan}', [SuperAdminSubscriptionPlanController::class, 'update'])->middleware('permission:plan.update');
         Route::patch('plans/{subscriptionPlan}/status', [SuperAdminSubscriptionPlanController::class, 'toggle'])->middleware('permission:plan.update');
+        Route::post('plans/{subscriptionPlan}/addons', [SuperAdminSubscriptionPlanController::class, 'attachAddon'])->middleware('permission:plan.update');
+        Route::delete('plans/{subscriptionPlan}/addons/{addon}', [SuperAdminSubscriptionPlanController::class, 'detachAddon'])->middleware('permission:plan.update');
         Route::delete('plans/{subscriptionPlan}', [SuperAdminSubscriptionPlanController::class, 'destroy'])->middleware('permission:plan.delete');
+
+        Route::get('subscriptions', [SuperAdminSubscriptionController::class, 'index'])->middleware('permission:subscription.view');
+        Route::get('activity-logs', [SuperAdminActivityLogController::class, 'index'])->middleware('permission:activity_logs.view');
+        Route::get('activity-logs/{activityLog}', [SuperAdminActivityLogController::class, 'show'])->middleware('permission:activity_logs.view');
+        Route::get('referrals', [SuperAdminReferralController::class, 'index'])->middleware('permission:referral.view');
 
         Route::prefix('permissions')->group(function (): void {
             Route::get('/', [SuperAdminPermissionController::class, 'index'])->middleware('permission:permission.view');

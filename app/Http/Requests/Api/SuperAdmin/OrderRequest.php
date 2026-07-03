@@ -16,6 +16,7 @@ class OrderRequest extends FormRequest
     {
         return [
             'order_number' => ['sometimes', 'string', 'max:255'],
+            'reference_no' => ['sometimes', 'string', 'max:255'],
             'organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
             'user_id' => ['nullable', 'uuid', 'exists:users,id'],
             'plan_id' => ['nullable', 'uuid', 'exists:subscription_plans,id'],

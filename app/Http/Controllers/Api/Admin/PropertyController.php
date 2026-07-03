@@ -9,16 +9,21 @@ use App\Http\Requests\Api\Admin\PropertyListingUpdateRequest;
 use App\Http\Resources\Admin\AdminPropertyListingResource;
 use App\Models\Media;
 use App\Models\PropertyListing;
+use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class PropertyController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly DynamicIdGeneratorService $idGenerator
+    )
     {
     }
 
@@ -81,6 +86,7 @@ class PropertyController extends Controller
         $listing = PropertyListing::query()->create([
             'org_id' => $organizationId,
             'creator_id' => $request->user()->id,
+            'generated_id' => $this->idGenerator->generate('properties', 'PROP') ?? 'PROP-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)),
             'property_type_id' => $request->input('property_type_id'),
             'avg_prop_rating' => 0,
             'address_line_1' => $request->input('address_line_1') ?? $request->input('address'),

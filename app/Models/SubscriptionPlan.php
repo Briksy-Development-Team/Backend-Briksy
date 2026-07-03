@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -17,6 +18,13 @@ class SubscriptionPlan extends Model
 
     protected $fillable = [
         'name',
+        'monthly_price',
+        'yearly_price',
+        'currency',
+        'billing_enabled',
+        'stripe_monthly_price_id',
+        'stripe_yearly_price_id',
+        'trial_days',
         'stripe_price_id',
         'price',
         'property_limit',
@@ -32,6 +40,10 @@ class SubscriptionPlan extends Model
     protected function casts(): array
     {
         return [
+            'monthly_price' => 'decimal:2',
+            'yearly_price' => 'decimal:2',
+            'billing_enabled' => 'boolean',
+            'trial_days' => 'integer',
             'price' => 'integer',
             'property_limit' => 'integer',
             'popular' => 'boolean',
@@ -55,5 +67,12 @@ class SubscriptionPlan extends Model
     public function planRequests(): HasMany
     {
         return $this->hasMany(PlanRequest::class, 'plan_id');
+    }
+
+    public function addons(): BelongsToMany
+    {
+        return $this->belongsToMany(Addon::class, 'plan_addons')
+            ->withPivot(['included_quantity', 'is_included'])
+            ->withTimestamps();
     }
 }

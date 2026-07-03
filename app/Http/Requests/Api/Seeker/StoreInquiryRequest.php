@@ -17,6 +17,7 @@ class StoreInquiryRequest extends FormRequest
             'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
             'property_listing_id' => ['nullable', 'uuid', 'exists:property_listings,id'],
             'staff_id' => ['nullable', 'uuid', 'exists:users,id'],
+            'lead_source' => ['nullable', 'string', 'max:80'],
             'user_id' => ['nullable', 'uuid', 'exists:users,id'],
             'subject' => ['required', 'string', 'max:150'],
             'message' => ['required', 'string', 'max:5000'],

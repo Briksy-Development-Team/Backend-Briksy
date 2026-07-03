@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             PermissionSeeder::class,
             OrganizationTypeSeeder::class,
+            DynamicIdSettingSeeder::class,
+            AddonSeeder::class,
             ServiceSeeder::class,
             ServiceGroupSeeder::class,
             OrganizationSeeder::class,

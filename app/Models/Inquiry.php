@@ -16,12 +16,14 @@ class Inquiry extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'reference_no',
         'user_id',
         'property_listing_id',
         'message',
         'subject',
         'organization_id',
         'staff_id',
+        'lead_source',
         'seeker_name',
         'seeker_email',
         'seeker_phone',

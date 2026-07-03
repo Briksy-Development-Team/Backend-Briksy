@@ -78,7 +78,7 @@ class User extends Authenticatable
 
     public function hasActiveSubscriptionAccess(): bool
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isGlobalStaff()) {
             return true;
         }
 
@@ -102,7 +102,7 @@ class User extends Authenticatable
 
     public function isTrialActive(): bool
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isGlobalStaff()) {
             return true;
         }
 
@@ -115,7 +115,7 @@ class User extends Authenticatable
 
     public function subscriptionStatus(): string
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isGlobalStaff()) {
             return 'active';
         }
 
@@ -254,13 +254,18 @@ class User extends Authenticatable
         return $this->hasRole('super_admin');
     }
 
+    public function isGlobalStaff(): bool
+    {
+        return $this->hasRole('super_admin_employee');
+    }
+
     public function hasPermission(string $permission): bool
     {
         if ($this->isSuperAdmin()) {
             return true;
         }
 
-        if (!$this->hasActiveSubscriptionAccess()) {
+        if (!$this->hasActiveSubscriptionAccess() && !$this->isGlobalStaff()) {
             return false;
         }
 
@@ -311,7 +316,7 @@ class User extends Authenticatable
             return Permission::query()->orderBy('module')->orderBy('action')->get();
         }
 
-        if (!$this->hasActiveSubscriptionAccess()) {
+        if (!$this->hasActiveSubscriptionAccess() && !$this->isGlobalStaff()) {
             return collect();
         }
 

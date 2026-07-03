@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Organization extends Model
 {
@@ -20,6 +21,9 @@ class Organization extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'generated_id',
+        'referral_code',
+        'referred_by_organization_id',
         'name',
         'trading_name',
         'contact_email',
@@ -50,6 +54,21 @@ class Organization extends Model
             'trial_ends_at' => 'datetime',
             'subscription_activated_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Organization $organization): void {
+            if (!blank($organization->referral_code)) {
+                return;
+            }
+
+            do {
+                $code = strtoupper('REF-' . Str::random(8));
+            } while (static::query()->where('referral_code', $code)->exists());
+
+            $organization->referral_code = $code;
+        });
     }
 
     public function users(): HasMany
@@ -110,6 +129,16 @@ class Organization extends Model
     public function planRequests(): HasMany
     {
         return $this->hasMany(PlanRequest::class, 'organization_id');
+    }
+
+    public function referredByOrganization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'referred_by_organization_id');
+    }
+
+    public function referredOrganizations(): HasMany
+    {
+        return $this->hasMany(Organization::class, 'referred_by_organization_id');
     }
 
     public function companySettings(): HasMany

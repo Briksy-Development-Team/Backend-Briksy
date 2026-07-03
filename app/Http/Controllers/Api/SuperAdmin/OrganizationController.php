@@ -9,13 +9,19 @@ use App\Http\Requests\Api\SuperAdmin\OrganizationUpdateRequest;
 use App\Http\Resources\SuperAdmin\OrganizationResource;
 use App\Models\Organization;
 use App\Services\NotificationService;
+use App\Services\DynamicIdGeneratorService;
+use App\Services\ReferralService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OrganizationController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly DynamicIdGeneratorService $idGenerator,
+        private readonly ReferralService $referralService
+    )
     {
     }
 
@@ -75,6 +81,8 @@ class OrganizationController extends Controller
         $validated = $request->validated();
         $validated['abn'] = preg_replace('/\s+/', '', (string) ($validated['abn'] ?? ''));
         $validated['business_verification_status'] = $validated['business_verification_status'] ?? 'pending';
+        $validated['generated_id'] = $validated['generated_id'] ?? $this->idGenerator->generate('organizations', 'COM') ?? 'COM-' . now()->format('Ymd') . '-' . strtoupper(str()->random(6));
+        $validated['referral_code'] = $validated['referral_code'] ?? $this->referralService->generateCode();
         $organization = Organization::query()->create($validated);
         $organization->load(['organizationType', 'plan']);
 

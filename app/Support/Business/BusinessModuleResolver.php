@@ -9,7 +9,7 @@ class BusinessModuleResolver
 {
     public function resolve(User $user): array
     {
-        if ($user->hasRole('super_admin')) {
+        if ($user->hasRole('super_admin') || $user->hasRole('super_admin_employee')) {
             return BusinessModules::all();
         }
 
@@ -50,7 +50,7 @@ class BusinessModuleResolver
 
     public function isPropertyAllowed(User $user): bool
     {
-        if ($user->hasRole('super_admin')) {
+        if ($user->hasRole('super_admin') || $user->hasRole('super_admin_employee')) {
             return true;
         }
 
@@ -66,7 +66,7 @@ class BusinessModuleResolver
 
     public function isServiceAllowed(User $user): bool
     {
-        if ($user->hasRole('super_admin')) {
+        if ($user->hasRole('super_admin') || $user->hasRole('super_admin_employee')) {
             return true;
         }
 

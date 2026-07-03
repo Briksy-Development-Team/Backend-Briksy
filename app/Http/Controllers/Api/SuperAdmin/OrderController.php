@@ -10,6 +10,7 @@ use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\SubscriptionPlan;
 use App\Http\Controllers\Api\Concerns\AppliesOrganizationScope;
+use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +21,10 @@ class OrderController extends Controller
 {
     use AppliesOrganizationScope;
 
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly DynamicIdGeneratorService $idGenerator
+    )
     {
     }
 
@@ -41,6 +45,7 @@ class OrderController extends Controller
         $plan = isset($validated['plan_id']) ? SubscriptionPlan::query()->find($validated['plan_id']) : null;
         $coupon = null;
         $discountAmount = (float) ($validated['discount_amount'] ?? 0);
+        $generatedOrderNumber = $validated['order_number'] ?? $this->idGenerator->generate('orders', 'ORD') ?? 'ORD-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
 
         if (!empty($validated['coupon_id'])) {
             $coupon = Coupon::query()->find($validated['coupon_id']);
@@ -64,7 +69,8 @@ class OrderController extends Controller
         $total = (float) ($validated['total_amount'] ?? max(0, $subtotal - $discountAmount + $taxAmount));
 
         $order = Order::query()->create([
-            'order_number' => $validated['order_number'] ?? 'ORD-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)),
+            'order_number' => $generatedOrderNumber,
+            'reference_no' => $validated['reference_no'] ?? $generatedOrderNumber,
             'organization_id' => $validated['organization_id'] ?? $this->organizationId($request),
             'user_id' => $validated['user_id'] ?? $request->user()?->id,
             'plan_id' => $validated['plan_id'] ?? $plan?->id,
@@ -73,7 +79,7 @@ class OrderController extends Controller
             'discount_amount' => $discountAmount,
             'tax_amount' => $taxAmount,
             'total_amount' => $total,
-            'currency' => $validated['currency'] ?? 'INR',
+            'currency' => $validated['currency'] ?? 'AUD',
             'billing_cycle' => $validated['billing_cycle'] ?? null,
             'payment_status' => $validated['payment_status'] ?? 'pending',
             'order_status' => $validated['order_status'] ?? 'draft',

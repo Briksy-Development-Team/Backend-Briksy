@@ -15,7 +15,7 @@ class StaffStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
+            'organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', Password::min(8)],

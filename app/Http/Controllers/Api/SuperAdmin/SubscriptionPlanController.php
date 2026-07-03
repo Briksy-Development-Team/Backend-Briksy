@@ -16,7 +16,7 @@ class SubscriptionPlanController extends Controller
 {
     public function index(SubscriptionPlanIndexRequest $request): JsonResponse
     {
-        $query = SubscriptionPlan::query();
+        $query = SubscriptionPlan::query()->with('addons');
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
@@ -46,7 +46,14 @@ class SubscriptionPlanController extends Controller
 
         $plan = SubscriptionPlan::query()->create([
             'name' => $validated['name'],
-            'price' => $validated['price'],
+            'price' => $validated['price'] ?? 0,
+            'monthly_price' => $validated['monthly_price'] ?? null,
+            'yearly_price' => $validated['yearly_price'] ?? null,
+            'currency' => $validated['currency'] ?? 'AUD',
+            'billing_enabled' => $validated['billing_enabled'] ?? true,
+            'stripe_monthly_price_id' => $validated['stripe_monthly_price_id'] ?? null,
+            'stripe_yearly_price_id' => $validated['stripe_yearly_price_id'] ?? null,
+            'trial_days' => $validated['trial_days'] ?? null,
             'property_limit' => $validated['propertyLimit'],
             'popular' => $validated['popular'],
             'features' => $features,
@@ -59,7 +66,7 @@ class SubscriptionPlanController extends Controller
         ]);
 
         return $this->created(
-            new SubscriptionPlanResource($plan),
+            new SubscriptionPlanResource($plan->fresh()->load('addons')),
             'Subscription plan created successfully.'
         );
     }
@@ -67,7 +74,7 @@ class SubscriptionPlanController extends Controller
     public function show(SubscriptionPlan $subscriptionPlan): JsonResponse
     {
         return $this->success(
-            new SubscriptionPlanResource($subscriptionPlan),
+            new SubscriptionPlanResource($subscriptionPlan->loadMissing('addons')),
             'Subscription plan retrieved successfully.'
         );
     }
@@ -92,6 +99,14 @@ class SubscriptionPlanController extends Controller
             unset($validated['propertyLimit']);
         }
 
+        if (array_key_exists('monthly_price', $validated)) {
+            $validated['monthly_price'] = $validated['monthly_price'];
+        }
+
+        if (array_key_exists('yearly_price', $validated)) {
+            $validated['yearly_price'] = $validated['yearly_price'];
+        }
+
         if (array_key_exists('features', $validated)) {
             $validated['features'] = $validated['features'];
         }
@@ -99,6 +114,13 @@ class SubscriptionPlanController extends Controller
         $subscriptionPlan->fill([
             'name' => $validated['name'] ?? $subscriptionPlan->name,
             'price' => $validated['price'] ?? $subscriptionPlan->price,
+            'monthly_price' => $validated['monthly_price'] ?? $subscriptionPlan->monthly_price,
+            'yearly_price' => $validated['yearly_price'] ?? $subscriptionPlan->yearly_price,
+            'currency' => $validated['currency'] ?? $subscriptionPlan->currency ?? 'AUD',
+            'billing_enabled' => $validated['billing_enabled'] ?? $subscriptionPlan->billing_enabled ?? true,
+            'stripe_monthly_price_id' => $validated['stripe_monthly_price_id'] ?? $subscriptionPlan->stripe_monthly_price_id,
+            'stripe_yearly_price_id' => $validated['stripe_yearly_price_id'] ?? $subscriptionPlan->stripe_yearly_price_id,
+            'trial_days' => $validated['trial_days'] ?? $subscriptionPlan->trial_days,
             'property_limit' => $validated['property_limit'] ?? $subscriptionPlan->property_limit,
             'popular' => $validated['popular'] ?? $subscriptionPlan->popular,
             'features' => $validated['features'] ?? $subscriptionPlan->features,
@@ -108,7 +130,7 @@ class SubscriptionPlanController extends Controller
         $subscriptionPlan->save();
 
         return $this->success(
-            new SubscriptionPlanResource($subscriptionPlan),
+            new SubscriptionPlanResource($subscriptionPlan->fresh()->load('addons')),
             'Subscription plan updated successfully.'
         );
     }
@@ -132,8 +154,39 @@ class SubscriptionPlanController extends Controller
         ]);
 
         return $this->success(
-            new SubscriptionPlanResource($subscriptionPlan->fresh()),
+            new SubscriptionPlanResource($subscriptionPlan->fresh()->load('addons')),
             'Subscription plan status updated successfully.'
+        );
+    }
+
+    public function attachAddon(Request $request, SubscriptionPlan $subscriptionPlan): JsonResponse
+    {
+        $validated = $request->validate([
+            'addon_id' => ['required', 'uuid', 'exists:addons,id'],
+            'included_quantity' => ['nullable', 'integer', 'min:1'],
+            'is_included' => ['sometimes', 'boolean'],
+        ]);
+
+        $subscriptionPlan->addons()->syncWithoutDetaching([
+            $validated['addon_id'] => [
+                'included_quantity' => $validated['included_quantity'] ?? null,
+                'is_included' => $validated['is_included'] ?? true,
+            ],
+        ]);
+
+        return $this->success(
+            new SubscriptionPlanResource($subscriptionPlan->fresh()->load('addons')),
+            'Add-on attached to plan successfully.'
+        );
+    }
+
+    public function detachAddon(SubscriptionPlan $subscriptionPlan, string $addon): JsonResponse
+    {
+        $subscriptionPlan->addons()->detach($addon);
+
+        return $this->success(
+            new SubscriptionPlanResource($subscriptionPlan->fresh()->load('addons')),
+            'Add-on detached from plan successfully.'
         );
     }
 }

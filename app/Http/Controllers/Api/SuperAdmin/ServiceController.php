@@ -8,6 +8,7 @@ use App\Http\Requests\Api\SuperAdmin\ServiceStoreRequest;
 use App\Http\Requests\Api\SuperAdmin\ServiceUpdateRequest;
 use App\Http\Resources\SuperAdmin\ServiceResource;
 use App\Models\Service;
+use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +16,10 @@ use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly DynamicIdGeneratorService $idGenerator
+    )
     {
     }
 
@@ -188,6 +192,7 @@ class ServiceController extends Controller
             'title' => $title,
             'category' => $validated['category'] ?? $service?->category,
             'slug' => $validated['slug'] ?? $service?->slug,
+            'generated_id' => $validated['generated_id'] ?? $service?->generated_id ?? $this->idGenerator->generate('services', 'SRV') ?? 'SRV-' . now()->format('Ymd') . '-' . strtoupper(str()->random(6)),
             'description' => $validated['description'] ?? $service?->description,
             'service_area' => $validated['service_area'] ?? $service?->service_area,
             'rate_from' => $validated['rate_from'] ?? $service?->rate_from,

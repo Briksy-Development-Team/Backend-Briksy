@@ -123,12 +123,20 @@ class SocialAuthController extends Controller
             return ['admin_staff'];
         }
 
+        if ($requestedRole === 'super_admin_employee' && $user->hasRole('super_admin_employee')) {
+            return ['super_admin_employee'];
+        }
+
         if ($user->hasRole('admin')) {
             return ['admin'];
         }
 
         if ($user->hasRole('admin_staff')) {
             return ['admin_staff'];
+        }
+
+        if ($user->hasRole('super_admin_employee')) {
+            return ['super_admin_employee'];
         }
 
         return ['seeker'];
@@ -142,6 +150,10 @@ class SocialAuthController extends Controller
 
         if ($abilities === ['admin_staff']) {
             return 'admin-staff-auth';
+        }
+
+        if ($abilities === ['super_admin_employee']) {
+            return 'super-admin-employee-auth';
         }
 
         return 'seeker-auth';

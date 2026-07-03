@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\Seeker\StoreInquiryRequest;
 use App\Http\Resources\Seeker\InquiryResource;
 use App\Models\Inquiry;
+use App\Services\DynamicIdGeneratorService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Schema;
 
 class InquiryController extends Controller
 {
@@ -30,8 +32,11 @@ class InquiryController extends Controller
     public function store(StoreInquiryRequest $request): JsonResponse
     {
         $authUser = $request->user();
-
-        $inquiry = Inquiry::query()->create([
+        $referenceNo = app(DynamicIdGeneratorService::class)->generate('inquiries', 'INQ') ?? 'INQ-' . now()->format('Ymd') . '-' . strtoupper(str()->random(6));
+        $leadSource = $request->input('lead_source')
+            ?? ($request->filled('property_listing_id') ? 'property_listing' : 'direct');
+        $inquiryData = [
+            'reference_no' => $referenceNo,
             'organization_id' => $request->input('organization_id'),
             'property_listing_id' => $request->input('property_listing_id'),
             'staff_id' => $request->input('staff_id'),
@@ -42,7 +47,13 @@ class InquiryController extends Controller
             'seeker_email' => $request->input('seeker_email') ?? $authUser?->email,
             'seeker_phone' => $request->input('seeker_phone'),
             'status' => 'new',
-        ]);
+        ];
+
+        if (Schema::hasColumn('inquiries', 'lead_source')) {
+            $inquiryData['lead_source'] = $leadSource;
+        }
+
+        $inquiry = Inquiry::query()->create($inquiryData);
 
         return $this->created(
             new InquiryResource($inquiry),

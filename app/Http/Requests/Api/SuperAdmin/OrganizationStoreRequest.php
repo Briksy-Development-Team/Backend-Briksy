@@ -18,6 +18,7 @@ class OrganizationStoreRequest extends FormRequest
             'name' => ['required', 'string', 'max:200'],
             'trading_name' => ['nullable', 'string', 'max:200'],
             'slug' => ['required', 'string', 'max:200', 'unique:organizations,slug'],
+            'referral_code' => ['nullable', 'string', 'max:50', 'unique:organizations,referral_code'],
             'abn' => ['required', 'string', 'size:11', 'unique:organizations,abn'],
             'business_type' => ['required', Rule::in(['organisation', 'company', 'solo_trader'])],
             'business_verification_status' => ['nullable', Rule::in(['pending', 'verified', 'rejected'])],

@@ -19,6 +19,7 @@ class Order extends Model
 
     protected $fillable = [
         'order_number',
+        'reference_no',
         'organization_id',
         'user_id',
         'plan_id',
@@ -68,5 +69,10 @@ class Order extends Model
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class, 'coupon_id');
+    }
+
+    public function getDisplayNumberAttribute(): string
+    {
+        return $this->reference_no ?: $this->order_number;
     }
 }

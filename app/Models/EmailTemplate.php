@@ -17,11 +17,15 @@ class EmailTemplate extends Model
 
     protected $fillable = [
         'key',
+        'slug',
         'name',
         'subject',
         'body',
         'variables',
         'status',
+        'module',
+        'event_key',
+        'is_active',
         'created_by',
     ];
 
@@ -29,6 +33,7 @@ class EmailTemplate extends Model
     {
         return [
             'variables' => 'array',
+            'is_active' => 'boolean',
         ];
     }
 

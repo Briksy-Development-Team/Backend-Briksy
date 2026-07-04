@@ -1,0 +1,1749 @@
+openapi: 3.1.0
+info:
+  title: Brisky API Draft
+  version: 1.0.0
+paths:
+  /api/admin/activity-logs:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\ActivityLogController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/activity-logs/{activityLog}:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\ActivityLogController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/auth/login:
+    post:
+      tags: [admin]
+      summary: "Api\Seeker\RegistrationController@loginAdmin"
+      responses:
+        "200":
+          description: Success
+  /api/admin/auth/logout:
+    post:
+      tags: [admin]
+      summary: "Api\Seeker\RegistrationController@logoutSeeker"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/auth/me:
+    get:
+      tags: [admin]
+      summary: "Api\Seeker\RegistrationController@me"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/auth/register:
+    post:
+      tags: [admin]
+      summary: "Api\Seeker\RegistrationController@registerAdmin"
+      responses:
+        "200":
+          description: Success
+  /api/admin/auth/register-staff:
+    post:
+      tags: [admin]
+      summary: "Api\Seeker\RegistrationController@registerAdminStaff"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/billing/addons:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\BillingController@addons"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/billing/checkout:
+    post:
+      tags: [admin]
+      summary: "Api\Admin\BillingController@checkout"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/billing/current-subscription:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\BillingController@currentSubscription"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/billing/plans:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\BillingController@plans"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/billing/subscriptions:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\BillingController@subscriptions"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/businesses:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\OrganizationController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/businesses/{organization}:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\OrganizationController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [admin]
+      summary: "Api\Admin\OrganizationController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/coupons/validate:
+    post:
+      tags: [admin]
+      summary: "Api\Admin\CouponController@validateCoupon"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/dashboard:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\DashboardController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/notification-preferences:
+    get:
+      tags: [admin]
+      summary: "Api\NotificationPreferenceController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    patch:
+      tags: [admin]
+      summary: "Api\NotificationPreferenceController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/notifications:
+    get:
+      tags: [admin]
+      summary: "Api\NotificationController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/notifications/read-all:
+    patch:
+      tags: [admin]
+      summary: "Api\NotificationController@markAllRead"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/notifications/unread-count:
+    get:
+      tags: [admin]
+      summary: "Api\NotificationController@unreadCount"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/notifications/{notification}:
+    delete:
+      tags: [admin]
+      summary: "Api\NotificationController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/notifications/{notification}/read:
+    patch:
+      tags: [admin]
+      summary: "Api\NotificationController@markRead"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/orders:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\OrderController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [admin]
+      summary: "Api\Admin\OrderController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/orders/{order}:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\OrderController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/orders/{order}/cancel:
+    post:
+      tags: [admin]
+      summary: "Api\Admin\OrderController@cancel"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/plan-requests:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\PlanRequestController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [admin]
+      summary: "Api\Admin\PlanRequestController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/plan-requests/{planRequest}:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\PlanRequestController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/plans:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\SubscriptionController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/plans/{subscriptionPlan}/select:
+    post:
+      tags: [admin]
+      summary: "Api\Admin\SubscriptionController@select"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/properties:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\PropertyController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [admin]
+      summary: "Api\Admin\PropertyController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/properties/map:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\PropertyController@map"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/properties/{propertyListing}:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\PropertyController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [admin]
+      summary: "Api\Admin\PropertyController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [admin]
+      summary: "Api\Admin\PropertyController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/referrals:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\ReferralController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/seekers:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\SeekerController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/seekers/{user}:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\SeekerController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/services:
+    get:
+      tags: [admin]
+      summary: "Api\SuperAdmin\ServiceController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [admin]
+      summary: "Api\SuperAdmin\ServiceController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/services/{service}:
+    get:
+      tags: [admin]
+      summary: "Api\SuperAdmin\ServiceController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [admin]
+      summary: "Api\SuperAdmin\ServiceController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [admin]
+      summary: "Api\SuperAdmin\ServiceController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/settings:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\SettingController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    patch:
+      tags: [admin]
+      summary: "Api\Admin\SettingController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/staff:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\StaffController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [admin]
+      summary: "Api\Admin\StaffController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/staff/{user}:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\StaffController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [admin]
+      summary: "Api\Admin\StaffController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [admin]
+      summary: "Api\Admin\StaffController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/admin/subscription:
+    get:
+      tags: [admin]
+      summary: "Api\Admin\SubscriptionController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/auth/social/{provider}:
+    post:
+      tags: [auth]
+      summary: "Api\Auth\SocialAuthController@login"
+      responses:
+        "200":
+          description: Success
+  /api/me/permissions:
+    get:
+      tags: [me]
+      summary: "Api\SuperAdmin\PermissionController@me"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/auth/login:
+    post:
+      tags: [seeker]
+      summary: "Api\Seeker\RegistrationController@loginSeeker"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/auth/register:
+    post:
+      tags: [seeker]
+      summary: "Api\Seeker\RegistrationController@store"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/favorites:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\FavoriteController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [seeker]
+      summary: "Api\Seeker\FavoriteController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/favorites/{favorite}:
+    delete:
+      tags: [seeker]
+      summary: "Api\Seeker\FavoriteController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/inquiries:
+    post:
+      tags: [seeker]
+      summary: "Api\Seeker\InquiryController@store"
+      responses:
+        "200":
+          description: Success
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\InquiryController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/inquiries/{inquiry}:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\InquiryController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/organizations:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\OrganizationSearchController@index"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/organizations/{organization}:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\OrganizationSearchController@show"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/profile:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\SeekerProfileController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [seeker]
+      summary: "Api\Seeker\SeekerProfileController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/properties:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\PropertySearchController@index"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/properties/{propertyListing}:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\PropertySearchController@show"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/reviews:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\ReviewController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [seeker]
+      summary: "Api\Seeker\ReviewController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/saved-searches:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\SeekerSavedSearchController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [seeker]
+      summary: "Api\Seeker\SeekerSavedSearchController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/saved-searches/{savedSearch}:
+    get:
+      tags: [seeker]
+      summary: "Api\Seeker\SeekerSavedSearchController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [seeker]
+      summary: "Api\Seeker\SeekerSavedSearchController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [seeker]
+      summary: "Api\Seeker\SeekerSavedSearchController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/settings/public:
+    get:
+      tags: [settings]
+      summary: "Api\SuperAdmin\SettingController@publicSettings"
+      responses:
+        "200":
+          description: Success
+  /api/stripe/webhook:
+    post:
+      tags: [stripe]
+      summary: "Api\StripeWebhookController@handle"
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/activity-logs:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\ActivityLogController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/activity-logs/{activityLog}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\ActivityLogController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/addons:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\AddonController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\AddonController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/addons/{addon}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\AddonController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\AddonController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\AddonController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/addons/{addon}/toggle:
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\AddonController@toggle"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/auth/login:
+    post:
+      tags: [super-admin]
+      summary: "Api\Seeker\RegistrationController@loginSuperAdmin"
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/auth/logout:
+    post:
+      tags: [super-admin]
+      summary: "Api\Seeker\RegistrationController@logoutSeeker"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/auth/me:
+    get:
+      tags: [super-admin]
+      summary: "Api\Seeker\RegistrationController@me"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/auth/register:
+    post:
+      tags: [super-admin]
+      summary: "Api\Seeker\RegistrationController@registerSuperAdmin"
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/coupons:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\CouponController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\CouponController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/coupons/validate:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\CouponController@validateCoupon"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/coupons/{coupon}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\CouponController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\CouponController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\CouponController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/coupons/{coupon}/activate:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\CouponController@activate"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/coupons/{coupon}/deactivate:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\CouponController@deactivate"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/dashboard:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\DashboardController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/dynamic-id-settings:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\DynamicIdSettingController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\DynamicIdSettingController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/dynamic-id-settings/{dynamicIdSetting}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\DynamicIdSettingController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\DynamicIdSettingController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\DynamicIdSettingController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/email-templates:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/email-templates/{emailTemplate}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/email-templates/{emailTemplate}/activate:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@activate"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/email-templates/{emailTemplate}/deactivate:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@deactivate"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/email-templates/{emailTemplate}/preview:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@preview"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/email-templates/{emailTemplate}/send-test:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\EmailTemplateController@sendTest"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/notification-preferences:
+    get:
+      tags: [super-admin]
+      summary: "Api\NotificationPreferenceController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    patch:
+      tags: [super-admin]
+      summary: "Api\NotificationPreferenceController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/notifications:
+    get:
+      tags: [super-admin]
+      summary: "Api\NotificationController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/notifications/read-all:
+    patch:
+      tags: [super-admin]
+      summary: "Api\NotificationController@markAllRead"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/notifications/unread-count:
+    get:
+      tags: [super-admin]
+      summary: "Api\NotificationController@unreadCount"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/notifications/{notification}:
+    delete:
+      tags: [super-admin]
+      summary: "Api\NotificationController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/notifications/{notification}/read:
+    patch:
+      tags: [super-admin]
+      summary: "Api\NotificationController@markRead"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/orders:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrderController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrderController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/orders/{order}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrderController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrderController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrderController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/orders/{order}/cancel:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrderController@cancel"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/orders/{order}/mark-paid:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrderController@markPaid"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/organization-types:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationTypeController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationTypeController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/organization-types/{organizationType}:
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationTypeController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/organizations:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/organizations/{organization}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/organizations/{organization}/approve-verification:
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@approveVerification"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/organizations/{organization}/assign-plan:
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@assignPlan"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/organizations/{organization}/reject-verification:
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@rejectVerification"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/organizations/{organization}/restore:
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\OrganizationController@restore"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/permissions:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PermissionController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/permissions/me/permissions:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PermissionController@me"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/permissions/roles:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PermissionController@roles"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/permissions/roles/{role}/permissions:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PermissionController@rolePermissions"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PermissionController@updateRolePermissions"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/permissions/users:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PermissionController@users"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/permissions/users/{user}/permissions:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PermissionController@userPermissions"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PermissionController@updateUserPermissions"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plan-requests:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PlanRequestController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PlanRequestController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plan-requests/{planRequest}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PlanRequestController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PlanRequestController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PlanRequestController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plan-requests/{planRequest}/approve:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PlanRequestController@approve"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plan-requests/{planRequest}/reject:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PlanRequestController@reject"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plans:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionPlanController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionPlanController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plans/{subscriptionPlan}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionPlanController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionPlanController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionPlanController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plans/{subscriptionPlan}/addons:
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionPlanController@attachAddon"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plans/{subscriptionPlan}/addons/{addon}:
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionPlanController@detachAddon"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/plans/{subscriptionPlan}/status:
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionPlanController@toggle"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/properties:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PropertyController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/properties/map:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PropertyController@map"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/properties/{propertyListing}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\PropertyController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/referrals:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\ReferralController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/seekers:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SeekerController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SeekerController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/seekers/{seeker}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SeekerController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SeekerController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SeekerController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/service-groups:
+    get:
+      tags: [super-admin]
+      summary: "Closure"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/services:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\ServiceController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/services/{service}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\ServiceController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/settings:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SettingController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    patch:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SettingController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/staff:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\StaffController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\StaffController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/staff/{staff}:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\StaffController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\StaffController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\StaffController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/super-admin/subscriptions:
+    get:
+      tags: [super-admin]
+      summary: "Api\SuperAdmin\SubscriptionController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/auth/login:
+    post:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\RegistrationController@loginSeeker"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/auth/register:
+    post:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\RegistrationController@store"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/favorites:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\FavoriteController@index"
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\FavoriteController@store"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/favorites/{favorite}:
+    delete:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\FavoriteController@destroy"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/inquiries:
+    post:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\InquiryController@store"
+      responses:
+        "200":
+          description: Success
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\InquiryController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/inquiries/{inquiry}:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\InquiryController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/organizations:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\OrganizationSearchController@index"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/organizations/{organization}:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\OrganizationSearchController@show"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/profile:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\SeekerProfileController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\SeekerProfileController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/properties:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\PropertySearchController@index"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/properties/{propertyListing}:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\PropertySearchController@show"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/reviews:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\ReviewController@index"
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\ReviewController@store"
+      responses:
+        "200":
+          description: Success
+  /api/seeker/saved-searches:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\SeekerSavedSearchController@index"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\SeekerSavedSearchController@store"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+  /api/seeker/saved-searches/{savedSearch}:
+    get:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\SeekerSavedSearchController@show"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    put:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\SeekerSavedSearchController@update"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+    delete:
+      tags: [seeker-v1]
+      summary: "Api\Seeker\SeekerSavedSearchController@destroy"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

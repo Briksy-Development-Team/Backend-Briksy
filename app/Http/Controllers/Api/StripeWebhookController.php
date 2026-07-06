@@ -39,12 +39,14 @@ class StripeWebhookController extends Controller
         $eventType = $event->type;
         $metadata = (array) ($object->metadata ?? []);
         $payloadArray = json_decode($payload, true);
-        $organizationId = $metadata['organization_id'] ?? null;
+        $organizationId = $metadata['company_id'] ?? $metadata['organization_id'] ?? null;
 
         DB::transaction(function () use ($event, $eventType, $object, $metadata, $organizationId, $payloadArray): void {
             $subscription = null;
             $planId = $metadata['plan_id'] ?? null;
-            $billingCycle = $metadata['billing_cycle'] ?? 'monthly';
+            $billingCycle = $this->normalizeBillingCycle($metadata['billing_cycle'] ?? 'monthly');
+            $amount = isset($metadata['amount']) ? (float) $metadata['amount'] : null;
+            $currency = strtoupper($metadata['currency'] ?? config('services.stripe.currency', 'AUD'));
             $resolvedOrganizationId = $organizationId;
 
             if (!$resolvedOrganizationId && !empty($object->customer)) {
@@ -63,12 +65,13 @@ class StripeWebhookController extends Controller
                     $stripe = new StripeClient(config('services.stripe.secret'));
                     $stripeSubscription = $stripe->subscriptions->retrieve($subscriptionId, []);
                     $plan = $planId ? SubscriptionPlan::query()->find($planId) : null;
+                    $resolvedAmount = $amount ?? ((float) ($stripeSubscription->items->data[0]->price->unit_amount ?? 0)) / 100;
 
                     $subscription->fill([
                         'subscription_plan_id' => $plan?->id ?? $subscription->subscription_plan_id,
                         'billing_cycle' => $billingCycle,
-                        'currency' => strtoupper($stripeSubscription->currency ?? config('services.stripe.currency', 'AUD')),
-                        'amount' => ((float) ($stripeSubscription->items->data[0]->price->unit_amount ?? 0)) / 100,
+                        'currency' => strtoupper($stripeSubscription->currency ?? $currency),
+                        'amount' => $resolvedAmount,
                         'stripe_customer_id' => $object->customer ?? $subscription->stripe_customer_id,
                         'stripe_subscription_id' => $stripeSubscription->id,
                         'stripe_checkout_session_id' => $object->id,
@@ -78,6 +81,16 @@ class StripeWebhookController extends Controller
                         'current_period_end' => isset($stripeSubscription->current_period_end) ? Carbon::createFromTimestamp($stripeSubscription->current_period_end) : null,
                     ]);
                     $subscription->save();
+
+                    if ($resolvedOrganizationId && $plan) {
+                        Organization::query()
+                            ->where('id', $resolvedOrganizationId)
+                            ->update([
+                                'plan_id' => $plan->id,
+                                'subscription_status' => $stripeSubscription->status ?? 'active',
+                                'subscription_activated_at' => now(),
+                            ]);
+                    }
                 }
             }
 
@@ -89,19 +102,31 @@ class StripeWebhookController extends Controller
                 if ($resolvedOrganizationId) {
                     $plan = $planId ? SubscriptionPlan::query()->find($planId) : null;
                     $subscription = Subscription::query()->firstOrNew(['organization_id' => $resolvedOrganizationId]);
+                    $resolvedAmount = $amount ?? ((float) ($object->items->data[0]->price->unit_amount ?? 0)) / 100;
+                    $subscriptionStatus = $object->status ?? 'active';
                     $subscription->fill([
                         'subscription_plan_id' => $plan?->id ?? $subscription->subscription_plan_id,
                         'billing_cycle' => $billingCycle,
-                        'currency' => strtoupper($object->currency ?? config('services.stripe.currency', 'AUD')),
-                        'amount' => ((float) ($object->items->data[0]->price->unit_amount ?? 0)) / 100,
+                        'currency' => strtoupper($object->currency ?? $currency),
+                        'amount' => $resolvedAmount,
                         'stripe_customer_id' => $object->customer ?? $subscription->stripe_customer_id,
                         'stripe_subscription_id' => $object->id,
-                        'status' => $object->status ?? 'active',
+                        'status' => $subscriptionStatus,
                         'payment_status' => $eventType === 'customer.subscription.deleted' ? 'cancelled' : 'paid',
                         'current_period_start' => isset($object->current_period_start) ? Carbon::createFromTimestamp($object->current_period_start) : null,
                         'current_period_end' => isset($object->current_period_end) ? Carbon::createFromTimestamp($object->current_period_end) : null,
                     ]);
                     $subscription->save();
+
+                    if ($plan && in_array($subscriptionStatus, ['active', 'trialing'], true)) {
+                        Organization::query()
+                            ->where('id', $resolvedOrganizationId)
+                            ->update([
+                                'plan_id' => $plan->id,
+                                'subscription_status' => $subscriptionStatus,
+                                'subscription_activated_at' => now(),
+                            ]);
+                    }
                 }
             }
 
@@ -127,5 +152,10 @@ class StripeWebhookController extends Controller
         });
 
         return response()->json(['success' => true]);
+    }
+
+    private function normalizeBillingCycle(string $billingCycle): string
+    {
+        return $billingCycle === 'annual' ? 'yearly' : $billingCycle;
     }
 }

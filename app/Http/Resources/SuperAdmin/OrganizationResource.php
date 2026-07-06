@@ -12,6 +12,7 @@ class OrganizationResource extends JsonResource
         return [
             'id' => $this->id,
             'generated_id' => $this->generated_id,
+            'display_id' => $this->generated_id ?: $this->id,
             'referral_code' => $this->referral_code,
             'referred_by_organization_id' => $this->referred_by_organization_id,
             'referred_by_name' => $this->whenLoaded('referredByOrganization', fn () => $this->referredByOrganization?->name),

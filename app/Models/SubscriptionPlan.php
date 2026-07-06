@@ -18,6 +18,7 @@ class SubscriptionPlan extends Model
 
     protected $fillable = [
         'name',
+        'description',
         'monthly_price',
         'yearly_price',
         'currency',
@@ -71,7 +72,7 @@ class SubscriptionPlan extends Model
 
     public function addons(): BelongsToMany
     {
-        return $this->belongsToMany(Addon::class, 'plan_addons')
+        return $this->belongsToMany(Addon::class, 'plan_addons', 'plan_id', 'addon_id')
             ->withPivot(['included_quantity', 'is_included'])
             ->withTimestamps();
     }

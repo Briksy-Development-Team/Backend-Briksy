@@ -6,6 +6,7 @@ use App\Models\Organization;
 use App\Models\OrganizationType;
 use App\Models\Service;
 use App\Models\ServiceGroup;
+use App\Services\DynamicIdGeneratorService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,6 +15,7 @@ class SoloTraderSeeder extends Seeder
 {
     public function run(): void
     {
+        $generator = app(DynamicIdGeneratorService::class);
         $type = OrganizationType::withTrashed()->updateOrCreate(
             ['slug' => 'solo-traders'],
             [
@@ -115,6 +117,7 @@ class SoloTraderSeeder extends Seeder
             $payload = [
                 'plan_id' => null,
                 'type_id' => $type->id,
+                'generated_id' => $existing?->generated_id ?? $generator->generate('organizations', 'COM') ?? ('COM-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6))),
                 'ranking_priority' => $data['ranking_priority'],
                 'avg_org_rating' => 4.2,
                 'name' => $data['name'],

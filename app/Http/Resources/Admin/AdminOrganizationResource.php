@@ -11,6 +11,8 @@ class AdminOrganizationResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'generated_id' => $this->generated_id,
+            'display_id' => $this->generated_id ?: $this->id,
             'image' => $this->logo_url ?: '/media/avatars/blank.png',
             'name' => $this->name,
             'referral_code' => $this->referral_code,

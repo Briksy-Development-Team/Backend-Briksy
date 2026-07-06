@@ -16,7 +16,10 @@ class BillingCheckoutRequest extends FormRequest
     {
         return [
             'plan_id' => ['required', 'uuid', 'exists:subscription_plans,id'],
-            'billing_cycle' => ['required', Rule::in(['monthly', 'yearly'])],
+            'billing_cycle' => ['required', Rule::in(['monthly', 'yearly', 'annual'])],
+            'addons' => ['nullable', 'array'],
+            'addons.*.addon_id' => ['required', 'uuid', 'exists:addons,id'],
+            'addons.*.quantity' => ['nullable', 'integer', 'min:1'],
             'addon_ids' => ['nullable', 'array'],
             'addon_ids.*' => ['uuid', 'exists:addons,id'],
             'quantities' => ['nullable', 'array'],

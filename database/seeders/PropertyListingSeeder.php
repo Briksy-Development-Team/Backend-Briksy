@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\DynamicIdGeneratorService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -12,6 +13,7 @@ class PropertyListingSeeder extends Seeder
 {
     public function run(): void
     {
+        $generator = app(DynamicIdGeneratorService::class);
         $propertyTypeIds = DB::table('property_types')->pluck('id');
 
         $templates = [
@@ -87,6 +89,7 @@ class PropertyListingSeeder extends Seeder
                 $payload = [
                     'org_id' => $org->id,
                     'creator_id' => $creator->id,
+                    'generated_id' => $existing?->generated_id ?? $generator->generate('properties', 'PROP') ?? ('PROP-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6))),
                     'avg_prop_rating' => 4.2,
                     'latitude' => $template['latitude'],
                     'longitude' => $template['longitude'],

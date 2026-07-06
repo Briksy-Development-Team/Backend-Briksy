@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Services\DynamicIdGeneratorService;
+use Illuminate\Support\Str;
 
 class PropertyListing extends Model
 {
@@ -42,6 +44,28 @@ class PropertyListing extends Model
         'location_verified',
         'embedding',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (PropertyListing $propertyListing): void {
+            if (blank($propertyListing->generated_id)) {
+                $propertyListing->generated_id = app(DynamicIdGeneratorService::class)->generate('properties', 'PROP')
+                    ?? 'PROP-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+            }
+        });
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return static::query()
+            ->where('generated_id', $value)
+            ->orWhere($this->getKeyName(), $value)
+            ->first();
+    }
 
     public function organization(): BelongsTo
     {

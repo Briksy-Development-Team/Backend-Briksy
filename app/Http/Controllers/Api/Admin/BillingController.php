@@ -68,30 +68,65 @@ class BillingController extends Controller
     {
         $organization = $this->organization($request);
         $validated = $request->validated();
-        $plan = SubscriptionPlan::query()->with('addons')->findOrFail($validated['plan_id']);
+        $plan = SubscriptionPlan::query()->with(['addons' => fn ($query) => $query->where('is_active', true)])->findOrFail($validated['plan_id']);
 
         if (!$plan->is_active) {
             return response()->json(['success' => false, 'message' => 'Selected plan is inactive.'], 422);
         }
+        if ($plan->billing_enabled === false) {
+            return response()->json(['success' => false, 'message' => 'Selected plan does not support billing checkout.'], 422);
+        }
 
-        $billingCycle = $validated['billing_cycle'];
-        $addonIds = collect($validated['addon_ids'] ?? [])->values()->all();
+        $billingCycle = $this->normalizeBillingCycle($validated['billing_cycle']);
+        $selectedAddons = $this->normalizeSelectedAddons($validated);
+        $addonIds = $selectedAddons->pluck('addon_id')->unique()->values()->all();
         $addons = Addon::query()->whereIn('id', $addonIds)->where('is_active', true)->get()->keyBy('id');
-        $quantities = $validated['quantities'] ?? [];
+        if ($addons->count() !== count($addonIds)) {
+            return response()->json(['success' => false, 'message' => 'One or more selected add-ons are invalid or inactive.'], 422);
+        }
 
         $currency = $plan->currency ?? config('services.stripe.currency', 'AUD');
-        $planAmount = (float) ($billingCycle === 'yearly' ? ($plan->yearly_price ?? 0) : ($plan->monthly_price ?? 0));
+        $planAmount = $this->planAmount($plan, $billingCycle);
         $addonAmount = 0.0;
+        $lineItems = [];
 
-        foreach ($addons as $addon) {
-            $quantity = max(1, (int) ($quantities[$addon->id] ?? 1));
-            $price = match ($billingCycle) {
-                'yearly' => (float) ($addon->yearly_price ?? $addon->monthly_price ?? $addon->one_time_price ?? 0),
-                default => (float) ($addon->monthly_price ?? $addon->one_time_price ?? 0),
-            };
+        $lineItems[] = [
+            'price_data' => [
+                'currency' => strtolower($currency),
+                'unit_amount' => (int) round($planAmount * 100),
+                'product_data' => ['name' => $plan->name],
+                'recurring' => ['interval' => $billingCycle === 'yearly' ? 'year' : 'month'],
+            ],
+            'quantity' => 1,
+        ];
 
+        foreach ($selectedAddons as $selection) {
+            $addon = $addons->get($selection['addon_id']);
+            if (!$addon) {
+                continue;
+            }
+
+            $quantity = max(1, (int) ($selection['quantity'] ?? 1));
+            $price = $this->addonAmount($addon, $billingCycle);
             $addonAmount += $price * $quantity;
+
+            $addonItem = [
+                'price_data' => [
+                    'currency' => strtolower($currency),
+                    'unit_amount' => (int) round($price * 100),
+                    'product_data' => ['name' => $addon->name],
+                ],
+                'quantity' => $quantity,
+            ];
+
+            if (in_array($addon->pricing_type, ['monthly', 'yearly'], true)) {
+                $addonItem['price_data']['recurring'] = ['interval' => $billingCycle === 'yearly' ? 'year' : 'month'];
+            }
+
+            $lineItems[] = $addonItem;
         }
+
+        $amount = $planAmount + $addonAmount;
 
         $stripeKey = config('services.stripe.secret');
         if (!$stripeKey) {
@@ -116,46 +151,6 @@ class BillingController extends Controller
             $organization->update(['stripe_customer_id' => $customerId]);
         }
 
-        $lineItems = [];
-        $planPriceId = $billingCycle === 'yearly' ? $plan->stripe_yearly_price_id : $plan->stripe_monthly_price_id;
-
-        if ($planPriceId) {
-            $lineItems[] = ['price' => $planPriceId, 'quantity' => 1];
-        } else {
-            $lineItems[] = [
-                'price_data' => [
-                    'currency' => strtolower($currency),
-                    'unit_amount' => (int) round($planAmount * 100),
-                    'product_data' => ['name' => $plan->name],
-                    'recurring' => ['interval' => $billingCycle],
-                ],
-                'quantity' => 1,
-            ];
-        }
-
-        foreach ($addons as $addon) {
-            $quantity = max(1, (int) ($quantities[$addon->id] ?? 1));
-            $amount = match ($billingCycle) {
-                'yearly' => (float) ($addon->yearly_price ?? $addon->monthly_price ?? $addon->one_time_price ?? 0),
-                default => (float) ($addon->monthly_price ?? $addon->one_time_price ?? 0),
-            };
-
-            $addonItem = [
-                'price_data' => [
-                    'currency' => strtolower($currency),
-                    'unit_amount' => (int) round($amount * 100),
-                    'product_data' => ['name' => $addon->name],
-                ],
-                'quantity' => $quantity,
-            ];
-
-            if (in_array($addon->pricing_type, ['monthly', 'yearly'], true)) {
-                $addonItem['price_data']['recurring'] = ['interval' => $billingCycle];
-            }
-
-            $lineItems[] = $addonItem;
-        }
-
         $session = $stripe->checkout->sessions->create([
             'mode' => 'subscription',
             'customer' => $customerId,
@@ -163,29 +158,37 @@ class BillingController extends Controller
             'success_url' => config('services.stripe.success_url'),
             'cancel_url' => config('services.stripe.cancel_url'),
             'metadata' => [
+                'company_id' => $organization->id,
                 'organization_id' => $organization->id,
                 'plan_id' => $plan->id,
                 'billing_cycle' => $billingCycle,
-                'addon_ids' => json_encode($addonIds),
+                'addons' => $selectedAddons->toJson(),
+                'selected_addons' => $selectedAddons->toJson(),
+                'amount' => number_format($amount, 2, '.', ''),
+                'currency' => strtoupper($currency),
             ],
             'subscription_data' => [
                 'metadata' => [
+                    'company_id' => $organization->id,
                     'organization_id' => $organization->id,
                     'plan_id' => $plan->id,
                     'billing_cycle' => $billingCycle,
-                    'addon_ids' => json_encode($addonIds),
+                    'addons' => $selectedAddons->toJson(),
+                    'selected_addons' => $selectedAddons->toJson(),
+                    'amount' => number_format($amount, 2, '.', ''),
+                    'currency' => strtoupper($currency),
                 ],
             ],
         ]);
 
-        DB::transaction(function () use ($organization, $plan, $billingCycle, $session, $customerId, $planAmount, $addonAmount, $addons, $quantities, $currency): void {
+        DB::transaction(function () use ($organization, $plan, $billingCycle, $session, $customerId, $planAmount, $addonAmount, $addons, $selectedAddons, $currency, $amount): void {
             $subscription = Subscription::query()->updateOrCreate(
                 ['organization_id' => $organization->id],
                 [
                     'subscription_plan_id' => $plan->id,
                     'billing_cycle' => $billingCycle,
                     'currency' => $currency,
-                    'amount' => $planAmount + $addonAmount,
+                    'amount' => $amount,
                     'stripe_customer_id' => $customerId,
                     'stripe_checkout_session_id' => $session->id,
                     'status' => 'incomplete',
@@ -195,18 +198,20 @@ class BillingController extends Controller
 
             $subscription->addons()->delete();
 
-            foreach ($addons as $addon) {
-                $quantity = max(1, (int) ($quantities[$addon->id] ?? 1));
-                $amount = match ($billingCycle) {
-                    'yearly' => (float) ($addon->yearly_price ?? $addon->monthly_price ?? $addon->one_time_price ?? 0),
-                    default => (float) ($addon->monthly_price ?? $addon->one_time_price ?? 0),
-                };
+            foreach ($selectedAddons as $selection) {
+                $addon = $addons->get($selection['addon_id']);
+                if (!$addon) {
+                    continue;
+                }
+
+                $quantity = max(1, (int) ($selection['quantity'] ?? 1));
+                $addonAmountForSelection = $this->addonAmount($addon, $billingCycle);
 
                 SubscriptionAddon::query()->create([
                     'subscription_id' => $subscription->id,
                     'addon_id' => $addon->id,
                     'quantity' => $quantity,
-                    'amount' => $amount * $quantity,
+                    'amount' => $addonAmountForSelection * $quantity,
                     'billing_cycle' => $billingCycle,
                     'stripe_price_id' => null,
                 ]);
@@ -248,5 +253,52 @@ class BillingController extends Controller
         }
 
         return SubscriptionResource::make($subscription)->resolve();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, array{addon_id: string, quantity: int}>
+     */
+    private function normalizeSelectedAddons(array $validated)
+    {
+        if (!empty($validated['addons']) && is_array($validated['addons'])) {
+            return collect($validated['addons'])
+                ->map(fn (array $addon): array => [
+                    'addon_id' => $addon['addon_id'],
+                    'quantity' => max(1, (int) ($addon['quantity'] ?? 1)),
+                ])
+                ->values();
+        }
+
+        $addonIds = collect($validated['addon_ids'] ?? [])->values();
+        $quantities = $validated['quantities'] ?? [];
+
+        return $addonIds->map(fn (string $addonId): array => [
+            'addon_id' => $addonId,
+            'quantity' => max(1, (int) ($quantities[$addonId] ?? 1)),
+        ]);
+    }
+
+    private function normalizeBillingCycle(string $billingCycle): string
+    {
+        return $billingCycle === 'annual' ? 'yearly' : $billingCycle;
+    }
+
+    private function planAmount(SubscriptionPlan $plan, string $billingCycle): float
+    {
+        return (float) ($billingCycle === 'yearly'
+            ? ($plan->yearly_price ?? $plan->monthly_price ?? 0)
+            : ($plan->monthly_price ?? 0));
+    }
+
+    private function addonAmount(Addon $addon, string $billingCycle): float
+    {
+        return (float) match ($addon->pricing_type) {
+            'yearly' => $addon->yearly_price ?? $addon->monthly_price ?? $addon->one_time_price ?? 0,
+            'monthly' => $addon->monthly_price ?? $addon->one_time_price ?? 0,
+            'one_time' => $addon->one_time_price ?? 0,
+            default => $billingCycle === 'yearly'
+                ? ($addon->yearly_price ?? $addon->monthly_price ?? $addon->one_time_price ?? 0)
+                : ($addon->monthly_price ?? $addon->one_time_price ?? 0),
+        };
     }
 }

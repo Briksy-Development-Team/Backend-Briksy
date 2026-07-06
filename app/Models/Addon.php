@@ -45,7 +45,7 @@ class Addon extends Model
 
     public function plans(): BelongsToMany
     {
-        return $this->belongsToMany(SubscriptionPlan::class, 'plan_addons')
+        return $this->belongsToMany(SubscriptionPlan::class, 'plan_addons', 'addon_id', 'plan_id')
             ->withPivot(['included_quantity', 'is_included'])
             ->withTimestamps();
     }

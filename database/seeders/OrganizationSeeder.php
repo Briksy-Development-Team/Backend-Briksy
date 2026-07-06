@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\OrganizationType;
 use App\Models\Service;
 use App\Models\ServiceGroup;
+use App\Services\DynamicIdGeneratorService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,7 @@ class OrganizationSeeder extends Seeder
 {
     public function run(): void
     {
+        $generator = app(DynamicIdGeneratorService::class);
         $types = OrganizationType::all()->keyBy('slug');
 
         $organizations = [
@@ -119,6 +121,7 @@ class OrganizationSeeder extends Seeder
             $payload = [
                 'plan_id' => null,
                 'type_id' => $type->id,
+                'generated_id' => $existing?->generated_id ?? $generator->generate('organizations', 'COM') ?? ('COM-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6))),
                 'ranking_priority' => $org['ranking_priority'],
                 'avg_org_rating' => $org['ranking_priority'] >= 3 ? 4.4 : 4.0,
                 'name' => $org['name'],

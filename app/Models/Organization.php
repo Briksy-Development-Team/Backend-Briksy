@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Services\DynamicIdGeneratorService;
 use Illuminate\Support\Str;
 
 class Organization extends Model
@@ -59,6 +60,11 @@ class Organization extends Model
     protected static function booted(): void
     {
         static::creating(function (Organization $organization): void {
+            if (blank($organization->generated_id)) {
+                $organization->generated_id = app(DynamicIdGeneratorService::class)->generate('organizations', 'COM')
+                    ?? 'COM-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+            }
+
             if (!blank($organization->referral_code)) {
                 return;
             }
@@ -69,6 +75,18 @@ class Organization extends Model
 
             $organization->referral_code = $code;
         });
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return static::query()
+            ->where('generated_id', $value)
+            ->orWhere($this->getKeyName(), $value)
+            ->first();
     }
 
     public function users(): HasMany

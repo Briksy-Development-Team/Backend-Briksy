@@ -94,7 +94,7 @@ Route::prefix('seeker')->group(function (): void {
     });
 });
 
-Route::prefix('v1')->group(function (): void {
+// Route::prefix('v1')->group(function (): void {
     Route::prefix('seeker')->group(function (): void {
         Route::post('auth/register', [RegistrationController::class, 'store']);
         Route::post('auth/login', [RegistrationController::class, 'loginSeeker']);
@@ -128,7 +128,7 @@ Route::prefix('v1')->group(function (): void {
             Route::delete('saved-searches/{savedSearch}', [SeekerSavedSearchController::class, 'destroy']);
         });
     });
-});
+// });
 
 Route::prefix('admin')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'registerAdmin']);

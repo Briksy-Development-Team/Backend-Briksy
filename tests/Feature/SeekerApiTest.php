@@ -18,7 +18,7 @@ class SeekerApiTest extends TestCase
 
     public function test_seeker_can_register(): void
     {
-        $response = $this->postJson('/api/v1/seeker/auth/register', [
+        $response = $this->postJson('/api/seeker/auth/register', [
             'name' => 'Jamie Seeker',
             'email' => 'jamie@example.com',
             'password' => 'secret123',
@@ -74,7 +74,7 @@ class SeekerApiTest extends TestCase
             'postcode' => '2000',
         ]);
 
-        $response = $this->getJson('/api/v1/seeker/properties?search=Harbor');
+        $response = $this->getJson('/api/seeker/properties?search=Harbor');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -126,7 +126,7 @@ class SeekerApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->getJson('/api/v1/seeker/organizations?service_slug=refinancing');
+        $response = $this->getJson('/api/seeker/organizations?service_slug=refinancing');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -150,7 +150,7 @@ class SeekerApiTest extends TestCase
             'contact_email' => 'hello@clear-title.test',
         ]);
 
-        $response = $this->postJson('/api/v1/seeker/inquiries', [
+        $response = $this->postJson('/api/seeker/inquiries', [
             'organization_id' => $organization->id,
             'subject' => 'Need conveyancing support',
             'message' => 'Please contact me about settlement support.',
@@ -200,7 +200,7 @@ class SeekerApiTest extends TestCase
             'status' => 'Published',
         ]);
 
-        $storeResponse = $this->postJson('/api/v1/seeker/favorites', [
+        $storeResponse = $this->postJson('/api/seeker/favorites', [
             'user_id' => $user->id,
             'type' => 'property',
             'target_id' => $property->id,
@@ -211,7 +211,7 @@ class SeekerApiTest extends TestCase
             ->assertJsonPath('data.type', 'property')
             ->assertJsonPath('data.target.title', 'Favorite Apartment');
 
-        $listResponse = $this->getJson('/api/v1/seeker/favorites?user_id='.$user->id.'&type=property');
+        $listResponse = $this->getJson('/api/seeker/favorites?user_id='.$user->id.'&type=property');
 
         $listResponse->assertOk()
             ->assertJsonPath('success', true)
@@ -241,7 +241,7 @@ class SeekerApiTest extends TestCase
             'contact_email' => 'hello@apex-review.test',
         ]);
 
-        $response = $this->postJson('/api/v1/seeker/reviews', [
+        $response = $this->postJson('/api/seeker/reviews', [
             'user_id' => $user->id,
             'organization_id' => $organization->id,
             'rating' => 5,

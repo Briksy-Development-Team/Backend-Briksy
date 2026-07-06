@@ -49,7 +49,7 @@ return [
 
     'stripe' => [
         'key' => env('STRIPE_KEY'),
-        'secret' => env('STRIPE_SECRET'),
+        'secret' => env('STRIPE_SECRET_KEY', env('STRIPE_SECRET')),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
         'currency' => env('STRIPE_CURRENCY', 'AUD'),
         'success_url' => env('STRIPE_SUCCESS_URL', env('APP_URL') . '/admin/billing/success'),

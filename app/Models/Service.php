@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Services\DynamicIdGeneratorService;
+use Illuminate\Support\Str;
 
 class Service extends Model
 {
@@ -30,6 +32,28 @@ class Service extends Model
         'rate_to',
         'is_active',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Service $service): void {
+            if (blank($service->generated_id)) {
+                $service->generated_id = app(DynamicIdGeneratorService::class)->generate('services', 'SRV')
+                    ?? 'SRV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+            }
+        });
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return static::query()
+            ->where('generated_id', $value)
+            ->orWhere($this->getKeyName(), $value)
+            ->first();
+    }
 
     public function organization(): BelongsTo
     {

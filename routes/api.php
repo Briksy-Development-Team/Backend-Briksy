@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Auth\SocialAuthController;
+use App\Http\Controllers\Api\Auth\AbnVerificationController;
 use App\Http\Controllers\Api\Seeker\FavoriteController;
 use App\Http\Controllers\Api\Admin\SeekerController as AdminSeekerController;
 use App\Http\Controllers\Api\Admin\OrganizationController as AdminOrganizationController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Api\Admin\SubscriptionController as AdminSubscriptionCo
 use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Api\Admin\ActivityLogController as AdminActivityLogController;
+use App\Http\Controllers\Api\Admin\WebhookController as AdminWebhookController;
 use App\Http\Controllers\Api\Admin\ReferralController as AdminReferralController;
 use App\Http\Controllers\Api\Seeker\InquiryController;
 use App\Http\Controllers\Api\Seeker\OrganizationSearchController;
@@ -54,7 +56,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->get('me/permissions', [SuperAdminPermissionController::class, 'me']);
 
 Route::prefix('auth')->group(function (): void {
-Route::post('social/{provider}', [SocialAuthController::class, 'login']);
+    Route::post('verify-abn', [AbnVerificationController::class, 'store'])->middleware('throttle:abn-verify');
+    Route::post('social/{provider}', [SocialAuthController::class, 'login']);
 });
 
 Route::get('settings/public', [SettingController::class, 'publicSettings']);
@@ -143,6 +146,7 @@ Route::prefix('admin')->group(function (): void {
         Route::get('plans', [AdminBillingController::class, 'plans']);
         Route::get('addons', [AdminBillingController::class, 'addons']);
         Route::post('checkout', [AdminBillingController::class, 'checkout']);
+        Route::get('checkout/{checkoutSessionId}', [AdminBillingController::class, 'verifyCheckoutSession']);
         Route::get('subscriptions', [AdminBillingController::class, 'subscriptions']);
     });
 
@@ -165,6 +169,20 @@ Route::prefix('admin')->group(function (): void {
 
         Route::get('settings', [AdminSettingController::class, 'index'])->middleware('permission:settings.view');
         Route::patch('settings', [AdminSettingController::class, 'update'])->middleware('permission:settings.update');
+        Route::prefix('webhooks')->group(function (): void {
+            Route::get('/', [AdminWebhookController::class, 'index'])->middleware('permission:webhook.view');
+            Route::get('stats', [AdminWebhookController::class, 'stats'])->middleware('permission:webhook.view');
+            Route::post('/', [AdminWebhookController::class, 'store'])->middleware('permission:webhook.create');
+            Route::get('logs', [AdminWebhookController::class, 'logs'])->middleware('permission:webhook.view');
+            Route::get('logs/export', [AdminWebhookController::class, 'exportLogs'])->middleware('permission:webhook.view');
+            Route::get('logs/{webhookDeliveryLog}', [AdminWebhookController::class, 'showLog'])->middleware('permission:webhook.view');
+            Route::post('logs/{webhookDeliveryLog}/retry', [AdminWebhookController::class, 'retry'])->middleware('permission:webhook.retry');
+            Route::post('{webhookEndpoint}/test', [AdminWebhookController::class, 'test'])->middleware('permission:webhook.retry');
+            Route::post('{webhookEndpoint}/regenerate-secret', [AdminWebhookController::class, 'regenerateSecret'])->middleware('permission:webhook.update');
+            Route::get('{webhookEndpoint}', [AdminWebhookController::class, 'show'])->middleware('permission:webhook.view');
+            Route::put('{webhookEndpoint}', [AdminWebhookController::class, 'update'])->middleware('permission:webhook.update');
+            Route::delete('{webhookEndpoint}', [AdminWebhookController::class, 'destroy'])->middleware('permission:webhook.delete');
+        });
 
         Route::post('coupons/validate', [AdminCouponController::class, 'validateCoupon'])->middleware('permission:coupon.view');
 

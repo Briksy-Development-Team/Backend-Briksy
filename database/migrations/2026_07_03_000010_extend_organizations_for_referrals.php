@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Services\DynamicIdGeneratorService;
 
 return new class extends Migration
 {
@@ -32,18 +33,18 @@ return new class extends Migration
             }
         });
 
+        $generator = app(DynamicIdGeneratorService::class);
+
         DB::table('organizations')
             ->select(['id', 'referral_code'])
             ->orderBy('created_at')
             ->get()
-            ->each(function ($organization): void {
+            ->each(function ($organization) use ($generator): void {
                 if (!empty($organization->referral_code)) {
                     return;
                 }
 
-                do {
-                    $code = strtoupper('REF-' . substr(bin2hex(random_bytes(4)), 0, 8));
-                } while (DB::table('organizations')->where('referral_code', $code)->exists());
+                $code = $generator->generate('referrals');
 
                 DB::table('organizations')->where('id', $organization->id)->update([
                     'referral_code' => $code,

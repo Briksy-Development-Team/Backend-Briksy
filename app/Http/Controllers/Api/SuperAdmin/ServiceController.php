@@ -192,7 +192,7 @@ class ServiceController extends Controller
             'title' => $title,
             'category' => $validated['category'] ?? $service?->category,
             'slug' => $validated['slug'] ?? $service?->slug,
-            'generated_id' => $validated['generated_id'] ?? $service?->generated_id ?? $this->idGenerator->generate('services', 'SRV') ?? 'SRV-' . now()->format('Ymd') . '-' . strtoupper(str()->random(6)),
+            'generated_id' => $service?->generated_id ?? $this->idGenerator->generate('services'),
             'description' => $validated['description'] ?? $service?->description,
             'service_area' => $validated['service_area'] ?? $service?->service_area,
             'rate_from' => $validated['rate_from'] ?? $service?->rate_from,

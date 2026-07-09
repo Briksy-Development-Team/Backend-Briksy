@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\Webhooks\WebhookDispatcherService;
 use App\Support\Business\BusinessModuleResolver;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,8 @@ class StaffController extends Controller
 {
     public function __construct(
         private readonly BusinessModuleResolver $moduleResolver,
-        private readonly NotificationService $notificationService
+        private readonly NotificationService $notificationService,
+        private readonly WebhookDispatcherService $webhookDispatcher
     )
     {
     }
@@ -129,6 +131,19 @@ class StaffController extends Controller
             'View users'
         );
 
+        $this->webhookDispatcher->dispatch(
+            'user.created',
+            [
+                'user_id' => $staff->id,
+                'email' => $staff->email,
+                'name' => $staff->name,
+                'role' => 'admin_staff',
+            ],
+            $staff->organization,
+            $request->user(),
+            sprintf('user.created:%s', $staff->id)
+        );
+
         return $this->created(
             new AdminStaffResource($staff),
             'Staff member created successfully.'
@@ -187,6 +202,19 @@ class StaffController extends Controller
             'View users'
         );
 
+        $this->webhookDispatcher->dispatch(
+            'user.updated',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'role' => 'admin_staff',
+            ],
+            $user->organization,
+            $request->user(),
+            sprintf('user.updated:%s', $user->id)
+        );
+
         return $this->success(
             new AdminStaffResource($user->fresh('roles')),
             'Staff member updated successfully.'
@@ -199,6 +227,19 @@ class StaffController extends Controller
         abort_unless($user->hasAnyRole(['admin', 'admin_staff']), 404);
 
         $user->delete();
+
+        $this->webhookDispatcher->dispatch(
+            'user.deleted',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'role' => 'admin_staff',
+            ],
+            $request->user()?->organization,
+            $request->user(),
+            sprintf('user.deleted:%s', $user->id)
+        );
 
         return $this->success([], 'Staff member deleted successfully.');
     }

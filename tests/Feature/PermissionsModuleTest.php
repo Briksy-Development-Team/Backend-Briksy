@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Permission;
+use App\Models\Organization;
+use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserPermission;
@@ -77,11 +79,41 @@ class PermissionsModuleTest extends TestCase
         $this->seed();
 
         $viewerRole = Role::query()->where('name', 'viewer')->firstOrFail();
+        $organizationType = OrganizationType::query()->where('slug', 'property-management')->firstOrFail();
+        $organization = Organization::create([
+            'name' => 'Viewer Business',
+            'trading_name' => null,
+            'contact_email' => 'viewer-business@example.com',
+            'contact_phone' => null,
+            'abn' => '51824753556',
+            'business_type' => 'company',
+            'business_verification_status' => 'verified',
+            'address' => '1 Test Street',
+            'state' => 'NSW',
+            'postcode' => '2000',
+            'plan_id' => null,
+            'type_id' => $organizationType->id,
+            'ranking_priority' => 1,
+            'avg_org_rating' => 0,
+            'slug' => 'viewer-business',
+            'stripe_customer_id' => null,
+            'is_verified' => true,
+            'abn_verified' => true,
+            'abn_verified_at' => now(),
+            'entity_name' => 'Viewer Business',
+            'entity_type' => 'Australian Private Company',
+            'entity_status' => 'Active',
+            'gst_registered' => true,
+            'abn_effective_from' => now()->toDateString(),
+            'trial_started_at' => now(),
+            'trial_ends_at' => now()->addDays(15),
+            'subscription_status' => 'trialing',
+        ]);
         $user = User::query()->create([
             'name' => 'Viewer User',
             'email' => 'viewer-test@example.com',
             'password_hash' => 'password',
-            'organization_id' => null,
+            'organization_id' => $organization->id,
             'id_verified' => false,
         ]);
 

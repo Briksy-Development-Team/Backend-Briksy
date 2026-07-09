@@ -9,9 +9,14 @@ use App\Models\Organization;
 use App\Support\Query\ApiQueryBuilder; 
 use Illuminate\Http\JsonResponse; 
 use Illuminate\Http\Request; 
+use App\Services\Webhooks\WebhookDispatcherService;
 
 class OrganizationController extends Controller 
 { 
+    public function __construct(private readonly WebhookDispatcherService $webhookDispatcher)
+    {
+    }
+
     public function index(Request $request): JsonResponse 
     { 
         $organizationId = $request->user()?->organization_id;
@@ -104,6 +109,19 @@ class OrganizationController extends Controller
         $organization->fill($validated);
         $organization->save();
         $organization->loadMissing('organizationType');
+
+        $this->webhookDispatcher->dispatch(
+            'company.updated',
+            [
+                'company_id' => $organization->id,
+                'name' => $organization->name,
+                'contact_email' => $organization->contact_email,
+                'contact_phone' => $organization->contact_phone,
+            ],
+            $organization,
+            $request->user(),
+            sprintf('company.updated:%s', $organization->id)
+        );
 
         return $this->success(
             new AdminOrganizationResource($organization),

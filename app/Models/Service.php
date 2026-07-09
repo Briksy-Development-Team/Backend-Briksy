@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\HasImmutableGeneratedId;
 use App\Services\DynamicIdGeneratorService;
-use Illuminate\Support\Str;
 
 class Service extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, HasImmutableGeneratedId, SoftDeletes;
 
     protected $keyType = 'string';
 
@@ -37,8 +37,7 @@ class Service extends Model
     {
         static::creating(function (Service $service): void {
             if (blank($service->generated_id)) {
-                $service->generated_id = app(DynamicIdGeneratorService::class)->generate('services', 'SRV')
-                    ?? 'SRV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+                $service->generated_id = app(DynamicIdGeneratorService::class)->generate('services');
             }
         });
     }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Notifications\PlatformNotification;
+use App\Services\Webhooks\WebhookDispatcherService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +12,10 @@ use Throwable;
 
 class NotificationService
 {
+    public function __construct(private readonly WebhookDispatcherService $webhookDispatcher)
+    {
+    }
+
     private const REQUIRED_PERMISSION_MAP = [
         'company_signup' => 'company.view',
         'organization_created' => 'company.view',
@@ -84,6 +89,23 @@ class NotificationService
 
                 try {
                     $user->notify(new PlatformNotification($payload, $mailSubject, $mailCtaLabel));
+                    if ($user->organization) {
+                        $this->webhookDispatcher->dispatch(
+                            'notification.sent',
+                            [
+                                'notification_type' => $payload['type'] ?? null,
+                                'title' => $payload['title'] ?? null,
+                                'message' => $payload['message'] ?? null,
+                                'recipient_user_id' => $user->id,
+                                'recipient_email' => $user->email,
+                                'required_permission' => $payload['required_permission'] ?? null,
+                            ],
+                            $user->organization,
+                            $user,
+                            sprintf('%s:%s', $payload['type'] ?? 'notification.sent', $user->id),
+                            ['mail_subject' => $mailSubject, 'cta_label' => $mailCtaLabel]
+                        );
+                    }
                 } catch (Throwable $throwable) {
                     Log::warning('Notification dispatch failed.', [
                         'user_id' => $user->id,

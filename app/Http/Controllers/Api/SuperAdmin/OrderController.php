@@ -15,7 +15,6 @@ use App\Services\NotificationService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
@@ -45,7 +44,7 @@ class OrderController extends Controller
         $plan = isset($validated['plan_id']) ? SubscriptionPlan::query()->find($validated['plan_id']) : null;
         $coupon = null;
         $discountAmount = (float) ($validated['discount_amount'] ?? 0);
-        $generatedOrderNumber = $validated['order_number'] ?? $this->idGenerator->generate('orders', 'ORD') ?? 'ORD-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+        $generatedOrderNumber = $this->idGenerator->generate('orders');
 
         if (!empty($validated['coupon_id'])) {
             $coupon = Coupon::query()->find($validated['coupon_id']);
@@ -125,7 +124,9 @@ class OrderController extends Controller
     public function update(OrderRequest $request, string $order): JsonResponse
     {
         $model = $this->scopedQuery(Order::query(), $request)->whereKey($order)->firstOrFail();
-        $model->fill($request->validated());
+        $validated = $request->validated();
+        unset($validated['order_number'], $validated['reference_no']);
+        $model->fill($validated);
         $model->save();
         return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon'])), 'Order updated successfully.');
     }

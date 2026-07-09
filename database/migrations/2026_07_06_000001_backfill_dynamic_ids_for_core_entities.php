@@ -20,7 +20,7 @@ return new class extends Migration
                 ->get()
                 ->each(function (Organization $organization) use ($generator): void {
                     $organization->forceFill([
-                        'generated_id' => $generator->generate('organizations', 'COM') ?? ('COM-' . $organization->id),
+                        'generated_id' => $generator->generate('organizations'),
                     ])->save();
                 });
         }
@@ -32,7 +32,7 @@ return new class extends Migration
                 ->get()
                 ->each(function (PropertyListing $propertyListing) use ($generator): void {
                     $propertyListing->forceFill([
-                        'generated_id' => $generator->generate('properties', 'PROP') ?? ('PROP-' . $propertyListing->id),
+                        'generated_id' => $generator->generate('properties'),
                     ])->save();
                 });
         }
@@ -44,7 +44,7 @@ return new class extends Migration
                 ->get()
                 ->each(function (Service $service) use ($generator): void {
                     $service->forceFill([
-                        'generated_id' => $generator->generate('services', 'SRV') ?? ('SRV-' . $service->id),
+                        'generated_id' => $generator->generate('services'),
                     ])->save();
                 });
         }

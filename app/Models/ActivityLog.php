@@ -15,6 +15,8 @@ class ActivityLog extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'causer_id',
+        'subject_id',
         'organization_id',
         'user_id',
         'user_name',

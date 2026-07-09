@@ -9,12 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\HasImmutableGeneratedId;
 use App\Services\DynamicIdGeneratorService;
-use Illuminate\Support\Str;
 
 class PropertyListing extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, HasImmutableGeneratedId, SoftDeletes;
 
     protected $keyType = 'string';
 
@@ -49,8 +49,7 @@ class PropertyListing extends Model
     {
         static::creating(function (PropertyListing $propertyListing): void {
             if (blank($propertyListing->generated_id)) {
-                $propertyListing->generated_id = app(DynamicIdGeneratorService::class)->generate('properties', 'PROP')
-                    ?? 'PROP-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+                $propertyListing->generated_id = app(DynamicIdGeneratorService::class)->generate('properties');
             }
         });
     }

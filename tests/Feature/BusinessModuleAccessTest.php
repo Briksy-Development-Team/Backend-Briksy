@@ -7,6 +7,7 @@ use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -17,9 +18,13 @@ class BusinessModuleAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_signup_creates_pending_business_profile(): void
+    public function test_admin_signup_creates_verified_business_profile(): void
     {
         $this->seed();
+        config()->set('services.abn_lookup.guid', 'test-guid');
+        Http::fake([
+            '*' => Http::response($this->successfulSoapResponse('Australian Private Company'), 200),
+        ]);
 
         $abn = $this->generateValidAbn();
 
@@ -48,7 +53,8 @@ class BusinessModuleAccessTest extends TestCase
         $this->assertDatabaseHas('organizations', [
             'id' => $organizationId,
             'business_type' => 'company',
-            'business_verification_status' => 'pending',
+            'business_verification_status' => 'verified',
+            'abn_verified' => true,
             'abn' => $abn,
         ]);
     }
@@ -110,7 +116,7 @@ class BusinessModuleAccessTest extends TestCase
             'contact_phone' => null,
             'abn' => $this->generateValidAbn(),
             'business_type' => $businessType,
-            'business_verification_status' => 'pending',
+            'business_verification_status' => 'verified',
             'address' => '1 Test Street',
             'state' => 'NSW',
             'postcode' => '2000',
@@ -120,7 +126,17 @@ class BusinessModuleAccessTest extends TestCase
             'avg_org_rating' => 0,
             'slug' => Str::slug($businessType . '-' . Str::random(6)),
             'stripe_customer_id' => null,
-            'is_verified' => false,
+            'is_verified' => true,
+            'abn_verified' => true,
+            'abn_verified_at' => now(),
+            'entity_name' => Str::title(str_replace('_', ' ', $businessType)) . ' Business',
+            'entity_type' => $businessType === 'solo_trader' ? 'Individual/Sole Trader' : 'Australian Private Company',
+            'entity_status' => 'Active',
+            'gst_registered' => true,
+            'abn_effective_from' => now()->toDateString(),
+            'trial_started_at' => now(),
+            'trial_ends_at' => now()->addDays(15),
+            'subscription_status' => 'trialing',
         ]);
 
         $user = User::create([
@@ -172,5 +188,39 @@ class BusinessModuleAccessTest extends TestCase
         }
 
         return $sum % 89 === 0;
+    }
+
+    private function successfulSoapResponse(string $entityDescription): string
+    {
+        return str_replace(
+            [
+                '<entityDescription>Australian Private Company</entityDescription>',
+            ],
+            [
+                "<entityDescription>{$entityDescription}</entityDescription>",
+            ],
+            <<<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <SearchByABNv202001Response xmlns="http://abr.business.gov.au/ABRXMLSearch/">
+      <ABRPayloadSearchResults>
+        <request />
+        <response>
+          <businessEntity>
+            <ABN><identifierValue>51824753556</identifierValue></ABN>
+            <entityStatus><entityStatusCode>Active</entityStatusCode><effectiveFrom>2010-01-01</effectiveFrom></entityStatus>
+            <entityType><entityTypeCode>PRV</entityTypeCode><entityDescription>Australian Private Company</entityDescription></entityType>
+            <goodsAndServicesTax><effectiveFrom>2010-01-01</effectiveFrom></goodsAndServicesTax>
+            <mainName><organisationName>Jamie Property Co</organisationName></mainName>
+            <mainBusinessPhysicalAddress><stateCode>NSW</stateCode><postcode>2000</postcode></mainBusinessPhysicalAddress>
+          </businessEntity>
+        </response>
+      </ABRPayloadSearchResults>
+    </SearchByABNv202001Response>
+  </soap:Body>
+</soap:Envelope>
+XML
+        );
     }
 }

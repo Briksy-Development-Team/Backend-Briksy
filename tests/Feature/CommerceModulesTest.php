@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
+use App\Models\EmailTemplate;
 use App\Models\Organization;
 use App\Models\PlanRequest;
 use App\Models\User;
@@ -76,7 +77,20 @@ class CommerceModulesTest extends TestCase
         $superAdmin = User::query()->where('email', 'superadmin@brisky.example')->firstOrFail();
         Sanctum::actingAs($superAdmin, ['super_admin']);
 
-        $templateId = \DB::table('email_templates')->where('key', 'welcome-email')->value('id');
+        $templateId = EmailTemplate::query()->updateOrCreate(
+            ['key' => 'welcome-email'],
+            [
+                'slug' => 'welcome-email',
+                'name' => 'Welcome Email',
+                'subject' => 'Welcome to Briksy, {{name}}',
+                'body' => '<p>Welcome {{name}}</p>',
+                'variables' => ['name'],
+                'status' => 'active',
+                'module' => 'email_templates',
+                'event_key' => 'welcome-email',
+                'is_active' => true,
+            ]
+        )->id;
 
         $response = $this->postJson("/api/super-admin/email-templates/{$templateId}/preview", [
             'variables' => [

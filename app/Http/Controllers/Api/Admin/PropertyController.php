@@ -86,7 +86,7 @@ class PropertyController extends Controller
         $listing = PropertyListing::query()->create([
             'org_id' => $organizationId,
             'creator_id' => $request->user()->id,
-            'generated_id' => $this->idGenerator->generate('properties', 'PROP') ?? 'PROP-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6)),
+            'generated_id' => $this->idGenerator->generate('properties'),
             'property_type_id' => $request->input('property_type_id'),
             'avg_prop_rating' => 0,
             'address_line_1' => $request->input('address_line_1') ?? $request->input('address'),

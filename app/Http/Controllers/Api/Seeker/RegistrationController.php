@@ -9,8 +9,12 @@ use App\Models\Organization;
 use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AbnLookupService;
 use App\Services\ReferralService;
 use App\Services\NotificationService;
+use App\Services\Webhooks\WebhookDispatcherService;
+use App\Exceptions\AbnLookupUnavailableException;
+use App\Exceptions\AbnLookupVerificationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +26,9 @@ class RegistrationController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notificationService,
-        private readonly ReferralService $referralService
+        private readonly ReferralService $referralService,
+        private readonly AbnLookupService $abnLookupService,
+        private readonly WebhookDispatcherService $webhookDispatcher
     )
     {
     }
@@ -61,6 +67,19 @@ class RegistrationController extends Controller
             return $user->load(['roles.permissions', 'directPermissions']);
         });
 
+        $this->webhookDispatcher->dispatch(
+            'user.created',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'role' => 'seeker',
+            ],
+            $user->organization,
+            $user,
+            sprintf('user.created:%s', $user->id)
+        );
+
         return $this->created(
             new SeekerAccountResource($user),
             'Seeker registered successfully.'
@@ -88,6 +107,20 @@ class RegistrationController extends Controller
 
         $token = $user->createToken('seeker-auth', ['seeker'])->plainTextToken;
 
+        if ($user->organization) {
+            $this->webhookDispatcher->dispatch(
+                'auth.login',
+                [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => 'seeker',
+                ],
+                $user->organization,
+                $user,
+                sprintf('auth.login:%s', $user->id)
+            );
+        }
+
         return $this->success([
             'user' => new SeekerAccountResource($user),
             'token' => $token,
@@ -108,6 +141,20 @@ class RegistrationController extends Controller
 
     public function logoutSeeker(Request $request): JsonResponse
     {
+        $user = $request->user();
+        if ($user?->organization) {
+            $this->webhookDispatcher->dispatch(
+                'auth.logout',
+                [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->roles->pluck('name')->first(),
+                ],
+                $user->organization,
+                $user,
+                sprintf('auth.logout:%s', $user->id)
+            );
+        }
         $request->user()?->currentAccessToken()?->delete();
 
         return $this->success([], 'Logout successful.');
@@ -123,17 +170,7 @@ class RegistrationController extends Controller
             'trading_name' => ['nullable', 'string', 'max:200'],
             'business_type' => ['required', 'in:organisation,company,solo_trader'],
             'referral_code' => ['nullable', 'string', 'max:50'],
-            'abn_number' => [
-                'required',
-                'string',
-                'size:11',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    $normalized = preg_replace('/\s+/', '', (string) $value);
-                    if (!preg_match('/^\d{11}$/', $normalized) || !$this->isValidAbn($normalized)) {
-                        $fail('The ABN number is invalid.');
-                    }
-                },
-            ],
+            'abn_number' => ['required', 'string', 'size:11'],
             'contact_email' => ['nullable', 'email', 'max:150'],
             'contact_phone' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string'],
@@ -146,7 +183,21 @@ class RegistrationController extends Controller
         $abn = preg_replace('/\s+/', '', $validated['abn_number']);
         $organizationTypeSlug = $businessType === 'solo_trader' ? 'solo-traders' : 'property-management';
 
-        $adminUser = DB::transaction(function () use ($validated, $businessType, $abn, $organizationTypeSlug): User {
+        try {
+            $verification = $this->abnLookupService->verify($abn, $businessType);
+        } catch (AbnLookupVerificationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], $exception->httpStatus());
+        } catch (AbnLookupUnavailableException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], $exception->httpStatus());
+        }
+
+        $adminUser = DB::transaction(function () use ($validated, $businessType, $abn, $organizationTypeSlug, $verification): User {
             $organizationType = OrganizationType::query()
                 ->where('slug', $organizationTypeSlug)
                 ->firstOrFail();
@@ -160,25 +211,33 @@ class RegistrationController extends Controller
             }
 
             $organization = Organization::create([
-                'name' => $validated['business_name'],
+                'name' => $verification['entityName'] ?: $validated['business_name'],
                 'trading_name' => $validated['trading_name'] ?? null,
                 'contact_email' => $validated['contact_email'] ?? $validated['email'],
                 'contact_phone' => $validated['contact_phone'] ?? null,
                 'abn' => $abn,
+                'abn_verified' => true,
+                'abn_verified_at' => now(),
+                'entity_name' => $verification['entityName'] ?: $validated['business_name'],
+                'entity_type' => $verification['entityType'] ?? null,
+                'entity_status' => $verification['entityStatus'] ?? null,
+                'gst_registered' => (bool) ($verification['gstRegistered'] ?? false),
+                'abn_effective_from' => $verification['effectiveFrom'] ?? null,
+                'abn_raw_response' => $verification['rawResponse'] ?? null,
                 'referral_code' => $this->referralService->generateCode(),
                 'referred_by_organization_id' => $referrer?->id,
                 'business_type' => $businessType,
-                'business_verification_status' => 'pending',
+                'business_verification_status' => 'verified',
                 'address' => $validated['address'] ?? null,
-                'state' => $validated['state'] ?? null,
-                'postcode' => $validated['postcode'] ?? null,
+                'state' => $verification['state'] ?? ($validated['state'] ?? null),
+                'postcode' => $verification['postcode'] ?? ($validated['postcode'] ?? null),
                 'plan_id' => null,
                 'type_id' => $organizationType->id,
                 'ranking_priority' => 1,
                 'avg_org_rating' => 0,
                 'slug' => $slug,
                 'stripe_customer_id' => null,
-                'is_verified' => false,
+                'is_verified' => true,
                 'trial_started_at' => now(),
                 'trial_ends_at' => now()->addDays(15),
                 'subscription_status' => 'trialing',
@@ -209,6 +268,31 @@ class RegistrationController extends Controller
         });
 
         if ($adminUser->organization_id) {
+            $this->webhookDispatcher->dispatch(
+                'company.created',
+                [
+                    'company_id' => $adminUser->organization_id,
+                    'name' => $adminUser->organization?->name ?? $validated['business_name'],
+                    'business_type' => $businessType,
+                ],
+                $adminUser->organization,
+                $adminUser,
+                sprintf('company.created:%s', $adminUser->organization_id)
+            );
+
+            $this->webhookDispatcher->dispatch(
+                'user.created',
+                [
+                    'user_id' => $adminUser->id,
+                    'email' => $adminUser->email,
+                    'name' => $adminUser->name,
+                    'role' => 'admin',
+                ],
+                $adminUser->organization,
+                $adminUser,
+                sprintf('user.created:%s', $adminUser->id)
+            );
+
             $this->notificationService->notifySuperAdmins(
                 $this->notificationService->buildPayload(
                     'company_signup',
@@ -275,6 +359,20 @@ class RegistrationController extends Controller
 
         $token = $user->createToken('admin-auth', $abilities)->plainTextToken;
 
+        if ($user->organization) {
+            $this->webhookDispatcher->dispatch(
+                'auth.login',
+                [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $abilities[0] ?? null,
+                ],
+                $user->organization,
+                $user,
+                sprintf('auth.login:%s', $user->id)
+            );
+        }
+
         return $this->success([
             'user' => new SeekerAccountResource($user),
             'token' => $token,
@@ -328,22 +426,37 @@ class RegistrationController extends Controller
             return $staffUser->load(['roles.permissions', 'directPermissions', 'organization.plan', 'organization.currentSubscription']);
         });
 
-        $this->notificationService->notifyAdminsForOrganisation(
-            $organizationId,
-            $this->notificationService->buildPayload(
-                'admin_user_invited',
+        if ($organizationId) {
+            $this->webhookDispatcher->dispatch(
+                'user.created',
+                [
+                    'user_id' => $staffUser->id,
+                    'email' => $staffUser->email,
+                    'name' => $staffUser->name,
+                    'role' => 'admin_staff',
+                ],
+                $staffUser->organization,
+                $authUser,
+                sprintf('user.created:%s', $staffUser->id)
+            );
+
+            $this->notificationService->notifyAdminsForOrganisation(
+                $organizationId,
+                $this->notificationService->buildPayload(
+                    'admin_user_invited',
+                    'Admin user invited',
+                    sprintf('A new staff user "%s" was invited.', $staffUser->name),
+                    User::class,
+                    $staffUser->id,
+                    '/admin/users',
+                    'normal',
+                    $authUser->id,
+                    $organizationId
+                ),
                 'Admin user invited',
-                sprintf('A new staff user "%s" was invited.', $staffUser->name),
-                User::class,
-                $staffUser->id,
-                '/admin/users',
-                'normal',
-                $authUser->id,
-                $organizationId
-            ),
-            'Admin user invited',
-            'View users'
-        );
+                'View users'
+            );
+        }
 
         $token = $staffUser->createToken('admin-staff-auth', ['admin_staff'])->plainTextToken;
 
@@ -492,22 +605,4 @@ class RegistrationController extends Controller
         return [];
     }
 
-    private function isValidAbn(string $abn): bool
-    {
-        if (!preg_match('/^\d{11}$/', $abn)) {
-            return false;
-        }
-
-        $digits = array_map('intval', str_split($abn));
-        $digits[0] -= 1;
-
-        $weights = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
-        $sum = 0;
-
-        foreach ($digits as $index => $digit) {
-            $sum += $digit * $weights[$index];
-        }
-
-        return $sum % 89 === 0;
-    }
 }

@@ -89,7 +89,7 @@ class PropertyListingSeeder extends Seeder
                 $payload = [
                     'org_id' => $org->id,
                     'creator_id' => $creator->id,
-                    'generated_id' => $existing?->generated_id ?? $generator->generate('properties', 'PROP') ?? ('PROP-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6))),
+                    'generated_id' => $existing?->generated_id ?? $generator->generate('properties'),
                     'avg_prop_rating' => 4.2,
                     'latitude' => $template['latitude'],
                     'longitude' => $template['longitude'],

@@ -48,7 +48,7 @@ class PlanRequestController extends Controller
         $validated = $request->validated();
         $organizationId = $validated['organization_id'] ?? null;
         $organizationId = $organizationId ?? $this->organizationId($request);
-        $requestCode = $this->idGenerator->generate('plan_requests', 'PRQ') ?? 'PRQ-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+        $requestCode = $this->idGenerator->generate('plan_requests');
 
         $planRequest = PlanRequestModel::query()->create([
             'request_code' => $requestCode,
@@ -152,7 +152,7 @@ class PlanRequestController extends Controller
             if ($status === 'approved' && ($validated['create_order'] ?? true) && $organizationId && $planId) {
                 $plan = SubscriptionPlan::query()->find($planId);
                 if ($plan) {
-                    $orderNumber = $this->idGenerator->generate('orders', 'ORD') ?? 'ORD-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+                    $orderNumber = $this->idGenerator->generate('orders');
                     $subtotal = (float) $plan->price;
                     $order = Order::query()->create([
                         'order_number' => $orderNumber,

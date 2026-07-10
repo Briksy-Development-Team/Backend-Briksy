@@ -28,10 +28,18 @@ class Service extends Model
         'generated_id',
         'description',
         'service_area',
+        'service_area_geometry',
         'rate_from',
         'rate_to',
         'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'service_area_geometry' => 'array',
+        ];
+    }
 
     protected static function booted(): void
     {

@@ -22,6 +22,14 @@ class NotificationService
         'organization_updated' => 'company.view',
         'organization_deleted' => 'company.view',
         'property_created' => 'property.view',
+        'property_submitted_for_review' => 'property.view',
+        'property_approved' => 'property.view',
+        'property_rejected' => 'property.view',
+        'property_published' => 'property.view',
+        'property_location_verified' => 'property.view',
+        'property_location_verification_removed' => 'property.view',
+        'property_archived' => 'property.view',
+        'property_republished' => 'property.view',
         'property_location_missing' => 'property.update',
         'admin_user_invited' => 'user.view',
         'user_invited' => 'user.view',
@@ -49,6 +57,15 @@ class NotificationService
     {
         $users = User::query()
             ->whereHas('roles', fn (Builder $query) => $query->where('name', 'super_admin'))
+            ->get();
+
+        $this->notifyUsers($users, $payload, $mailSubject, $mailCtaLabel);
+    }
+
+    public function notifySuperAdminTeam(array $payload, ?string $mailSubject = null, ?string $mailCtaLabel = null): void
+    {
+        $users = User::query()
+            ->whereHas('roles', fn (Builder $query) => $query->whereIn('name', ['super_admin', 'super_admin_employee']))
             ->get();
 
         $this->notifyUsers($users, $payload, $mailSubject, $mailCtaLabel);

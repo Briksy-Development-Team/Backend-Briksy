@@ -7,14 +7,17 @@ use App\Http\Requests\Api\Admin\PropertyListingIndexRequest;
 use App\Http\Requests\Api\Admin\PropertyListingStoreRequest;
 use App\Http\Requests\Api\Admin\PropertyListingUpdateRequest;
 use App\Http\Resources\Admin\AdminPropertyListingResource;
+use App\Models\ActivityLog;
 use App\Models\Media;
 use App\Models\PropertyListing;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
+use App\Support\Properties\PropertyWorkflow;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
@@ -64,7 +67,15 @@ class PropertyController extends Controller
     {
         abort_unless($this->isInAdminOrganization($request, $propertyListing), 403);
 
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+        $propertyListing->load([
+            'organization.organizationType',
+            'creator',
+            'media',
+            'propertyType',
+            'reviewer',
+            'locationVerifier',
+            'activityLogs.user',
+        ]);
 
         return $this->success(
             new AdminPropertyListingResource($propertyListing),
@@ -104,18 +115,50 @@ class PropertyController extends Controller
             'country' => $request->input('country') ?? 'Australia',
             'formatted_address' => $request->input('formatted_address') ?? $request->input('full_address'),
             'place_id' => $request->input('place_id'),
-            'location_verified' => $request->boolean('location_verified'),
+            'status' => PropertyWorkflow::STATUS_PENDING_REVIEW,
+            'submitted_at' => now(),
+            'location_verified' => false,
+            'location_verified_by' => null,
+            'location_verified_at' => null,
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+            'rejection_reason' => null,
+            'published_at' => null,
         ]);
 
         $this->storeListingMedia($listing, $request);
+        $this->recordPropertyActivity(
+            $request,
+            $listing,
+            PropertyWorkflow::ACTION_CREATED,
+            sprintf('Property "%s" created.', $listing->title),
+            null,
+            $listing->toArray(),
+            ['title' => 'Property created']
+        );
+        $this->recordPropertyActivity(
+            $request,
+            $listing,
+            PropertyWorkflow::ACTION_SUBMITTED,
+            sprintf('Property "%s" submitted for review.', $listing->title),
+            null,
+            ['status' => PropertyWorkflow::STATUS_PENDING_REVIEW],
+            ['title' => 'Submitted for review']
+        );
 
-        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
-        $this->notificationService->notifySuperAdmins(
+        $this->notificationService->notifySuperAdminTeam(
             $this->notificationService->buildPayload(
-                'property_created',
-                'New property added',
-                sprintf('A new property "%s" was added by %s.', $listing->title, $listing->organization?->name ?? 'an organisation'),
+                PropertyWorkflow::ACTION_SUBMITTED,
+                'New property submitted for review',
+                sprintf(
+                    'Property "%s" from %s was submitted by %s on %s.',
+                    $listing->title,
+                    $listing->organization?->name ?? 'an organisation',
+                    $request->user()?->name ?? 'a user',
+                    now()->toDateString()
+                ),
                 PropertyListing::class,
                 $listing->id,
                 "/super-admin/property-management?highlight={$listing->id}",
@@ -124,7 +167,7 @@ class PropertyController extends Controller
                 $organizationId
             ),
             'New property added',
-            'Review property'
+                'Review property'
         );
 
         return $this->created(
@@ -137,6 +180,7 @@ class PropertyController extends Controller
     {
         abort_unless($this->isInAdminOrganization($request, $propertyListing), 403);
 
+        $before = $propertyListing->replicate()->toArray();
         $validated = $request->validated();
         if (array_key_exists('address', $validated) && !array_key_exists('full_address', $validated)) {
             $validated['full_address'] = $validated['address'];
@@ -151,31 +195,53 @@ class PropertyController extends Controller
             $validated['country'] = 'Australia';
         }
 
+        $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
+        $validated['submitted_at'] = now();
+        $validated['reviewed_by'] = null;
+        $validated['reviewed_at'] = null;
+        $validated['rejection_reason'] = null;
+        $validated['published_at'] = null;
+
         $propertyListing->fill($validated);
         $propertyListing->save();
 
         $this->storeListingMedia($propertyListing, $request);
+        $this->recordPropertyActivity(
+            $request,
+            $propertyListing,
+            PropertyWorkflow::ACTION_UPDATED,
+            sprintf('Property "%s" updated and resubmitted for review.', $propertyListing->title),
+            $before,
+            $propertyListing->fresh()->toArray(),
+            ['title' => 'Property updated']
+        );
+        $this->recordPropertyActivity(
+            $request,
+            $propertyListing,
+            PropertyWorkflow::ACTION_SUBMITTED,
+            sprintf('Property "%s" resubmitted for review.', $propertyListing->title),
+            null,
+            ['status' => PropertyWorkflow::STATUS_PENDING_REVIEW],
+            ['title' => 'Resubmitted for review']
+        );
 
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
-        if (!$propertyListing->location_verified || $propertyListing->latitude === null || $propertyListing->longitude === null) {
-            $this->notificationService->notifyAdminsForOrganisation(
-                $propertyListing->org_id,
-                $this->notificationService->buildPayload(
-                    'property_location_missing',
-                    'Property missing coordinates',
-                    sprintf('Property "%s" needs verified map coordinates.', $propertyListing->title),
-                    PropertyListing::class,
-                    $propertyListing->id,
-                    "/admin/property-management?highlight={$propertyListing->id}",
-                    'high',
-                    $request->user()?->id,
-                    $propertyListing->org_id
-                ),
-                'Property location needs attention',
-                'Review property'
-            );
-        }
+        $this->notificationService->notifySuperAdminTeam(
+            $this->notificationService->buildPayload(
+                PropertyWorkflow::ACTION_SUBMITTED,
+                'Property resubmitted for review',
+                sprintf('Property "%s" was resubmitted by %s.', $propertyListing->title, $request->user()?->name ?? 'a user'),
+                PropertyListing::class,
+                $propertyListing->id,
+                "/super-admin/property-management?highlight={$propertyListing->id}",
+                'normal',
+                $request->user()?->id,
+                $propertyListing->org_id
+            ),
+            'Property resubmitted for review',
+            'Review property'
+        );
 
         return $this->success(
             new AdminPropertyListingResource($propertyListing),
@@ -257,7 +323,7 @@ class PropertyController extends Controller
 
             Media::query()->create([
                 'property_listing_id' => $listing->id,
-                'file_url' => Storage::disk('public')->url($path),
+                'file_url' => $this->storageUrl($request, $path),
                 'media_type' => 'image',
                 'is_primary' => $index === 0 && $mediaOrder === 0,
                 'sort_order' => ++$mediaOrder,
@@ -269,11 +335,54 @@ class PropertyController extends Controller
 
             Media::query()->create([
                 'property_listing_id' => $listing->id,
-                'file_url' => Storage::disk('public')->url($path),
+                'file_url' => $this->storageUrl($request, $path),
                 'media_type' => 'video',
                 'is_primary' => false,
                 'sort_order' => ++$mediaOrder,
             ]);
         }
+    }
+
+    private function storageUrl(Request $request, string $path): string
+    {
+        $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
+
+        return $baseUrl.'/storage/'.ltrim($path, '/');
+    }
+
+    private function recordPropertyActivity(
+        Request $request,
+        PropertyListing $listing,
+        string $action,
+        string $description,
+        ?array $oldValues = null,
+        ?array $newValues = null,
+        array $metadata = [],
+    ): void {
+        if (!Schema::hasTable('activity_logs')) {
+            return;
+        }
+
+        $user = $request->user();
+
+        ActivityLog::query()->create([
+            'causer_id' => $user?->id,
+            'subject_id' => $listing->id,
+            'organization_id' => $listing->org_id,
+            'user_id' => $user?->id,
+            'user_name' => $user?->name,
+            'user_email' => $user?->email,
+            'user_role' => $user?->roles?->pluck('name')->first(),
+            'action' => $action,
+            'module' => PropertyWorkflow::MODULE,
+            'description' => $description,
+            'method' => $request->method(),
+            'route' => $request->path(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'metadata' => $metadata,
+        ]);
     }
 }

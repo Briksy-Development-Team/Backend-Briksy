@@ -7,6 +7,29 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class PropertyListingResource extends JsonResource
 {
+    private function normalizeMediaUrl(Request $request, ?string $url): ?string
+    {
+        if (! $url) {
+            return null;
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            $path = parse_url($url, PHP_URL_PATH);
+
+            if (is_string($path) && str_contains($path, '/storage/')) {
+                return rtrim($request->getSchemeAndHttpHost(), '/').$path;
+            }
+
+            return $url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return rtrim($request->getSchemeAndHttpHost(), '/').$url;
+        }
+
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/'.ltrim($url, '/');
+    }
+
     public function toArray(Request $request): array
     {
         return [
@@ -19,6 +42,7 @@ class PropertyListingResource extends JsonResource
             'full_address' => $this->full_address,
             'status' => $this->status,
             'rating' => (float) $this->avg_prop_rating,
+            'location_verified' => (bool) $this->location_verified,
             'location' => [
                 'suburb' => $this->suburb,
                 'postcode' => $this->postcode,
@@ -34,13 +58,17 @@ class PropertyListingResource extends JsonResource
                     'is_verified' => (bool) $this->organization?->is_verified,
                 ];
             }),
-            'media' => $this->whenLoaded('media', fn (): array => $this->media
-                ->map(fn ($media): array => [
-                    'id' => $media->id,
-                    'url' => $media->file_url,
-                    'type' => $media->media_type,
-                    'is_primary' => (bool) $media->is_primary,
-                ])->values()->all()),
+            'media' => $this->whenLoaded('media', function () use ($request): array {
+                return $this->media
+                    ->map(fn ($media): array => [
+                        'id' => $media->id,
+                        'url' => $this->normalizeMediaUrl($request, $media->file_url),
+                        'type' => $media->media_type,
+                        'is_primary' => (bool) $media->is_primary,
+                    ])
+                    ->values()
+                    ->all();
+            }),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

@@ -281,6 +281,12 @@ Route::prefix('super-admin')->group(function (): void {
         Route::get('properties', [SuperAdminPropertyController::class, 'index'])->middleware('permission:property.view');
         Route::get('properties/map', [SuperAdminPropertyController::class, 'map'])->middleware('permission:property.view');
         Route::get('properties/{propertyListing}', [SuperAdminPropertyController::class, 'show'])->middleware('permission:property.view');
+        Route::patch('properties/{propertyListing}/approve', [SuperAdminPropertyController::class, 'approve'])->middleware('permission:property.approve');
+        Route::patch('properties/{propertyListing}/reject', [SuperAdminPropertyController::class, 'reject'])->middleware('permission:property.reject');
+        Route::patch('properties/{propertyListing}/publish', [SuperAdminPropertyController::class, 'publish'])->middleware('permission:property.publish');
+        Route::patch('properties/{propertyListing}/archive', [SuperAdminPropertyController::class, 'archive'])->middleware('permission:property.archive');
+        Route::patch('properties/{propertyListing}/verify-location', [SuperAdminPropertyController::class, 'verifyLocation'])->middleware('permission:property.verify_location');
+        Route::patch('properties/{propertyListing}/unverify-location', [SuperAdminPropertyController::class, 'unverifyLocation'])->middleware('permission:property.unverify_location');
 
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware('permission:service.view');
         Route::get('service-groups', function () {

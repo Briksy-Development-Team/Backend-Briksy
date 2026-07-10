@@ -10,7 +10,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\HasImmutableGeneratedId;
+use App\Models\ActivityLog;
 use App\Services\DynamicIdGeneratorService;
+use App\Support\Properties\PropertyWorkflow;
 
 class PropertyListing extends Model
 {
@@ -42,8 +44,26 @@ class PropertyListing extends Model
         'postcode',
         'country',
         'location_verified',
+        'submitted_at',
+        'reviewed_by',
+        'reviewed_at',
+        'rejection_reason',
+        'published_at',
+        'location_verified_by',
+        'location_verified_at',
         'embedding',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'submitted_at' => 'datetime',
+            'reviewed_at' => 'datetime',
+            'published_at' => 'datetime',
+            'location_verified_at' => 'datetime',
+            'location_verified' => 'boolean',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -76,6 +96,16 @@ class PropertyListing extends Model
         return $this->belongsTo(User::class, 'creator_id');
     }
 
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function locationVerifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'location_verified_by');
+    }
+
     public function propertyType(): BelongsTo
     {
         return $this->belongsTo(PropertyType::class, 'property_type_id');
@@ -101,8 +131,22 @@ class PropertyListing extends Model
         return $this->hasMany(Review::class, 'property_listing_id');
     }
 
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class, 'subject_id')
+            ->where('module', PropertyWorkflow::MODULE)
+            ->orderByDesc('created_at');
+    }
+
     public function scopePublished(Builder $query): Builder
     {
-        return $query->where('status', 'Published');
+        return $query
+            ->where('status', PropertyWorkflow::STATUS_PUBLISHED)
+            ->where('location_verified', true);
+    }
+
+    public function scopeVisibleToSeekers(Builder $query): Builder
+    {
+        return $query->published();
     }
 }

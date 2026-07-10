@@ -9,12 +9,20 @@ use App\Models\Role;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class SeekerApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(\Database\Seeders\DynamicIdSettingSeeder::class);
+    }
 
     public function test_seeker_can_register(): void
     {
@@ -263,6 +271,10 @@ class SeekerApiTest extends TestCase
     public function test_admin_can_register_and_receive_bearer_token(): void
     {
         $this->seed();
+        config()->set('services.abn_lookup.guid', 'test-guid');
+        Http::fake([
+            '*' => Http::response($this->successfulSoapResponse('Main Admin Co'), 200),
+        ]);
 
         $response = $this->postJson('/api/admin/auth/register', [
             'first' => 'Main',
@@ -379,5 +391,35 @@ class SeekerApiTest extends TestCase
         $this->assertDatabaseHas('roles', [
             'name' => 'admin_staff',
         ]);
+    }
+
+    private function successfulSoapResponse(string $entityName): string
+    {
+        return str_replace(
+            'Main Admin Co',
+            $entityName,
+            <<<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <SearchByABNv202001Response xmlns="http://abr.business.gov.au/ABRXMLSearch/">
+      <ABRPayloadSearchResults>
+        <request />
+        <response>
+          <businessEntity>
+            <ABN><identifierValue>51824753556</identifierValue></ABN>
+            <entityStatus><entityStatusCode>Active</entityStatusCode><effectiveFrom>2010-01-01</effectiveFrom></entityStatus>
+            <entityType><entityTypeCode>PRV</entityTypeCode><entityDescription>Australian Private Company</entityDescription></entityType>
+            <goodsAndServicesTax><effectiveFrom>2010-01-01</effectiveFrom></goodsAndServicesTax>
+            <mainName><organisationName>Main Admin Co</organisationName></mainName>
+            <mainBusinessPhysicalAddress><stateCode>NSW</stateCode><postcode>2000</postcode></mainBusinessPhysicalAddress>
+          </businessEntity>
+        </response>
+      </ABRPayloadSearchResults>
+    </SearchByABNv202001Response>
+  </soap:Body>
+</soap:Envelope>
+XML
+        );
     }
 }

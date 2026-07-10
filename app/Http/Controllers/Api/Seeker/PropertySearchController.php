@@ -15,7 +15,7 @@ class PropertySearchController extends Controller
     public function index(PropertyListingIndexRequest $request)
     {
         $query = PropertyListing::query()
-            ->published()
+            ->visibleToSeekers()
             ->with('organization.organizationType');
 
         ApiQueryBuilder::applySearch($query, $request->search(), ['title', 'description', 'suburb', 'postcode']);
@@ -54,7 +54,7 @@ class PropertySearchController extends Controller
     public function show(PropertyListing $propertyListing)
     {
         $property = PropertyListing::query()
-            ->published()
+            ->visibleToSeekers()
             ->with('organization.organizationType')
             ->findOrFail($propertyListing->id);
 

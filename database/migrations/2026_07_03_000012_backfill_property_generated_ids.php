@@ -21,7 +21,7 @@ return new class extends Migration
             ->get()
             ->each(function (PropertyListing $property) use ($generator): void {
                 $property->forceFill([
-                    'generated_id' => $generator->generate('properties', 'PROP') ?? ('PROP-' . $property->id),
+                    'generated_id' => $generator->generate('properties'),
                 ])->save();
             });
     }

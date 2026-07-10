@@ -10,6 +10,7 @@ use App\Models\PropertyListing;
 use App\Models\VisitorLog;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Support\Properties\PropertyWorkflow;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -23,9 +24,14 @@ class DashboardController extends Controller
     {
         $propertySummary = DB::table('property_listings')
             ->selectRaw('COUNT(*) as total')
-            ->selectRaw("SUM(CASE WHEN status = 'Published' THEN 1 ELSE 0 END) as published")
             ->selectRaw("SUM(CASE WHEN status = 'Draft' THEN 1 ELSE 0 END) as draft")
+            ->selectRaw("SUM(CASE WHEN status = 'Pending Review' THEN 1 ELSE 0 END) as pending_review")
+            ->selectRaw("SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved")
+            ->selectRaw("SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END) as rejected")
+            ->selectRaw("SUM(CASE WHEN status = 'Published' THEN 1 ELSE 0 END) as published")
             ->selectRaw("SUM(CASE WHEN status = 'Archived' THEN 1 ELSE 0 END) as archived")
+            ->selectRaw("SUM(CASE WHEN status = 'Approved' AND location_verified = 0 THEN 1 ELSE 0 END) as awaiting_location_verification")
+            ->selectRaw("SUM(CASE WHEN status = 'Published' AND DATE(published_at) = CURRENT_DATE THEN 1 ELSE 0 END) as published_today")
             ->first();
 
         $payload = [
@@ -40,9 +46,14 @@ class DashboardController extends Controller
                 ->sum('amount'),
             'property_summary' => [
                 'total' => (int) ($propertySummary->total ?? 0),
-                'published' => (int) ($propertySummary->published ?? 0),
                 'draft' => (int) ($propertySummary->draft ?? 0),
+                'pending_review' => (int) ($propertySummary->pending_review ?? 0),
+                'approved' => (int) ($propertySummary->approved ?? 0),
+                'rejected' => (int) ($propertySummary->rejected ?? 0),
+                'published' => (int) ($propertySummary->published ?? 0),
                 'archived' => (int) ($propertySummary->archived ?? 0),
+                'awaiting_location_verification' => (int) ($propertySummary->awaiting_location_verification ?? 0),
+                'published_today' => (int) ($propertySummary->published_today ?? 0),
             ],
             'recent_companies' => Organization::query()
                 ->latest()

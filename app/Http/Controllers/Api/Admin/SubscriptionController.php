@@ -7,6 +7,7 @@ use App\Http\Resources\SuperAdmin\SubscriptionPlanResource;
 use App\Models\Organization;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
+use App\Services\Webhooks\WebhookDispatcherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,10 @@ use Illuminate\Support\Str;
 
 class SubscriptionController extends Controller
 {
+    public function __construct(private readonly WebhookDispatcherService $webhookDispatcher)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -81,6 +86,20 @@ class SubscriptionController extends Controller
 
         $organization->load(['plan', 'currentSubscription']);
         $user->setRelation('organization', $organization);
+
+        $this->webhookDispatcher->dispatch(
+            'subscription.updated',
+            [
+                'subscription_id' => $subscription->id,
+                'plan_id' => $subscriptionPlan->id,
+                'status' => $subscription->status,
+                'billing_cycle' => $subscription->billing_cycle,
+                'amount' => $subscription->amount,
+            ],
+            $organization,
+            $user,
+            sprintf('subscription.updated:%s', $subscription->id)
+        );
 
         return $this->success([
             'plan' => new SubscriptionPlanResource($subscriptionPlan->fresh()),

@@ -3,17 +3,17 @@
 namespace App\Services;
 
 use App\Models\Organization;
-use Illuminate\Support\Str;
 
 class ReferralService
 {
+    public function __construct(
+        private readonly DynamicIdGeneratorService $idGenerator
+    ) {
+    }
+
     public function generateCode(): string
     {
-        do {
-            $code = strtoupper('REF-' . Str::random(8));
-        } while (Organization::query()->where('referral_code', $code)->exists());
-
-        return $code;
+        return $this->idGenerator->generate('referrals');
     }
 
     public function resolveReferrer(?string $code): ?Organization

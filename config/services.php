@@ -52,8 +52,22 @@ return [
         'secret' => env('STRIPE_SECRET_KEY', env('STRIPE_SECRET')),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
         'currency' => env('STRIPE_CURRENCY', 'AUD'),
-        'success_url' => env('STRIPE_SUCCESS_URL', env('APP_URL') . '/admin/billing/success'),
-        'cancel_url' => env('STRIPE_CANCEL_URL', env('APP_URL') . '/admin/billing/cancel'),
+        'success_url' => env(
+            'STRIPE_SUCCESS_URL',
+            rtrim(env('FRONTEND_APP_URL', env('FRONTEND_URL', env('APP_URL'))), '/') . '/admin/billing/success?session_id={CHECKOUT_SESSION_ID}'
+        ),
+        'cancel_url' => env(
+            'STRIPE_CANCEL_URL',
+            rtrim(env('FRONTEND_APP_URL', env('FRONTEND_URL', env('APP_URL'))), '/') . '/admin/billing/cancel'
+        ),
+    ],
+
+    'abn_lookup' => [
+        'guid' => env('ABN_LOOKUP_GUID'),
+        'endpoint' => env('ABN_LOOKUP_ENDPOINT', 'https://abr.business.gov.au/ABRXMLSearch/AbrXmlSearch.asmx'),
+        'timeout' => env('ABN_LOOKUP_TIMEOUT', 15),
+        'retry_attempts' => env('ABN_LOOKUP_RETRY_ATTEMPTS', 2),
+        'retry_sleep_ms' => env('ABN_LOOKUP_RETRY_SLEEP_MS', 300),
     ],
 
 ];

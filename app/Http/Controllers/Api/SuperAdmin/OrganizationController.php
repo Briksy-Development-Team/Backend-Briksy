@@ -81,7 +81,7 @@ class OrganizationController extends Controller
         $validated = $request->validated();
         $validated['abn'] = preg_replace('/\s+/', '', (string) ($validated['abn'] ?? ''));
         $validated['business_verification_status'] = $validated['business_verification_status'] ?? 'pending';
-        $validated['generated_id'] = $validated['generated_id'] ?? $this->idGenerator->generate('organizations', 'COM') ?? 'COM-' . now()->format('Ymd') . '-' . strtoupper(str()->random(6));
+        $validated['generated_id'] = $this->idGenerator->generate('organizations');
         $validated['referral_code'] = $validated['referral_code'] ?? $this->referralService->generateCode();
         $organization = Organization::query()->create($validated);
         $organization->load(['organizationType', 'plan']);

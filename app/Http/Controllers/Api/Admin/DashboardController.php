@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\PropertyListing;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\Properties\PropertyWorkflow;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,12 @@ class DashboardController extends Controller
         $metrics = [
             'team_members' => User::query()->where('organization_id', $organization->id)->count(),
             'properties' => PropertyListing::query()->where('org_id', $organization->id)->count(),
-            'published_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', 'Published')->count(),
+            'published_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_PUBLISHED)->where('location_verified', true)->count(),
+            'draft_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_DRAFT)->count(),
+            'pending_review_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW)->count(),
+            'approved_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_APPROVED)->count(),
+            'rejected_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_REJECTED)->count(),
+            'archived_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_ARCHIVED)->count(),
             'services' => Service::query()->where('organization_id', $organization->id)->count(),
             'inquiries' => Inquiry::query()->where('organization_id', $organization->id)->count(),
             'new_inquiries' => Inquiry::query()->where('organization_id', $organization->id)->where('status', 'new')->count(),

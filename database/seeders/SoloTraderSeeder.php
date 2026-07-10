@@ -117,7 +117,7 @@ class SoloTraderSeeder extends Seeder
             $payload = [
                 'plan_id' => null,
                 'type_id' => $type->id,
-                'generated_id' => $existing?->generated_id ?? $generator->generate('organizations', 'COM') ?? ('COM-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6))),
+                'generated_id' => $existing?->generated_id ?? $generator->generate('organizations'),
                 'ranking_priority' => $data['ranking_priority'],
                 'avg_org_rating' => 4.2,
                 'name' => $data['name'],

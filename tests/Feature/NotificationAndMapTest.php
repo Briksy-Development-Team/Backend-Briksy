@@ -8,6 +8,7 @@ use App\Models\PropertyListing;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
@@ -52,6 +53,10 @@ class NotificationAndMapTest extends TestCase
     public function test_company_signup_creates_super_admin_notification(): void
     {
         $this->seed();
+        config()->set('services.abn_lookup.guid', 'test-guid');
+        Http::fake([
+            '*' => Http::response($this->successfulSoapResponse(), 200),
+        ]);
 
         $response = $this->postJson('/api/admin/auth/register', [
             'first' => 'Taylor',
@@ -151,5 +156,31 @@ class NotificationAndMapTest extends TestCase
         }
 
         return $sum % 89 === 0;
+    }
+
+    private function successfulSoapResponse(): string
+    {
+        return <<<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <SearchByABNv202001Response xmlns="http://abr.business.gov.au/ABRXMLSearch/">
+      <ABRPayloadSearchResults>
+        <request />
+        <response>
+          <businessEntity>
+            <ABN><identifierValue>51824753556</identifierValue></ABN>
+            <entityStatus><entityStatusCode>Active</entityStatusCode><effectiveFrom>2010-01-01</effectiveFrom></entityStatus>
+            <entityType><entityTypeCode>PRV</entityTypeCode><entityDescription>Australian Private Company</entityDescription></entityType>
+            <goodsAndServicesTax><effectiveFrom>2010-01-01</effectiveFrom></goodsAndServicesTax>
+            <mainName><organisationName>Taylor Build Co</organisationName></mainName>
+            <mainBusinessPhysicalAddress><stateCode>NSW</stateCode><postcode>2000</postcode></mainBusinessPhysicalAddress>
+          </businessEntity>
+        </response>
+      </ABRPayloadSearchResults>
+    </SearchByABNv202001Response>
+  </soap:Body>
+</soap:Envelope>
+XML;
     }
 }

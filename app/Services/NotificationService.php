@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Notifications\PlatformNotification;
+use App\Services\Webhooks\WebhookDispatcherService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -11,12 +12,24 @@ use Throwable;
 
 class NotificationService
 {
+    public function __construct(private readonly WebhookDispatcherService $webhookDispatcher)
+    {
+    }
+
     private const REQUIRED_PERMISSION_MAP = [
         'company_signup' => 'company.view',
         'organization_created' => 'company.view',
         'organization_updated' => 'company.view',
         'organization_deleted' => 'company.view',
         'property_created' => 'property.view',
+        'property_submitted_for_review' => 'property.view',
+        'property_approved' => 'property.view',
+        'property_rejected' => 'property.view',
+        'property_published' => 'property.view',
+        'property_location_verified' => 'property.view',
+        'property_location_verification_removed' => 'property.view',
+        'property_archived' => 'property.view',
+        'property_republished' => 'property.view',
         'property_location_missing' => 'property.update',
         'admin_user_invited' => 'user.view',
         'user_invited' => 'user.view',
@@ -44,6 +57,15 @@ class NotificationService
     {
         $users = User::query()
             ->whereHas('roles', fn (Builder $query) => $query->where('name', 'super_admin'))
+            ->get();
+
+        $this->notifyUsers($users, $payload, $mailSubject, $mailCtaLabel);
+    }
+
+    public function notifySuperAdminTeam(array $payload, ?string $mailSubject = null, ?string $mailCtaLabel = null): void
+    {
+        $users = User::query()
+            ->whereHas('roles', fn (Builder $query) => $query->whereIn('name', ['super_admin', 'super_admin_employee']))
             ->get();
 
         $this->notifyUsers($users, $payload, $mailSubject, $mailCtaLabel);
@@ -84,6 +106,23 @@ class NotificationService
 
                 try {
                     $user->notify(new PlatformNotification($payload, $mailSubject, $mailCtaLabel));
+                    if ($user->organization) {
+                        $this->webhookDispatcher->dispatch(
+                            'notification.sent',
+                            [
+                                'notification_type' => $payload['type'] ?? null,
+                                'title' => $payload['title'] ?? null,
+                                'message' => $payload['message'] ?? null,
+                                'recipient_user_id' => $user->id,
+                                'recipient_email' => $user->email,
+                                'required_permission' => $payload['required_permission'] ?? null,
+                            ],
+                            $user->organization,
+                            $user,
+                            sprintf('%s:%s', $payload['type'] ?? 'notification.sent', $user->id),
+                            ['mail_subject' => $mailSubject, 'cta_label' => $mailCtaLabel]
+                        );
+                    }
                 } catch (Throwable $throwable) {
                     Log::warning('Notification dispatch failed.', [
                         'user_id' => $user->id,

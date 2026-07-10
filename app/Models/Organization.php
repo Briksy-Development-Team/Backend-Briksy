@@ -10,12 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\HasImmutableGeneratedId;
 use App\Services\DynamicIdGeneratorService;
-use Illuminate\Support\Str;
 
 class Organization extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, HasImmutableGeneratedId, SoftDeletes;
 
     protected $keyType = 'string';
 
@@ -27,9 +27,17 @@ class Organization extends Model
         'referred_by_organization_id',
         'name',
         'trading_name',
+        'entity_name',
+        'entity_type',
+        'entity_status',
         'contact_email',
         'contact_phone',
         'abn',
+        'abn_verified',
+        'abn_verified_at',
+        'gst_registered',
+        'abn_effective_from',
+        'abn_raw_response',
         'business_type',
         'business_verification_status',
         'address',
@@ -51,6 +59,11 @@ class Organization extends Model
     protected function casts(): array
     {
         return [
+            'abn_verified' => 'boolean',
+            'abn_verified_at' => 'datetime',
+            'gst_registered' => 'boolean',
+            'abn_effective_from' => 'date',
+            'abn_raw_response' => 'array',
             'trial_started_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'subscription_activated_at' => 'datetime',
@@ -61,19 +74,14 @@ class Organization extends Model
     {
         static::creating(function (Organization $organization): void {
             if (blank($organization->generated_id)) {
-                $organization->generated_id = app(DynamicIdGeneratorService::class)->generate('organizations', 'COM')
-                    ?? 'COM-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
+                $organization->generated_id = app(DynamicIdGeneratorService::class)->generate('organizations');
             }
 
             if (!blank($organization->referral_code)) {
                 return;
             }
 
-            do {
-                $code = strtoupper('REF-' . Str::random(8));
-            } while (static::query()->where('referral_code', $code)->exists());
-
-            $organization->referral_code = $code;
+            $organization->referral_code = app(DynamicIdGeneratorService::class)->generate('referrals');
         });
     }
 

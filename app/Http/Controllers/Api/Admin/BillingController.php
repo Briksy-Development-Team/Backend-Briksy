@@ -18,12 +18,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Stripe\Checkout\Session;
 use Stripe\Customer;
 use Stripe\Price;
 use Stripe\Product;
 use Stripe\StripeClient;
+use App\Services\Webhooks\WebhookDispatcherService;
 
 class BillingController extends Controller
 {
@@ -218,6 +220,21 @@ class BillingController extends Controller
             }
         });
 
+        app(WebhookDispatcherService::class)->dispatch(
+            'subscription.created',
+            [
+                'subscription_id' => $session->subscription ?? null,
+                'checkout_session_id' => $session->id,
+                'plan_id' => $plan->id,
+                'billing_cycle' => $billingCycle,
+                'amount' => $amount,
+                'status' => 'pending',
+            ],
+            $organization,
+            $request->user(),
+            $session->id
+        );
+
         return $this->success([
             'checkout_session_id' => $session->id,
             'checkout_url' => $session->url,
@@ -237,6 +254,115 @@ class BillingController extends Controller
             'subscriptions' => SubscriptionResource::collection($subscriptions)->resolve(),
         ], 'Subscription history retrieved successfully.');
     }
+
+    public function verifyCheckoutSession(Request $request, string $checkoutSessionId): JsonResponse
+    {
+        $organization = $this->organization($request);
+        $stripeKey = config('services.stripe.secret');
+
+        if (!$stripeKey) {
+            return response()->json(['success' => false, 'message' => 'Stripe secret is not configured.'], 422);
+        }
+        if (!class_exists(StripeClient::class)) {
+            return response()->json(['success' => false, 'message' => 'Stripe PHP SDK is not installed.'], 500);
+        }
+
+        $stripe = new StripeClient($stripeKey);
+        Log::info('Stripe checkout verification started.', [
+            'organization_id' => $organization->id,
+            'checkout_session_id' => $checkoutSessionId,
+            'user_id' => $request->user()?->id,
+        ]);
+        $checkoutSession = $stripe->checkout->sessions->retrieve($checkoutSessionId, [
+            'expand' => ['subscription'],
+        ]);
+
+        $subscription = null;
+        $stripeSubscription = null;
+        $latestInvoice = null;
+        $paymentIntent = null;
+        $paymentMethodLabel = null;
+
+        if ($checkoutSession->customer) {
+            $subscription = Subscription::query()
+                ->where('organization_id', $organization->id)
+                ->where('stripe_checkout_session_id', $checkoutSessionId)
+                ->first();
+        }
+
+        if ($checkoutSession->status === 'complete' && $checkoutSession->subscription) {
+            $stripeSubscriptionId = is_object($checkoutSession->subscription)
+                ? ($checkoutSession->subscription->id ?? null)
+                : $checkoutSession->subscription;
+            $stripeSubscription = $stripeSubscriptionId
+                ? $stripe->subscriptions->retrieve($stripeSubscriptionId, [
+                    'expand' => ['latest_invoice.payment_intent.payment_method'],
+                ])
+                : null;
+
+            $planId = data_get($checkoutSession->metadata, 'plan_id');
+            $billingCycle = $this->normalizeBillingCycle((string) data_get($checkoutSession->metadata, 'billing_cycle', 'monthly'));
+            $amount = data_get($checkoutSession->metadata, 'amount');
+            $amount = $amount !== null ? (float) $amount : ((float) ($stripeSubscription?->items->data[0]->price->unit_amount ?? 0)) / 100;
+            $currency = strtoupper((string) data_get($checkoutSession->metadata, 'currency', $stripeSubscription?->currency ?? config('services.stripe.currency', 'AUD')));
+            $plan = $planId ? SubscriptionPlan::query()->find($planId) : null;
+            $latestInvoice = $stripeSubscription?->latest_invoice ?? null;
+            $paymentIntent = is_object($latestInvoice) ? ($latestInvoice->payment_intent ?? null) : null;
+            $paymentMethod = is_object($paymentIntent) ? ($paymentIntent->payment_method ?? null) : null;
+            if (is_object($paymentMethod)) {
+                $paymentMethodLabel = collect([
+                    strtoupper((string) ($paymentMethod->brand ?? $paymentMethod->type ?? '')),
+                    $paymentMethod->last4 ?? null,
+                ])->filter()->join(' • ');
+            }
+
+            $subscription = Subscription::query()->updateOrCreate(
+                ['organization_id' => $organization->id],
+                [
+                    'subscription_plan_id' => $plan?->id ?? $subscription?->subscription_plan_id,
+                    'billing_cycle' => $billingCycle,
+                    'currency' => $currency,
+                    'amount' => $amount,
+                    'stripe_customer_id' => $checkoutSession->customer,
+                    'stripe_subscription_id' => $stripeSubscription?->id ?? null,
+                    'stripe_checkout_session_id' => $checkoutSessionId,
+                    'latest_invoice_id' => is_object($latestInvoice)
+                        ? ($latestInvoice->id ?? null)
+                        : ($latestInvoice ?? $checkoutSession->invoice ?? null),
+                    'status' => $stripeSubscription?->status ?? 'active',
+                    'payment_status' => $checkoutSession->payment_status ?? 'paid',
+                    'current_period_start' => isset($stripeSubscription?->current_period_start) ? Carbon::createFromTimestamp($stripeSubscription->current_period_start) : null,
+                    'current_period_end' => isset($stripeSubscription?->current_period_end) ? Carbon::createFromTimestamp($stripeSubscription->current_period_end) : null,
+                ]
+            );
+
+            if ($plan && in_array($subscription->status, ['active', 'trialing'], true)) {
+                $organization->update([
+                    'plan_id' => $plan->id,
+                    'subscription_status' => $subscription->status,
+                    'subscription_activated_at' => now(),
+                ]);
+            }
+        }
+
+        $organization->load(['plan', 'currentSubscription']);
+        $request->user()?->setRelation('organization', $organization);
+
+        return $this->success([
+                'checkout_session_id' => $checkoutSessionId,
+                'checkout_status' => $checkoutSession->status,
+                'payment_status' => $checkoutSession->payment_status ?? null,
+                'subscription' => $this->subscriptionPayload($organization->currentSubscription?->loadMissing(['organization', 'plan', 'addons.addon'])),
+                'stripe_details' => [
+                    'subscription_id' => $subscription?->stripe_subscription_id ?? ($stripeSubscription?->id ?? null),
+                    'customer_id' => $subscription?->stripe_customer_id ?? ($checkoutSession->customer ?? null),
+                    'invoice_id' => $subscription?->latest_invoice_id ?? (is_object($latestInvoice) ? ($latestInvoice->id ?? null) : $latestInvoice),
+                    'invoice_download_url' => is_object($latestInvoice) ? ($latestInvoice->invoice_pdf ?? null) : null,
+                    'payment_method' => $paymentMethodLabel,
+                    'transaction_timestamp' => is_object($paymentIntent) ? ($paymentIntent->created ? Carbon::createFromTimestamp($paymentIntent->created)->toISOString() : null) : null,
+                ],
+            ], 'Checkout session verified successfully.');
+        }
 
     private function organization(Request $request): Organization
     {

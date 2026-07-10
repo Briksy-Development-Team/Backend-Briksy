@@ -32,7 +32,7 @@ class InquiryController extends Controller
     public function store(StoreInquiryRequest $request): JsonResponse
     {
         $authUser = $request->user();
-        $referenceNo = app(DynamicIdGeneratorService::class)->generate('inquiries', 'INQ') ?? 'INQ-' . now()->format('Ymd') . '-' . strtoupper(str()->random(6));
+        $referenceNo = app(DynamicIdGeneratorService::class)->generate('inquiries');
         $leadSource = $request->input('lead_source')
             ?? ($request->filled('property_listing_id') ? 'property_listing' : 'direct');
         $inquiryData = [

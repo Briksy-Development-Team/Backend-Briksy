@@ -8,14 +8,20 @@ use App\Models\Subscription;
 use App\Models\SubscriptionAddon;
 use App\Models\SubscriptionEvent;
 use App\Models\SubscriptionPlan;
+use App\Services\Webhooks\WebhookDispatcherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Stripe\StripeClient;
 
 class StripeWebhookController extends Controller
 {
+    public function __construct(private readonly WebhookDispatcherService $webhookDispatcher)
+    {
+    }
+
     public function handle(Request $request): JsonResponse
     {
         $payload = $request->getContent();
@@ -32,6 +38,9 @@ class StripeWebhookController extends Controller
         try {
             $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $secret);
         } catch (\Throwable $e) {
+            Log::warning('Stripe webhook signature verification failed.', [
+                'message' => $e->getMessage(),
+            ]);
             return response()->json(['success' => false, 'message' => 'Invalid webhook signature.'], 400);
         }
 
@@ -91,6 +100,23 @@ class StripeWebhookController extends Controller
                                 'subscription_activated_at' => now(),
                             ]);
                     }
+
+                    if ($resolvedOrganizationId) {
+                        $this->webhookDispatcher->dispatch(
+                            'subscription.created',
+                            [
+                                'subscription_id' => $subscription->id,
+                                'stripe_subscription_id' => $stripeSubscription->id,
+                                'plan_id' => $subscription->subscription_plan_id,
+                                'status' => $subscription->status,
+                                'payment_status' => $subscription->payment_status,
+                                'billing_cycle' => $billingCycle,
+                            ],
+                            Organization::query()->find($resolvedOrganizationId),
+                            null,
+                            $event->id
+                        );
+                    }
                 }
             }
 
@@ -127,6 +153,24 @@ class StripeWebhookController extends Controller
                                 'subscription_activated_at' => now(),
                             ]);
                     }
+
+                    if ($resolvedOrganizationId) {
+                        $webhookEvent = $eventType === 'customer.subscription.deleted' ? 'subscription.cancelled' : 'subscription.updated';
+                        $this->webhookDispatcher->dispatch(
+                            $webhookEvent,
+                            [
+                                'subscription_id' => $subscription->id,
+                                'stripe_subscription_id' => $object->id,
+                                'plan_id' => $subscription->subscription_plan_id,
+                                'status' => $subscription->status,
+                                'payment_status' => $subscription->payment_status,
+                                'billing_cycle' => $billingCycle,
+                            ],
+                            Organization::query()->find($resolvedOrganizationId),
+                            null,
+                            $event->id
+                        );
+                    }
                 }
             }
 
@@ -139,6 +183,21 @@ class StripeWebhookController extends Controller
                         'status' => $eventType === 'invoice.payment_succeeded' ? 'active' : 'past_due',
                     ]);
                 }
+
+                $this->webhookDispatcher->dispatch(
+                    $eventType === 'invoice.payment_succeeded' ? 'invoice.paid' : 'invoice.failed',
+                    [
+                        'subscription_id' => $subscription?->id,
+                        'invoice_id' => $object->id,
+                        'stripe_subscription_id' => $subscription?->stripe_subscription_id,
+                        'status' => $eventType === 'invoice.payment_succeeded' ? 'paid' : 'failed',
+                        'amount_paid' => isset($object->amount_paid) ? ((float) $object->amount_paid) / 100 : null,
+                        'currency' => strtoupper((string) ($object->currency ?? $currency)),
+                    ],
+                    Organization::query()->find($resolvedOrganizationId),
+                    null,
+                    $event->id
+                );
             }
 
             SubscriptionEvent::query()->create([
@@ -150,6 +209,12 @@ class StripeWebhookController extends Controller
                 'status' => 'processed',
             ]);
         });
+
+        Log::info('Stripe webhook processed.', [
+            'event_type' => $eventType,
+            'organization_id' => $organizationId,
+            'stripe_event_id' => $event->id,
+        ]);
 
         return response()->json(['success' => true]);
     }

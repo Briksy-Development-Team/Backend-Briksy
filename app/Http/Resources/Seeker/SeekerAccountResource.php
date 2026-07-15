@@ -11,6 +11,8 @@ class SeekerAccountResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'generated_id' => $this->generated_id,
+            'display_id' => $this->display_id,
             'name' => $this->name,
             'email' => $this->email,
             'organization_id' => $this->organization_id,

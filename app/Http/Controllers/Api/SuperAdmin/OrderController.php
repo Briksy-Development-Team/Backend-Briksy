@@ -117,13 +117,13 @@ class OrderController extends Controller
 
     public function show(string $order): JsonResponse
     {
-        $model = $this->scopedQuery(Order::query()->with(['organization', 'user', 'plan', 'coupon']), request())->whereKey($order)->firstOrFail();
+        $model = $this->findOrder($order, request());
         return $this->success(new OrderResource($model), 'Order retrieved successfully.');
     }
 
     public function update(OrderRequest $request, string $order): JsonResponse
     {
-        $model = $this->scopedQuery(Order::query(), $request)->whereKey($order)->firstOrFail();
+        $model = $this->findOrder($order, $request);
         $validated = $request->validated();
         unset($validated['order_number'], $validated['reference_no']);
         $model->fill($validated);
@@ -133,7 +133,7 @@ class OrderController extends Controller
 
     public function markPaid(string $order): JsonResponse
     {
-        $model = $this->scopedQuery(Order::query(), request())->whereKey($order)->firstOrFail();
+        $model = $this->findOrder($order, request());
         $model->payment_status = 'paid';
         $model->order_status = 'active';
         $model->save();
@@ -162,7 +162,7 @@ class OrderController extends Controller
 
     public function cancel(string $order): JsonResponse
     {
-        $model = $this->scopedQuery(Order::query(), request())->whereKey($order)->firstOrFail();
+        $model = $this->findOrder($order, request());
         $model->payment_status = 'cancelled';
         $model->order_status = 'cancelled';
         $model->save();
@@ -191,8 +191,19 @@ class OrderController extends Controller
 
     public function destroy(string $order): JsonResponse
     {
-        $model = $this->scopedQuery(Order::query(), request())->whereKey($order)->firstOrFail();
+        $model = $this->findOrder($order, request());
         $model->delete();
         return $this->success([], 'Order deleted successfully.');
+    }
+
+    private function findOrder(string $order, Request $request): Order
+    {
+        return $this->scopedQuery(Order::query()->with(['organization', 'user', 'plan', 'coupon']), $request)
+            ->where(function ($query) use ($order): void {
+                $query->whereKey($order)
+                    ->orWhere('order_number', $order)
+                    ->orWhere('reference_no', $order);
+            })
+            ->firstOrFail();
     }
 }

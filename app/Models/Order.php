@@ -75,4 +75,22 @@ class Order extends Model
     {
         return $this->reference_no ?: $this->order_number;
     }
+
+    public function getDisplayIdAttribute(): string
+    {
+        return $this->display_number;
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return $this->newQuery()
+            ->where('reference_no', $value)
+            ->orWhere('order_number', $value)
+            ->orWhereKey($value)
+            ->first();
+    }
 }

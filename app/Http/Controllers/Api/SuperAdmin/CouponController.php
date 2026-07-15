@@ -60,13 +60,13 @@ class CouponController extends Controller
 
     public function show(string $coupon): JsonResponse
     {
-        $model = Coupon::query()->findOrFail($coupon);
+        $model = $this->findCoupon($coupon);
         return $this->success(new CouponResource($model), 'Coupon retrieved successfully.');
     }
 
     public function update(CouponRequest $request, string $coupon): JsonResponse
     {
-        $model = Coupon::query()->findOrFail($coupon);
+        $model = $this->findCoupon($coupon);
         $model->fill($request->validated());
         $model->save();
         return $this->success(new CouponResource($model->fresh()), 'Coupon updated successfully.');
@@ -74,7 +74,7 @@ class CouponController extends Controller
 
     public function activate(string $coupon): JsonResponse
     {
-        $model = Coupon::query()->findOrFail($coupon);
+        $model = $this->findCoupon($coupon);
         $model->status = 'active';
         $model->save();
 
@@ -99,7 +99,7 @@ class CouponController extends Controller
 
     public function deactivate(string $coupon): JsonResponse
     {
-        $model = Coupon::query()->findOrFail($coupon);
+        $model = $this->findCoupon($coupon);
         $model->status = 'inactive';
         $model->save();
 
@@ -124,7 +124,7 @@ class CouponController extends Controller
 
     public function destroy(string $coupon): JsonResponse
     {
-        $model = Coupon::query()->findOrFail($coupon);
+        $model = $this->findCoupon($coupon);
         $model->delete();
         return $this->success([], 'Coupon deleted successfully.');
     }
@@ -183,5 +183,13 @@ class CouponController extends Controller
             'coupon' => new CouponResource($coupon),
             'discount_amount' => round($discount, 2),
         ], 'Coupon is valid.');
+    }
+
+    private function findCoupon(string $coupon): Coupon
+    {
+        return Coupon::query()
+            ->where('code', $coupon)
+            ->orWhereKey($coupon)
+            ->firstOrFail();
     }
 }

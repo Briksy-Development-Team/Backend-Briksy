@@ -24,6 +24,7 @@ class User extends Authenticatable
     public $incrementing = false;
 
     protected $fillable = [
+        'generated_id',
         'name',
         'email',
         'mobile_number',
@@ -56,6 +57,32 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password_hash' => 'hashed',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            if (blank($user->generated_id)) {
+                $user->generated_id = app(\App\Services\DynamicIdGeneratorService::class)->generate('users');
+            }
+        });
+    }
+
+    public function getDisplayIdAttribute(): string
+    {
+        return $this->generated_id ?: $this->id;
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return static::query()
+            ->where('generated_id', $value)
+            ->orWhere($this->getKeyName(), $value)
+            ->first();
     }
 
     public function roles(): BelongsToMany

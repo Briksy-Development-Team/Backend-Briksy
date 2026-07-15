@@ -11,6 +11,8 @@ class InquiryResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'reference_no' => $this->reference_no,
+            'display_id' => $this->display_id,
             'organization_id' => $this->organization_id,
             'property_listing_id' => $this->property_listing_id,
             'staff_id' => $this->staff_id,

@@ -127,7 +127,12 @@ class PlanRequestController extends Controller
     protected function findPlanRequest(Request $request, string $id): PlanRequestModel
     {
         $query = $this->scopedQuery(PlanRequestModel::query(), $request);
-        $model = $query->whereKey($id)->first();
+        $model = $query
+            ->where(function ($builder) use ($id): void {
+                $builder->where('request_code', $id)
+                    ->orWhereKey($id);
+            })
+            ->first();
 
         abort_unless($model, 404, 'Resource not found.');
 

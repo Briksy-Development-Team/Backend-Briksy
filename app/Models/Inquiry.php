@@ -30,6 +30,23 @@ class Inquiry extends Model
         'status',
     ];
 
+    public function getDisplayIdAttribute(): string
+    {
+        return $this->reference_no ?: $this->id;
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return static::query()
+            ->where('reference_no', $value)
+            ->orWhere($this->getKeyName(), $value)
+            ->first();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

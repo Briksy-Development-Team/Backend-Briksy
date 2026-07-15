@@ -40,6 +40,23 @@ class PlanRequest extends Model
         ];
     }
 
+    public function getDisplayIdAttribute(): string
+    {
+        return $this->request_code ?: $this->id;
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return static::query()
+            ->where('request_code', $value)
+            ->orWhere($this->getKeyName(), $value)
+            ->first();
+    }
+
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class, 'organization_id');

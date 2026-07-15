@@ -53,4 +53,21 @@ class Coupon extends Model
     {
         return $this->hasMany(Order::class, 'coupon_id');
     }
+
+    public function getDisplayIdAttribute(): string
+    {
+        return $this->code ?: $this->id;
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return $this->newQuery()
+            ->where('code', $value)
+            ->orWhereKey($value)
+            ->first();
+    }
 }

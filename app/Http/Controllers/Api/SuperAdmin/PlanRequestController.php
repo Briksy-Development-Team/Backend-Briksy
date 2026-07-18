@@ -130,7 +130,7 @@ class PlanRequestController extends Controller
         $model = $query
             ->where(function ($builder) use ($id): void {
                 $builder->where('request_code', $id)
-                    ->orWhereKey($id);
+                    ->orWhere($builder->getModel()->getQualifiedKeyName(), $id);
             })
             ->first();
 

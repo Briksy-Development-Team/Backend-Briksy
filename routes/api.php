@@ -43,6 +43,7 @@ use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerCont
 use App\Http\Controllers\Api\SuperAdmin\StaffController;
 use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController;
 use App\Http\Controllers\Api\Admin\BillingController as AdminBillingController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
@@ -62,6 +63,8 @@ Route::prefix('auth')->group(function (): void {
 
 Route::get('settings/public', [SettingController::class, 'publicSettings']);
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle']);
+Route::get('media/{media}', [MediaController::class, 'show'])->name('media.show');
+Route::middleware('auth:sanctum')->delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
 
 Route::prefix('seeker')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'store']);

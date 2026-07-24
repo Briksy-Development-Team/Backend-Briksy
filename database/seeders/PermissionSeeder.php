@@ -56,6 +56,7 @@ class PermissionSeeder extends Seeder
             ['module' => 'email_template', 'action' => 'delete', 'name' => 'email_template.delete', 'display_name' => 'Delete Email Templates'],
             ['module' => 'activity_logs', 'action' => 'view', 'name' => 'activity_logs.view', 'display_name' => 'View Activity Logs'],
             ['module' => 'property', 'action' => 'view', 'name' => 'property.view', 'display_name' => 'View Properties'],
+            ['module' => 'property', 'action' => 'map', 'name' => 'property.map', 'display_name' => 'View Property Map'],
             ['module' => 'property', 'action' => 'create', 'name' => 'property.create', 'display_name' => 'Create Properties'],
             ['module' => 'property', 'action' => 'update', 'name' => 'property.update', 'display_name' => 'Update Properties'],
             ['module' => 'property', 'action' => 'delete', 'name' => 'property.delete', 'display_name' => 'Delete Properties'],
@@ -114,6 +115,7 @@ class PermissionSeeder extends Seeder
         $this->syncRolePermissions($adminRole, $allPermissions->only([
             'dashboard.view',
             'property.view',
+            'property.map',
             'property.create',
             'property.update',
             'property.delete',

@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\SuperAdmin\ServiceController as SuperAdminServiceCo
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
+use App\Http\Controllers\Api\SuperAdmin\PropertyMapController as SuperAdminPropertyMapController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionPlanController as SuperAdminSubscriptionPlanController;
 use App\Http\Controllers\Api\SuperAdmin\DynamicIdSettingController as SuperAdminDynamicIdSettingController;
 use App\Http\Controllers\Api\SuperAdmin\AddonController as SuperAdminAddonController;
@@ -197,7 +198,7 @@ Route::prefix('admin')->group(function (): void {
         Route::put('businesses/{organization}', [AdminOrganizationController::class, 'update'])->middleware('permission:company.update');
 
         Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
-        Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.view']);
+        Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.map']);
         Route::post('properties', [AdminPropertyController::class, 'store'])->middleware(['module:property_management', 'permission:property.create']);
         Route::get('properties/{propertyListing}', [AdminPropertyController::class, 'show'])->middleware(['module:property_management', 'permission:property.view']);
         Route::put('properties/{propertyListing}', [AdminPropertyController::class, 'update'])->middleware(['module:property_management', 'permission:property.update']);
@@ -374,4 +375,8 @@ Route::prefix('super-admin')->group(function (): void {
             Route::get('me/permissions', [SuperAdminPermissionController::class, 'me'])->middleware('permission:permission.view');
         });
     });
+});
+
+Route::prefix('v1')->middleware(['auth:sanctum', 'role:super_admin,super_admin_employee'])->group(function (): void {
+    Route::get('super-admin/property-map', [SuperAdminPropertyMapController::class, 'index']);
 });

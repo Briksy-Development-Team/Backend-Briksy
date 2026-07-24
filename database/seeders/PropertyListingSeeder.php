@@ -3,10 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Organization;
+use App\Models\Media;
 use App\Models\User;
 use App\Services\DynamicIdGeneratorService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class PropertyListingSeeder extends Seeder
@@ -116,13 +118,56 @@ class PropertyListingSeeder extends Seeder
 
                 if ($existing) {
                     DB::table('property_listings')->where('id', $existing->id)->update($payload);
+                    $listingId = $existing->id;
                 } else {
+                    $listingId = (string) Str::uuid();
                     DB::table('property_listings')->insert(array_merge($payload, [
-                        'id' => (string) Str::uuid(),
+                        'id' => $listingId,
                         'created_at' => now(),
                     ]));
                 }
+
+                $this->seedMedia($listingId, $title, $index);
             }
         }
+    }
+
+    private function seedMedia(string $listingId, string $title, int $propertyIndex): void
+    {
+        if (Media::query()->where('property_listing_id', $listingId)->exists()) {
+            return;
+        }
+
+        $imagePath = "property-listings/{$listingId}/images/cover-1.png";
+        Storage::disk('public')->put($imagePath, base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAJUlEQVR42u3BAQ0AAADCoPdPbQ8HFAAAAAAAAAAAAAAAAAAAAAAAwH8G0gABF3a6sQAAAABJRU5ErkJggg=='
+        ));
+
+        $videoUrl = $propertyIndex === 0
+            ? 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4'
+            : 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4';
+
+        DB::table('property_listing_media')->insert([
+            [
+                'id' => (string) Str::uuid(),
+                'property_listing_id' => $listingId,
+                'file_url' => url("/storage/{$imagePath}"),
+                'media_type' => 'image',
+                'is_primary' => true,
+                'sort_order' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => (string) Str::uuid(),
+                'property_listing_id' => $listingId,
+                'file_url' => $videoUrl,
+                'media_type' => 'video',
+                'is_primary' => false,
+                'sort_order' => 2,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
     }
 }

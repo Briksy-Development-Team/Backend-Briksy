@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Services\NotificationService;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\ReferralService;
+use App\Support\Properties\PropertyWorkflow;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +28,12 @@ class OrganizationController extends Controller
 
     public function index(OrganizationIndexRequest $request): JsonResponse
     {
-        $query = Organization::query()->with(['organizationType', 'plan']);
+        $query = Organization::query()
+            ->with(['organizationType', 'plan'])
+            ->withCount([
+                'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
+                    ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
+            ]);
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
@@ -68,7 +74,11 @@ class OrganizationController extends Controller
 
     public function show(Organization $organization): JsonResponse
     {
-        $organization->load(['organizationType', 'plan']);
+        $organization->load(['organizationType', 'plan'])
+            ->loadCount([
+                'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
+                    ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
+            ]);
 
         return $this->success(
             new OrganizationResource($organization),
@@ -84,7 +94,11 @@ class OrganizationController extends Controller
         $validated['generated_id'] = $this->idGenerator->generate('organizations');
         $validated['referral_code'] = $validated['referral_code'] ?? $this->referralService->generateCode();
         $organization = Organization::query()->create($validated);
-        $organization->load(['organizationType', 'plan']);
+        $organization->load(['organizationType', 'plan'])
+            ->loadCount([
+                'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
+                    ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
+            ]);
 
         $this->notificationService->notifySuperAdmins(
             $this->notificationService->buildPayload(
@@ -118,7 +132,11 @@ class OrganizationController extends Controller
 
         $organization->fill($validated);
         $organization->save();
-        $organization->load(['organizationType', 'plan']);
+        $organization->load(['organizationType', 'plan'])
+            ->loadCount([
+                'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
+                    ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
+            ]);
 
         return $this->success(
             new OrganizationResource($organization),

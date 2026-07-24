@@ -149,9 +149,9 @@ class PropertyController extends Controller
         $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
         $this->notificationService->notifySuperAdminTeam(
-            $this->notificationService->buildPayload(
-                PropertyWorkflow::ACTION_SUBMITTED,
-                'New property submitted for review',
+                $this->notificationService->buildPayload(
+                    PropertyWorkflow::ACTION_SUBMITTED,
+                    'New property submitted for review',
                 sprintf(
                     'Property "%s" from %s was submitted by %s on %s.',
                     $listing->title,
@@ -161,11 +161,11 @@ class PropertyController extends Controller
                 ),
                 PropertyListing::class,
                 $listing->id,
-                "/super-admin/property-management?highlight={$listing->id}",
-                'normal',
-                $request->user()?->id,
-                $organizationId
-            ),
+                    "/super-admin/property-management?highlight={$listing->id}",
+                    'high',
+                    $request->user()?->id,
+                    $organizationId
+                ),
             'New property added',
                 'Review property'
         );
@@ -228,17 +228,17 @@ class PropertyController extends Controller
         $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
         $this->notificationService->notifySuperAdminTeam(
-            $this->notificationService->buildPayload(
-                PropertyWorkflow::ACTION_SUBMITTED,
-                'Property resubmitted for review',
-                sprintf('Property "%s" was resubmitted by %s.', $propertyListing->title, $request->user()?->name ?? 'a user'),
-                PropertyListing::class,
-                $propertyListing->id,
-                "/super-admin/property-management?highlight={$propertyListing->id}",
-                'normal',
-                $request->user()?->id,
-                $propertyListing->org_id
-            ),
+                $this->notificationService->buildPayload(
+                    PropertyWorkflow::ACTION_SUBMITTED,
+                    'Property resubmitted for review',
+                    sprintf('Property "%s" was resubmitted by %s.', $propertyListing->title, $request->user()?->name ?? 'a user'),
+                    PropertyListing::class,
+                    $propertyListing->id,
+                    "/super-admin/property-management?highlight={$propertyListing->id}",
+                    'high',
+                    $request->user()?->id,
+                    $propertyListing->org_id
+                ),
             'Property resubmitted for review',
             'Review property'
         );

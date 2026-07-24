@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\NotificationPreference;
 use App\Models\Organization;
+use App\Models\OrganizationType;
 use App\Models\PropertyListing;
+use App\Models\PropertyType;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -123,6 +125,47 @@ class NotificationAndMapTest extends TestCase
                 return in_array('database', $channels, true) && !in_array('mail', $channels, true);
             }
         );
+    }
+
+    public function test_property_submission_notifies_super_admins_with_high_priority(): void
+    {
+        $this->seed();
+
+        $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
+        Sanctum::actingAs($admin, ['admin']);
+
+        $propertyType = PropertyType::query()->firstOrCreate([
+            'name' => 'Apartment',
+            'slug' => 'apartment',
+        ]);
+
+        $response = $this->postJson('/api/admin/properties', [
+            'title' => 'Priority Review Property',
+            'property_type_id' => $propertyType->id,
+            'address_line_1' => '49 Hall Street',
+            'address' => '49 Hall Street, Bondi Beach NSW 2026',
+            'full_address' => '49 Hall Street, Bondi Beach NSW 2026',
+            'suburb' => 'Bondi Beach',
+            'state' => 'NSW',
+            'postcode' => '2026',
+            'country' => 'Australia',
+            'latitude' => -33.894898,
+            'longitude' => 151.273546,
+        ]);
+
+        $response->assertCreated();
+
+        $superAdmin = User::query()->where('email', 'superadmin@brisky.example')->firstOrFail();
+        $notification = DB::table('notifications')
+            ->where('notifiable_id', $superAdmin->id)
+            ->latest()
+            ->first();
+
+        $this->assertNotNull($notification);
+
+        $payload = json_decode($notification->data, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame('property_submitted_for_review', $payload['type']);
+        $this->assertSame('high', $payload['priority']);
     }
 
     private function generateValidAbn(): string

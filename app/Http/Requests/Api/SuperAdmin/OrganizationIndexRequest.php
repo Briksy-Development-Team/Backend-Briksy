@@ -13,6 +13,8 @@ class OrganizationIndexRequest extends ApiListRequest
             'name' => 'name',
             'ranking_priority' => 'ranking_priority',
             'avg_org_rating' => 'avg_org_rating',
+            'display_id' => 'generated_id',
+            'id' => 'id',
         ];
     }
 

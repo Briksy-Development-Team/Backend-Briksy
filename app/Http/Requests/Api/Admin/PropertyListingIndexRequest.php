@@ -13,6 +13,8 @@ class PropertyListingIndexRequest extends ApiIndexRequest
             'title' => 'title',
             'status' => 'status',
             'rating' => 'avg_prop_rating',
+            'display_id' => 'generated_id',
+            'id' => 'id',
         ];
     }
 

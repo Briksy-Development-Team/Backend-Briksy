@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests\Api\SuperAdmin;
 
-use App\Support\Services\ServiceListingRules;
 use Illuminate\Foundation\Http\FormRequest;
 
-class ServiceStoreRequest extends FormRequest
+class ServiceImportPreviewRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,6 +13,9 @@ class ServiceStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        return ServiceListingRules::store();
+        return [
+            'mapping' => ['required', 'array'],
+            'mapping.*' => ['nullable', 'string'],
+        ];
     }
 }

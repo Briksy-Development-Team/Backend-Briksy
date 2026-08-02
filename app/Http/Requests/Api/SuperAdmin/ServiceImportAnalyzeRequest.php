@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests\Api\SuperAdmin;
 
-use App\Support\Services\ServiceListingRules;
 use Illuminate\Foundation\Http\FormRequest;
 
-class ServiceStoreRequest extends FormRequest
+class ServiceImportAnalyzeRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,6 +13,8 @@ class ServiceStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        return ServiceListingRules::store();
+        return [
+            'file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:20480'],
+        ];
     }
 }

@@ -12,6 +12,7 @@ class SubscriptionPlanResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'plan_family' => $this->plan_family ?? 'property_owner',
             'description' => $this->description,
             'price' => (int) $this->price,
             'monthly_price' => $this->monthly_price !== null ? (float) $this->monthly_price : null,

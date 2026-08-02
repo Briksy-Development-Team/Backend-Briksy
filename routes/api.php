@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\SuperAdmin\CouponController;
 use App\Http\Controllers\Api\SuperAdmin\OrderController;
 use App\Http\Controllers\Api\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceController as SuperAdminServiceController;
+use App\Http\Controllers\Api\SuperAdmin\ServiceImportController as SuperAdminServiceImportController;
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
@@ -43,6 +44,7 @@ use App\Http\Controllers\Api\SuperAdmin\ReferralController as SuperAdminReferral
 use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerController;
 use App\Http\Controllers\Api\SuperAdmin\StaffController;
 use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController;
+use App\Http\Controllers\Api\Admin\PropertyImportController as AdminPropertyImportController;
 use App\Http\Controllers\Api\Admin\BillingController as AdminBillingController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\Api\StripeWebhookController;
@@ -198,8 +200,15 @@ Route::prefix('admin')->group(function (): void {
         Route::put('businesses/{organization}', [AdminOrganizationController::class, 'update'])->middleware('permission:company.update');
 
         Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
-        Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.map']);
+        Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.view']);
         Route::post('properties', [AdminPropertyController::class, 'store'])->middleware(['module:property_management', 'permission:property.create']);
+        Route::get('properties/import/meta', [AdminPropertyImportController::class, 'meta'])->middleware(['module:property_management', 'permission:property.create']);
+        Route::get('properties/import/template', [AdminPropertyImportController::class, 'template'])->middleware(['module:property_management', 'permission:property.create']);
+        Route::post('properties/import', [AdminPropertyImportController::class, 'analyze'])->middleware(['module:property_management', 'permission:property.create']);
+        Route::post('properties/imports/{propertyImport}/preview', [AdminPropertyImportController::class, 'preview'])->middleware(['module:property_management', 'permission:property.create']);
+        Route::post('properties/imports/{propertyImport}/start', [AdminPropertyImportController::class, 'start'])->middleware(['module:property_management', 'permission:property.create']);
+        Route::get('properties/imports/{propertyImport}', [AdminPropertyImportController::class, 'show'])->middleware(['module:property_management', 'permission:property.create']);
+        Route::get('properties/imports/{propertyImport}/error-report', [AdminPropertyImportController::class, 'errorReport'])->middleware(['module:property_management', 'permission:property.create']);
         Route::get('properties/{propertyListing}', [AdminPropertyController::class, 'show'])->middleware(['module:property_management', 'permission:property.view']);
         Route::put('properties/{propertyListing}', [AdminPropertyController::class, 'update'])->middleware(['module:property_management', 'permission:property.update']);
         Route::delete('properties/{propertyListing}', [AdminPropertyController::class, 'destroy'])->middleware(['module:property_management', 'permission:property.delete']);
@@ -215,6 +224,14 @@ Route::prefix('admin')->group(function (): void {
         Route::get('activity-logs/{activityLog}', [AdminActivityLogController::class, 'show'])->middleware('permission:activity_logs.view');
         Route::get('referrals', [AdminReferralController::class, 'index'])->middleware('permission:referral.view');
 
+        Route::get('services/map', [SuperAdminServiceController::class, 'map'])->middleware(['module:service_management', 'permission:service.view']);
+        Route::get('services/import/meta', [SuperAdminServiceImportController::class, 'meta'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::get('services/import/template', [SuperAdminServiceImportController::class, 'template'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::post('services/import', [SuperAdminServiceImportController::class, 'analyze'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::post('services/imports/{bulkImport}/preview', [SuperAdminServiceImportController::class, 'preview'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::post('services/imports/{bulkImport}/start', [SuperAdminServiceImportController::class, 'start'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::get('services/imports/{bulkImport}', [SuperAdminServiceImportController::class, 'show'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::get('services/imports/{bulkImport}/error-report', [SuperAdminServiceImportController::class, 'errorReport'])->middleware(['module:service_management', 'permission:service.create']);
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware(['module:service_management', 'permission:service.view']);
         Route::post('services', [SuperAdminServiceController::class, 'store'])->middleware(['module:service_management', 'permission:service.create']);
         Route::get('services/{service}', [SuperAdminServiceController::class, 'show'])->middleware(['module:service_management', 'permission:service.view']);
@@ -292,6 +309,14 @@ Route::prefix('super-admin')->group(function (): void {
         Route::patch('properties/{propertyListing}/verify-location', [SuperAdminPropertyController::class, 'verifyLocation'])->middleware('permission:property.verify_location');
         Route::patch('properties/{propertyListing}/unverify-location', [SuperAdminPropertyController::class, 'unverifyLocation'])->middleware('permission:property.unverify_location');
 
+        Route::get('services/map', [SuperAdminServiceController::class, 'map'])->middleware('permission:service.view');
+        Route::get('services/import/meta', [SuperAdminServiceImportController::class, 'meta'])->middleware('permission:service.create');
+        Route::get('services/import/template', [SuperAdminServiceImportController::class, 'template'])->middleware('permission:service.create');
+        Route::post('services/import', [SuperAdminServiceImportController::class, 'analyze'])->middleware('permission:service.create');
+        Route::post('services/imports/{bulkImport}/preview', [SuperAdminServiceImportController::class, 'preview'])->middleware('permission:service.create');
+        Route::post('services/imports/{bulkImport}/start', [SuperAdminServiceImportController::class, 'start'])->middleware('permission:service.create');
+        Route::get('services/imports/{bulkImport}', [SuperAdminServiceImportController::class, 'show'])->middleware('permission:service.create');
+        Route::get('services/imports/{bulkImport}/error-report', [SuperAdminServiceImportController::class, 'errorReport'])->middleware('permission:service.create');
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware('permission:service.view');
         Route::get('service-groups', function () {
             return response()->json([

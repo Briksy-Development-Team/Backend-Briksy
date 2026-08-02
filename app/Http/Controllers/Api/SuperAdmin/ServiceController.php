@@ -6,10 +6,12 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\SuperAdmin\ServiceIndexRequest;
 use App\Http\Requests\Api\SuperAdmin\ServiceStoreRequest;
 use App\Http\Requests\Api\SuperAdmin\ServiceUpdateRequest;
+use App\Http\Resources\SuperAdmin\ServiceMapResource;
 use App\Http\Resources\SuperAdmin\ServiceResource;
 use App\Models\Service;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
+use App\Services\ServiceMapService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,9 +20,9 @@ class ServiceController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notificationService,
-        private readonly DynamicIdGeneratorService $idGenerator
-    )
-    {
+        private readonly DynamicIdGeneratorService $idGenerator,
+        private readonly ServiceMapService $serviceMapService,
+    ) {
     }
 
     public function index(ServiceIndexRequest $request): JsonResponse
@@ -71,6 +73,16 @@ class ServiceController extends Controller
             ServiceResource::collection($services),
             $services,
             'Services retrieved successfully.'
+        );
+    }
+
+    public function map(Request $request): JsonResponse
+    {
+        $services = $this->serviceMapService->list($request);
+
+        return $this->success(
+            ServiceMapResource::collection($services)->resolve(),
+            'Service coverage data retrieved successfully.'
         );
     }
 

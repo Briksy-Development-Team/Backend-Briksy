@@ -17,11 +17,14 @@ class SubscriptionPlanUpdateRequest extends FormRequest
         $plan = $this->route('subscriptionPlan');
 
         return [
+            'plan_family' => ['sometimes', 'string', 'in:property_owner,trades_professional'],
             'name' => [
                 'sometimes',
                 'string',
                 'max:50',
-                Rule::unique('subscription_plans', 'name')->ignore($plan?->id),
+                Rule::unique('subscription_plans', 'name')
+                    ->where(fn ($query) => $query->where('plan_family', $this->input('plan_family', $plan?->plan_family)))
+                    ->ignore($plan?->id),
             ],
             'description' => ['nullable', 'string', 'max:1000'],
             'price' => ['sometimes', 'integer', 'min:0'],
@@ -39,6 +42,8 @@ class SubscriptionPlanUpdateRequest extends FormRequest
             'features.*.value' => ['nullable', 'numeric', 'min:0'],
             'permissions' => ['sometimes', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
+            'addon_ids' => ['sometimes', 'array'],
+            'addon_ids.*' => ['string', 'uuid', 'exists:addons,id'],
         ];
     }
 }

@@ -45,6 +45,7 @@ class SubscriptionPlanController extends Controller
             ->all();
 
         $plan = SubscriptionPlan::query()->create([
+            'plan_family' => $validated['plan_family'],
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'] ?? 0,
@@ -111,6 +112,7 @@ class SubscriptionPlanController extends Controller
         }
 
         $subscriptionPlan->fill([
+            'plan_family' => $validated['plan_family'] ?? $subscriptionPlan->plan_family,
             'name' => $validated['name'] ?? $subscriptionPlan->name,
             'description' => $validated['description'] ?? $subscriptionPlan->description,
             'price' => $validated['price'] ?? $subscriptionPlan->price,

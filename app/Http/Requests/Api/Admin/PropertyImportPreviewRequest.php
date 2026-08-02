@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests\Api\Admin;
 
-use App\Support\Properties\PropertyListingRules;
 use Illuminate\Foundation\Http\FormRequest;
 
-class PropertyListingUpdateRequest extends FormRequest
+class PropertyImportPreviewRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,6 +13,9 @@ class PropertyListingUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-        return PropertyListingRules::update();
+        return [
+            'mapping' => ['required', 'array'],
+            'mapping.*' => ['nullable', 'string'],
+        ];
     }
 }

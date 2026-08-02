@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.26",
         "laravel/tinker": "^2.10.1",
+        "phpoffice/phpspreadsheet": "^5.9",
         "spatie/laravel-medialibrary": "^11.21",
         "stripe/stripe-php": "^15.0"
     },

@@ -177,6 +177,7 @@ class User extends Authenticatable
             'plan' => $this->organization?->plan ? [
                 'id' => $this->organization->plan->id,
                 'name' => $this->organization->plan->name,
+                'plan_family' => $this->organization->plan->plan_family ?? 'property_owner',
                 'price' => (int) $this->organization->plan->price,
             ] : null,
             'current_subscription' => $this->organization?->currentSubscription ? [

@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests\Api\Admin;
 
-use App\Support\Properties\PropertyListingRules;
 use Illuminate\Foundation\Http\FormRequest;
 
-class PropertyListingUpdateRequest extends FormRequest
+class PropertyImportAnalyzeRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,6 +13,8 @@ class PropertyListingUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-        return PropertyListingRules::update();
+        return [
+            'file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:20480'],
+        ];
     }
 }

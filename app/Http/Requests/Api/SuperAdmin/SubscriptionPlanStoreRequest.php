@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\SuperAdmin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SubscriptionPlanStoreRequest extends FormRequest
 {
@@ -14,7 +15,13 @@ class SubscriptionPlanStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:50', 'unique:subscription_plans,name'],
+            'plan_family' => ['required', 'string', 'in:property_owner,trades_professional'],
+            'name' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('subscription_plans', 'name')->where(fn ($query) => $query->where('plan_family', $this->input('plan_family'))),
+            ],
             'description' => ['nullable', 'string', 'max:1000'],
             'price' => ['nullable', 'integer', 'min:0'],
             'monthly_price' => ['nullable', 'numeric', 'min:0'],
@@ -31,6 +38,8 @@ class SubscriptionPlanStoreRequest extends FormRequest
             'features.*.value' => ['nullable', 'numeric', 'min:0'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
+            'addon_ids' => ['nullable', 'array'],
+            'addon_ids.*' => ['string', 'uuid', 'exists:addons,id'],
         ];
     }
 }

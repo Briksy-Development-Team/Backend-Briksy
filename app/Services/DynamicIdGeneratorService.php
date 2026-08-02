@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\DynamicIdConfigurationNotFoundException;
 use App\Models\DynamicIdSetting;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -41,7 +42,9 @@ class DynamicIdGeneratorService
                         $locked->last_reset_at = now();
                     }
 
-                    $nextNumber = max($locked->current_number, $locked->starting_number - 1) + 1;
+                    $highestExistingNumber = $this->highestExistingNumber($entityType, $locked);
+                    $baselineNumber = max($locked->current_number, $locked->starting_number - 1, $highestExistingNumber);
+                    $nextNumber = $baselineNumber + 1;
                     $locked->current_number = $nextNumber;
                     $locked->save();
 
@@ -116,6 +119,75 @@ class DynamicIdGeneratorService
         $parts[] = str_pad((string) $number, max(1, $setting->number_padding), '0', STR_PAD_LEFT);
 
         return implode($setting->separator ?: '-', array_filter($parts, fn ($part) => $part !== ''));
+    }
+
+    private function highestExistingNumber(string $entityType, DynamicIdSetting $setting): int
+    {
+        $table = $this->resolveTableName($entityType);
+
+        if (!$table || !Schema::hasTable($table) || !Schema::hasColumn($table, 'generated_id')) {
+            return 0;
+        }
+
+        $basePrefix = $this->formatPrefix($setting);
+        $query = DB::table($table)->whereNotNull('generated_id');
+
+        if ($basePrefix !== '') {
+            $query->where('generated_id', 'like', $basePrefix.$setting->separator.'%');
+        }
+
+        $latestGeneratedId = $query
+            ->orderByDesc('generated_id')
+            ->value('generated_id');
+
+        if (!is_string($latestGeneratedId) || $latestGeneratedId === '') {
+            return 0;
+        }
+
+        $separator = $setting->separator ?: '-';
+        $parts = explode($separator, $latestGeneratedId);
+        $lastPart = $parts !== [] ? (string) end($parts) : '';
+
+        return is_numeric($lastPart) ? (int) $lastPart : 0;
+    }
+
+    private function formatPrefix(DynamicIdSetting $setting): string
+    {
+        $parts = [];
+
+        if ($setting->prefix) {
+            $parts[] = $setting->prefix;
+        }
+
+        if ($setting->include_year) {
+            $parts[] = now()->format('Y');
+        }
+
+        if ($setting->include_month) {
+            $parts[] = now()->format('m');
+        }
+
+        return implode($setting->separator ?: '-', array_filter($parts, fn ($part) => $part !== ''));
+    }
+
+    private function resolveTableName(string $entityType): ?string
+    {
+        return match ($entityType) {
+            'organizations' => 'organizations',
+            'users' => 'users',
+            'employees' => 'employees',
+            'properties' => 'property_listings',
+            'services' => 'services',
+            'jobs' => 'jobs',
+            'bookings' => 'bookings',
+            'quotes' => 'quotes',
+            'invoices' => 'invoices',
+            'referrals' => 'referrals',
+            'orders' => 'orders',
+            'inquiries' => 'inquiries',
+            'plan_requests' => 'plan_requests',
+            default => null,
+        };
     }
 
     private function isRetryableConcurrencyException(Throwable $throwable): bool

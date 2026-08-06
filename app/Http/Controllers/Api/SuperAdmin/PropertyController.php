@@ -64,6 +64,7 @@ class PropertyController extends Controller
             'propertyType',
             'reviewer',
             'locationVerifier',
+            'offers.creator',
             'activityLogs.user',
         ]);
 
@@ -166,7 +167,7 @@ class PropertyController extends Controller
 
     private function baseQuery(): Builder
     {
-        return PropertyListing::query()->with(['organization.organizationType', 'creator', 'propertyType']);
+        return PropertyListing::query()->with(['organization.organizationType', 'creator', 'propertyType', 'offers.creator']);
     }
 
     private function applyFilters(Builder $query, PropertyListingIndexRequest $request): void

@@ -19,6 +19,7 @@ class OrderResource extends JsonResource
             'user_id' => $this->user_id,
             'plan_id' => $this->plan_id,
             'coupon_id' => $this->coupon_id,
+            'plan_request_id' => $this->plan_request_id,
             'subtotal' => (string) $this->subtotal,
             'discount_amount' => (string) $this->discount_amount,
             'tax_amount' => (string) $this->tax_amount,
@@ -52,6 +53,7 @@ class OrderResource extends JsonResource
                 'code' => $this->coupon?->code,
                 'discount_type' => $this->coupon?->discount_type,
             ]),
+            'invoice' => $this->whenLoaded('invoice', fn (): ?array => $this->invoice ? (new \App\Http\Resources\InvoiceResource($this->invoice))->toArray($request) : null),
         ];
     }
 }

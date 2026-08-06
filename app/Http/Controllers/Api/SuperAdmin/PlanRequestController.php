@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\PlanRequest as PlanRequestModel;
 use App\Models\SubscriptionPlan;
 use App\Services\DynamicIdGeneratorService;
+use App\Services\InvoiceService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,14 +27,15 @@ class PlanRequestController extends Controller
 
     public function __construct(
         private readonly NotificationService $notificationService,
-        private readonly DynamicIdGeneratorService $idGenerator
+        private readonly DynamicIdGeneratorService $idGenerator,
+        private readonly InvoiceService $invoiceService
     )
     {
     }
 
     public function index(PlanRequestIndexRequest $request): JsonResponse
     {
-        $query = $this->scopedQuery(PlanRequestModel::query()->with(['organization', 'plan']), $request);
+        $query = $this->scopedQuery(PlanRequestModel::query()->with(['organization', 'plan', 'order.invoice', 'invoice']), $request);
         \App\Support\Query\ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         \App\Support\Query\ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
         \App\Support\Query\ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
@@ -66,7 +68,7 @@ class PlanRequestController extends Controller
             'admin_notes' => $validated['admin_notes'] ?? null,
         ]);
 
-        $planRequest->load(['organization', 'plan']);
+        $planRequest->load(['organization', 'plan', 'order.invoice', 'invoice']);
 
         if ($planRequest->organization_id) {
             $this->notificationService->notifySuperAdmins(
@@ -93,7 +95,7 @@ class PlanRequestController extends Controller
     {
         $model = $this->findPlanRequest($request, $planRequest);
 
-        return $this->success(new PlanRequestResource($model->load(['organization', 'plan', 'requestedBy', 'reviewedBy'])), 'Plan request retrieved successfully.');
+        return $this->success(new PlanRequestResource($model->load(['organization', 'plan', 'requestedBy', 'reviewedBy', 'order.invoice', 'invoice'])), 'Plan request retrieved successfully.');
     }
 
     public function update(PlanRequestUpdateRequest $request, string $planRequest): JsonResponse
@@ -103,7 +105,7 @@ class PlanRequestController extends Controller
         $model->fill($validated);
         $model->save();
 
-        return $this->success(new PlanRequestResource($model->fresh()->load(['organization', 'plan'])), 'Plan request updated successfully.');
+        return $this->success(new PlanRequestResource($model->fresh()->load(['organization', 'plan', 'order.invoice', 'invoice'])), 'Plan request updated successfully.');
     }
 
     public function approve(PlanRequestReviewRequest $request, string $planRequest): JsonResponse
@@ -157,29 +159,56 @@ class PlanRequestController extends Controller
             if ($status === 'approved' && ($validated['create_order'] ?? true) && $organizationId && $planId) {
                 $plan = SubscriptionPlan::query()->find($planId);
                 if ($plan) {
-                    $orderNumber = $this->idGenerator->generate('orders');
                     $subtotal = (float) $plan->price;
-                    $order = Order::query()->create([
-                        'order_number' => $orderNumber,
-                        'reference_no' => $orderNumber,
-                        'organization_id' => $organizationId,
-                        'user_id' => $model->requested_by,
-                        'plan_id' => $plan->id,
-                        'coupon_id' => null,
-                        'subtotal' => $subtotal,
-                        'discount_amount' => 0,
-                        'tax_amount' => 0,
-                        'total_amount' => $subtotal,
-                        'currency' => 'AUD',
-                        'billing_cycle' => $model->billing_cycle,
-                        'payment_status' => 'paid',
-                        'order_status' => 'active',
-                        'payment_method' => 'manual',
-                        'transaction_reference' => null,
-                        'starts_at' => now(),
-                        'ends_at' => $model->billing_cycle === 'yearly' ? now()->addYear() : now()->addMonth(),
-                        'notes' => 'Generated from approved plan request ' . $model->id,
-                    ]);
+                    $startsAt = now();
+                    $endsAt = $model->billing_cycle === 'yearly' ? now()->addYear() : now()->addMonth();
+                    $order = $model->order()->first();
+                    if (!$order) {
+                        $orderNumber = $this->idGenerator->generate('orders');
+                        $order = Order::query()->create([
+                            'order_number' => $orderNumber,
+                            'reference_no' => $orderNumber,
+                            'organization_id' => $organizationId,
+                            'user_id' => $model->requested_by,
+                            'plan_id' => $plan->id,
+                            'plan_request_id' => $model->id,
+                            'coupon_id' => null,
+                            'subtotal' => $subtotal,
+                            'discount_amount' => 0,
+                            'tax_amount' => 0,
+                            'total_amount' => $subtotal,
+                            'currency' => 'AUD',
+                            'billing_cycle' => $model->billing_cycle,
+                            'payment_status' => 'paid',
+                            'order_status' => 'active',
+                            'payment_method' => 'manual',
+                            'transaction_reference' => null,
+                            'starts_at' => $startsAt,
+                            'ends_at' => $endsAt,
+                            'notes' => 'Generated from approved plan request ' . $model->id,
+                        ]);
+                    } else {
+                        $order->fill([
+                            'organization_id' => $organizationId,
+                            'user_id' => $model->requested_by,
+                            'plan_id' => $plan->id,
+                            'plan_request_id' => $model->id,
+                            'subtotal' => $subtotal,
+                            'discount_amount' => 0,
+                            'tax_amount' => 0,
+                            'total_amount' => $subtotal,
+                            'currency' => 'AUD',
+                            'billing_cycle' => $model->billing_cycle,
+                            'payment_status' => 'paid',
+                            'order_status' => 'active',
+                            'payment_method' => 'manual',
+                            'transaction_reference' => null,
+                            'starts_at' => $startsAt,
+                            'ends_at' => $endsAt,
+                            'notes' => 'Generated from approved plan request ' . $model->id,
+                        ]);
+                        $order->save();
+                    }
 
                     DB::table('organizations')->where('id', $organizationId)->update([
                         'plan_id' => $plan->id,
@@ -198,6 +227,13 @@ class PlanRequestController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]
+                    );
+
+                    $this->invoiceService->createForPlanRequest(
+                        $model,
+                        $order,
+                        $plan,
+                        $model->organization?->abn
                     );
                 }
             }
@@ -223,7 +259,7 @@ class PlanRequestController extends Controller
         });
 
         return $this->success(
-            new PlanRequestResource($model->fresh()->load(['organization', 'plan'])),
+            new PlanRequestResource($model->fresh()->load(['organization', 'plan', 'order.invoice', 'invoice'])),
             "Plan request {$status} successfully."
         );
     }

@@ -101,6 +101,27 @@ class AdminPropertyListingResource extends JsonResource
                     ->values()
                     ->all();
             }),
+            'has_briksy_exclusive_offer' => $this->whenLoaded('offers', fn (): bool => $this->offers->contains(fn ($offer): bool => (bool) $offer->is_active), false),
+            'briksy_exclusive_offers' => $this->whenLoaded('offers', fn (): array => $this->offers
+                ->where('is_active', true)
+                ->map(fn ($offer): array => [
+                    'id' => $offer->id,
+                    'title' => $offer->title,
+                    'tag_label' => $offer->tag_label,
+                    'summary' => $offer->summary,
+                    'description' => $offer->description,
+                    'highlights' => $offer->highlights ?? [],
+                    'terms' => $offer->terms,
+                    'starts_at' => $offer->starts_at?->toISOString(),
+                    'ends_at' => $offer->ends_at?->toISOString(),
+                    'creator' => $offer->relationLoaded('creator') && $offer->creator ? [
+                        'id' => $offer->creator->id,
+                        'name' => $offer->creator->name,
+                        'email' => $offer->creator->email,
+                    ] : null,
+                ])
+                ->values()
+                ->all(), []),
             'videos' => $this->whenLoaded('media', function () use ($request): array {
                 return $this->media
                     ->where('media_type', 'video')

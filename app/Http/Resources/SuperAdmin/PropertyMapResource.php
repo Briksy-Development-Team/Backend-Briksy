@@ -86,6 +86,22 @@ class PropertyMapResource extends JsonResource
             'image_url' => $primaryImage['url'] ?? null,
             'images' => $images,
             'videos' => $videos,
+            'has_briksy_exclusive_offer' => $this->whenLoaded('offers', fn (): bool => $this->offers->contains(fn ($offer): bool => (bool) $offer->is_active), false),
+            'briksy_exclusive_offers' => $this->whenLoaded('offers', fn (): array => $this->offers
+                ->where('is_active', true)
+                ->map(fn ($offer): array => [
+                    'id' => $offer->id,
+                    'title' => $offer->title,
+                    'tag_label' => $offer->tag_label,
+                    'summary' => $offer->summary,
+                    'description' => $offer->description,
+                    'highlights' => $offer->highlights ?? [],
+                    'terms' => $offer->terms,
+                    'starts_at' => $offer->starts_at?->toISOString(),
+                    'ends_at' => $offer->ends_at?->toISOString(),
+                ])
+                ->values()
+                ->all(), []),
             'address' => $this->formatted_address ?? $this->full_address ?? $this->address ?? $this->address_line_1,
             'created_at' => $this->created_at?->toISOString(),
         ];

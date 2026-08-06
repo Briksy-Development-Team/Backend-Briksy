@@ -131,6 +131,16 @@ class PropertyListing extends Model
         return $this->hasMany(Review::class, 'property_listing_id');
     }
 
+    public function offers(): HasMany
+    {
+        return $this->hasMany(PropertyOffer::class, 'property_listing_id')->orderBy('sort_order');
+    }
+
+    public function activeOffers(): HasMany
+    {
+        return $this->offers()->where('is_active', true);
+    }
+
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class, 'subject_id')

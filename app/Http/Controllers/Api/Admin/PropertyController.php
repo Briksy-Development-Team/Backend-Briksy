@@ -74,6 +74,7 @@ class PropertyController extends Controller
             'propertyType',
             'reviewer',
             'locationVerifier',
+            'offers.creator',
             'activityLogs.user',
         ]);
 
@@ -226,6 +227,7 @@ class PropertyController extends Controller
         );
 
         $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $propertyListing->loadMissing('offers.creator');
 
         $this->notificationService->notifySuperAdminTeam(
                 $this->notificationService->buildPayload(
@@ -275,7 +277,7 @@ class PropertyController extends Controller
 
         return PropertyListing::query()
             ->where('org_id', $organizationId)
-            ->with(['organization.organizationType', 'creator', 'propertyType']);
+            ->with(['organization.organizationType', 'creator', 'propertyType', 'offers.creator']);
     }
 
     private function applyFilters(Builder $query, PropertyListingIndexRequest $request): void

@@ -22,6 +22,7 @@ class OrderRequest extends FormRequest
             'plan_id' => ['nullable', 'uuid', 'exists:subscription_plans,id'],
             'coupon_id' => ['nullable', 'uuid', 'exists:coupons,id'],
             'coupon_code' => ['nullable', 'string', 'max:50'],
+            'plan_request_id' => ['nullable', 'uuid', 'exists:plan_requests,id'],
             'subtotal' => ['required', 'numeric', 'min:0'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'tax_amount' => ['nullable', 'numeric', 'min:0'],

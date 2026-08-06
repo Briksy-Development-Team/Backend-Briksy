@@ -74,6 +74,7 @@ class OrderController extends Controller
             'user_id' => $validated['user_id'] ?? $request->user()?->id,
             'plan_id' => $validated['plan_id'] ?? $plan?->id,
             'coupon_id' => $coupon?->id ?? $validated['coupon_id'] ?? null,
+            'plan_request_id' => $validated['plan_request_id'] ?? null,
             'subtotal' => $subtotal,
             'discount_amount' => $discountAmount,
             'tax_amount' => $taxAmount,
@@ -112,13 +113,13 @@ class OrderController extends Controller
             );
         }
 
-        return $this->created(new OrderResource($order->load(['organization', 'user', 'plan', 'coupon'])), 'Order created successfully.');
+        return $this->created(new OrderResource($order->load(['organization', 'user', 'plan', 'coupon', 'invoice'])), 'Order created successfully.');
     }
 
     public function show(string $order): JsonResponse
     {
         $model = $this->findOrder($order, request());
-        return $this->success(new OrderResource($model), 'Order retrieved successfully.');
+        return $this->success(new OrderResource($model->load(['organization', 'user', 'plan', 'coupon', 'invoice'])), 'Order retrieved successfully.');
     }
 
     public function update(OrderRequest $request, string $order): JsonResponse
@@ -128,7 +129,7 @@ class OrderController extends Controller
         unset($validated['order_number'], $validated['reference_no']);
         $model->fill($validated);
         $model->save();
-        return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon'])), 'Order updated successfully.');
+        return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon', 'invoice'])), 'Order updated successfully.');
     }
 
     public function markPaid(string $order): JsonResponse
@@ -157,7 +158,7 @@ class OrderController extends Controller
             );
         }
 
-        return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon'])), 'Order marked as paid.');
+        return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon', 'invoice'])), 'Order marked as paid.');
     }
 
     public function cancel(string $order): JsonResponse
@@ -186,7 +187,7 @@ class OrderController extends Controller
             );
         }
 
-        return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon'])), 'Order cancelled.');
+        return $this->success(new OrderResource($model->fresh()->load(['organization', 'user', 'plan', 'coupon', 'invoice'])), 'Order cancelled.');
     }
 
     public function destroy(string $order): JsonResponse
@@ -198,7 +199,7 @@ class OrderController extends Controller
 
     private function findOrder(string $order, Request $request): Order
     {
-        return $this->scopedQuery(Order::query()->with(['organization', 'user', 'plan', 'coupon']), $request)
+        return $this->scopedQuery(Order::query()->with(['organization', 'user', 'plan', 'coupon', 'invoice']), $request)
             ->where(function ($query) use ($order): void {
                 $query->whereKey($order)
                     ->orWhere('order_number', $order)

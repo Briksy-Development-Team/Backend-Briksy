@@ -16,7 +16,7 @@ class PropertySearchController extends Controller
     {
         $query = PropertyListing::query()
             ->visibleToSeekers()
-            ->with('organization.organizationType');
+            ->with(['organization.organizationType', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
 
         ApiQueryBuilder::applySearch($query, $request->search(), ['title', 'description', 'suburb', 'postcode']);
         ApiQueryBuilder::applyExactFilters($query, [
@@ -55,7 +55,7 @@ class PropertySearchController extends Controller
     {
         $property = PropertyListing::query()
             ->visibleToSeekers()
-            ->with('organization.organizationType')
+            ->with(['organization.organizationType', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')])
             ->findOrFail($propertyListing->id);
 
         $this->recordVisit($property, request());

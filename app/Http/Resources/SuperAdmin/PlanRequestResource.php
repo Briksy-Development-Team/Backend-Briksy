@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\SuperAdmin;
 
+use App\Http\Resources\InvoiceResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -15,6 +16,8 @@ class PlanRequestResource extends JsonResource
             'display_id' => $this->display_id,
             'organization_id' => $this->organization_id,
             'plan_id' => $this->plan_id,
+            'order_id' => $this->order?->id,
+            'invoice_id' => $this->invoice?->id,
             'company_name' => $this->company_name,
             'contact_name' => $this->contact_name,
             'contact_email' => $this->contact_email,
@@ -37,6 +40,8 @@ class PlanRequestResource extends JsonResource
                 'name' => $this->plan?->name,
                 'price' => (int) ($this->plan?->price ?? 0),
             ]),
+            'order' => $this->whenLoaded('order', fn (): ?array => $this->order ? (new OrderResource($this->order))->toArray($request) : null),
+            'invoice' => $this->whenLoaded('invoice', fn (): ?array => $this->invoice ? (new InvoiceResource($this->invoice))->toArray($request) : null),
         ];
     }
 }

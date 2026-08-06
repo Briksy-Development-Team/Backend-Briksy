@@ -7,36 +7,38 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Order extends Model
+class Invoice extends Model
 {
     use HasUuids, SoftDeletes;
-
-    protected $table = 'orders';
 
     protected $keyType = 'string';
 
     public $incrementing = false;
 
     protected $fillable = [
-        'order_number',
-        'reference_no',
+        'invoice_number',
+        'plan_request_id',
+        'order_id',
         'organization_id',
         'user_id',
-        'plan_id',
-        'coupon_id',
-        'plan_request_id',
+        'template_key',
+        'status',
+        'payment_status',
+        'currency',
         'subtotal',
-        'discount_amount',
         'tax_amount',
         'total_amount',
-        'currency',
-        'billing_cycle',
-        'payment_status',
-        'order_status',
-        'payment_method',
-        'transaction_reference',
-        'starts_at',
-        'ends_at',
+        'issue_date',
+        'due_date',
+        'supplier_name',
+        'supplier_abn',
+        'supplier_email',
+        'supplier_address',
+        'recipient_name',
+        'recipient_abn',
+        'recipient_email',
+        'recipient_address',
+        'line_items',
         'notes',
     ];
 
@@ -44,11 +46,11 @@ class Order extends Model
     {
         return [
             'subtotal' => 'decimal:2',
-            'discount_amount' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
-            'starts_at' => 'datetime',
-            'ends_at' => 'datetime',
+            'issue_date' => 'datetime',
+            'due_date' => 'datetime',
+            'line_items' => 'array',
         ];
     }
 
@@ -62,34 +64,14 @@ class Order extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function plan(): BelongsTo
-    {
-        return $this->belongsTo(SubscriptionPlan::class, 'plan_id');
-    }
-
-    public function coupon(): BelongsTo
-    {
-        return $this->belongsTo(Coupon::class, 'coupon_id');
-    }
-
     public function planRequest(): BelongsTo
     {
         return $this->belongsTo(PlanRequest::class, 'plan_request_id');
     }
 
-    public function invoice(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function order(): BelongsTo
     {
-        return $this->hasOne(Invoice::class, 'order_id');
-    }
-
-    public function getDisplayNumberAttribute(): string
-    {
-        return $this->reference_no ?: $this->order_number;
-    }
-
-    public function getDisplayIdAttribute(): string
-    {
-        return $this->display_number;
+        return $this->belongsTo(Order::class, 'order_id');
     }
 
     public function resolveRouteBinding($value, $field = null): ?self
@@ -99,8 +81,7 @@ class Order extends Model
         }
 
         return $this->newQuery()
-            ->where('reference_no', $value)
-            ->orWhere('order_number', $value)
+            ->where('invoice_number', $value)
             ->orWhereKey($value)
             ->first();
     }

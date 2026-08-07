@@ -45,7 +45,7 @@ use App\Http\Controllers\Api\SuperAdmin\ReferralController as SuperAdminReferral
 use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerController;
 use App\Http\Controllers\Api\SuperAdmin\StaffController;
 use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController;
-use App\Http\Controllers\Api\SuperAdmin\PropertyOfferController as AdminPropertyOfferController;
+use App\Http\Controllers\Api\Admin\PropertyOfferController as AdminPropertyOfferController;
 use App\Http\Controllers\Api\Admin\PropertyImportController as AdminPropertyImportController;
 use App\Http\Controllers\Api\Admin\BillingController as AdminBillingController;
 use App\Http\Controllers\MediaController;

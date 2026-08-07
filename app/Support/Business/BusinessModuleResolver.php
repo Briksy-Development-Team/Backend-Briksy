@@ -61,7 +61,8 @@ class BusinessModuleResolver
         $businessType = strtolower((string) $this->businessType($user));
 
         return in_array($businessType, ['organisation', 'company'], true)
-            || $this->hasDirectPermission($user, ['property.view', 'property.create', 'property.update', 'property.delete']);
+            || $this->hasDirectPermission($user, ['property.view', 'property.create', 'property.update', 'property.delete'])
+            || $user->hasAddonFeature('briksy_exclusive');
     }
 
     public function isServiceAllowed(User $user): bool
@@ -83,7 +84,8 @@ class BusinessModuleResolver
     private function shouldEnablePropertyManagement(User $user, string $businessType): bool
     {
         return in_array($businessType, ['organisation', 'company'], true)
-            || $this->hasDirectPermission($user, ['property.view', 'property.create', 'property.update', 'property.delete']);
+            || $this->hasDirectPermission($user, ['property.view', 'property.create', 'property.update', 'property.delete'])
+            || $user->hasAddonFeature('briksy_exclusive');
     }
 
     private function shouldEnableServiceManagement(User $user, string $businessType): bool

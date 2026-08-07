@@ -109,7 +109,7 @@ class User extends Authenticatable
             return true;
         }
 
-        $this->loadMissing(['organization.plan', 'organization.currentSubscription']);
+        $this->loadMissing(['organization.plan', 'organization.currentSubscription.addons.addon']);
 
         $organization = $this->organization;
         if (!$organization) {
@@ -124,7 +124,7 @@ class User extends Authenticatable
             return true;
         }
 
-        return false;
+        return $this->hasAddonFeature('briksy_exclusive');
     }
 
     public function isTrialActive(): bool
@@ -166,7 +166,10 @@ class User extends Authenticatable
 
     public function subscriptionSummary(): array
     {
-        $this->loadMissing(['organization.plan', 'organization.currentSubscription']);
+        $this->loadMissing(['organization.plan', 'organization.currentSubscription.addons.addon']);
+
+        $currentSubscription = $this->organization?->currentSubscription;
+        $addons = $currentSubscription?->addons ?? collect();
 
         return [
             'status' => $this->subscriptionStatus(),
@@ -174,6 +177,20 @@ class User extends Authenticatable
             'trial_started_at' => $this->organization?->trial_started_at?->toISOString(),
             'trial_ends_at' => $this->organization?->trial_ends_at?->toISOString(),
             'subscription_activated_at' => $this->organization?->subscription_activated_at?->toISOString(),
+            'has_briksy_exclusive_addon' => $this->hasAddonFeature('briksy_exclusive'),
+            'addons' => $addons->map(fn (SubscriptionAddon $addon): array => [
+                'id' => $addon->id,
+                'addon_id' => $addon->addon_id,
+                'quantity' => (int) $addon->quantity,
+                'amount' => $addon->amount !== null ? (float) $addon->amount : null,
+                'billing_cycle' => $addon->billing_cycle,
+                'addon' => $addon->relationLoaded('addon') && $addon->addon ? [
+                    'id' => $addon->addon->id,
+                    'name' => $addon->addon->name,
+                    'slug' => $addon->addon->slug,
+                    'feature_key' => $addon->addon->feature_key,
+                ] : null,
+            ])->values()->all(),
             'plan' => $this->organization?->plan ? [
                 'id' => $this->organization->plan->id,
                 'name' => $this->organization->plan->name,
@@ -187,6 +204,33 @@ class User extends Authenticatable
                 'current_period_end' => $this->organization->currentSubscription->current_period_end?->toISOString(),
             ] : null,
         ];
+    }
+
+    public function hasAddonFeature(string $featureKey): bool
+    {
+        if ($this->isSuperAdmin() || $this->isGlobalStaff()) {
+            return true;
+        }
+
+        $this->loadMissing(['organization.currentSubscription.addons.addon']);
+
+        $normalizedFeatureKey = strtolower(trim($featureKey));
+        $normalizedSlug = str_replace('_', '-', $normalizedFeatureKey);
+
+        return $this->organization?->currentSubscription?->addons
+            ?->contains(function (SubscriptionAddon $subscriptionAddon) use ($normalizedFeatureKey, $normalizedSlug): bool {
+                $addon = $subscriptionAddon->addon;
+
+                if (!$addon) {
+                    return false;
+                }
+
+                $addonFeatureKey = strtolower(trim((string) $addon->feature_key));
+                $addonSlug = strtolower(trim((string) $addon->slug));
+
+                return in_array($normalizedFeatureKey, [$addonFeatureKey, $addonSlug], true)
+                    || in_array($normalizedSlug, [$addonFeatureKey, $addonSlug], true);
+            }) ?? false;
     }
 
     public function propertyListings(): HasMany

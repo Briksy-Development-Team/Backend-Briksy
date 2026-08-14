@@ -25,8 +25,9 @@ class SeekerSeeder extends Seeder
         Organization::query()
             ->orderBy('name')
             ->get()
-            ->each(function (Organization $organization) use ($role): void {
-                foreach ($this->organizationSeekers($organization) as $data) {
+            ->values()
+            ->each(function (Organization $organization, int $index) use ($role): void {
+                foreach ($this->organizationSeekers($organization, $index) as $data) {
                     $data['organization_id'] = $organization->id;
                     $this->upsertSeeker($role, $data);
                 }
@@ -115,7 +116,7 @@ class SeekerSeeder extends Seeder
         ];
     }
 
-    private function organizationSeekers(Organization $organization): array
+    private function organizationSeekers(Organization $organization, int $organizationIndex): array
     {
         $slug = $organization->slug;
 
@@ -124,7 +125,7 @@ class SeekerSeeder extends Seeder
                 'name' => ucfirst(str_replace('-', ' ', $slug)) . ' Client One',
                 'display_name' => ucfirst(str_replace('-', ' ', $slug)) . ' Client One',
                 'email' => 'seeker1+' . $slug . '@example.com',
-                'mobile_number' => '+61 400 222 ' . $this->suffixFromSlug($slug, 10),
+                'mobile_number' => $this->mobileNumberFor($organizationIndex, 1),
                 'postcode' => (string) $this->postcodeFromSlug($slug, 2000),
                 'preferred_budget_min' => $this->budgetFromSlug($slug, 350000),
                 'preferred_budget_max' => $this->budgetFromSlug($slug, 700000),
@@ -134,7 +135,7 @@ class SeekerSeeder extends Seeder
                 'name' => ucfirst(str_replace('-', ' ', $slug)) . ' Client Two',
                 'display_name' => ucfirst(str_replace('-', ' ', $slug)) . ' Client Two',
                 'email' => 'seeker2+' . $slug . '@example.com',
-                'mobile_number' => '+61 400 333 ' . $this->suffixFromSlug($slug, 20),
+                'mobile_number' => $this->mobileNumberFor($organizationIndex, 2),
                 'postcode' => (string) $this->postcodeFromSlug($slug, 2500),
                 'preferred_budget_min' => $this->budgetFromSlug($slug, 450000),
                 'preferred_budget_max' => $this->budgetFromSlug($slug, 900000),
@@ -143,9 +144,12 @@ class SeekerSeeder extends Seeder
         ];
     }
 
-    private function suffixFromSlug(string $slug, int $offset): int
+    private function mobileNumberFor(int $organizationIndex, int $clientIndex): string
     {
-        return 10 + (crc32($slug . ':' . $offset) % 90);
+        $middle = str_pad((string) (200 + ($organizationIndex * 2) + $clientIndex), 3, '0', STR_PAD_LEFT);
+        $tail = str_pad((string) (10 + $organizationIndex + $clientIndex), 2, '0', STR_PAD_LEFT);
+
+        return "+61 400 {$middle} {$tail}";
     }
 
     private function postcodeFromSlug(string $slug, int $offset): int

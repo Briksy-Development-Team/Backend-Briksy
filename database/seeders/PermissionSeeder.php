@@ -106,7 +106,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'super_admin'],
             ['scope' => 'global', 'is_system' => true]
         );
-        $this->syncRolePermissions($superAdminRole, $allPermissions->values()->all());
+        $this->syncRolePermissions(
+            $superAdminRole,
+            $allPermissions->reject(fn (string $permissionId, string $permissionName): bool => str_starts_with($permissionName, 'webhook.'))->values()->all()
+        );
 
         $adminRole = Role::query()->firstOrCreate(
             ['name' => 'admin'],

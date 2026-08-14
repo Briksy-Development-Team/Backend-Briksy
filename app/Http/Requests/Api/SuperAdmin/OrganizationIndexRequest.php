@@ -48,7 +48,7 @@ class OrganizationIndexRequest extends ApiListRequest
             'filter.type_slug' => ['nullable', 'string', 'max:100'],
             'filter.service_slug' => ['nullable', 'string', 'max:100'],
             'filter.service_group_slug' => ['nullable', 'string', 'max:100'],
-            'filter.business_type' => ['nullable', 'string', 'in:organisation,company,solo_trader'],
+            'filter.business_type' => ['nullable', 'string', 'max:100'],
             'filter.business_verification_status' => ['nullable', 'string', 'in:pending,verified,rejected'],
             'filter.is_verified' => ['nullable', 'boolean'],
         ];

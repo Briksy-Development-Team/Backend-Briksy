@@ -10,11 +10,10 @@ class OrganizationTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            'real-estate' => 'Real Estate Agency',
-            'property-management' => 'Property Management',
-            'aged-care' => 'Aged Care',
-            'home-services' => 'Home Services',
-            'solo-traders' => 'Solo Traders',
+            'real-estate' => 'Real Estate',
+            'buyers-agent' => 'Buyers Agent',
+            'builders' => 'Builders',
+            'trades-professionals' => 'Trades & Professionals',
         ];
 
         foreach ($types as $slug => $name) {

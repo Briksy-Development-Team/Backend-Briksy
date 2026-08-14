@@ -12,7 +12,7 @@ class ServiceResource extends JsonResource
         return [
             'id' => $this->id,
             'generated_id' => $this->generated_id,
-            'display_id' => $this->generated_id ?: $this->id,
+            'display_id' => $this->display_id,
             'name' => $this->name,
             'title' => $this->title,
             'category' => $this->category,

@@ -21,40 +21,51 @@ class ServiceGroupSeeder extends Seeder
                 [
                     'name' => 'Sales and Marketing',
                     'slug' => 'sales-marketing',
-                    'description' => 'Listing, appraisal, and marketing services.',
-                    'services' => ['sales-appraisal', 'property-listing', 'open-home-hosting', 'property-styling'],
+                    'description' => 'Listing, appraisal, and buyer-facing marketing services.',
+                    'services' => ['sales-appraisal', 'property-listing', 'open-home-hosting', 'property-styling', 'buyer-enquiry-management', 'auction-campaigns', 'vendor-reporting', 'property-photography-coordination', 'listing-copywriting', 'real-estate-crm-setup'],
                 ],
             ],
-            'property-management' => [
+            'buyers-agent' => [
                 [
-                    'name' => 'Core Management',
-                    'slug' => 'core-management',
-                    'description' => 'End-to-end property management services.',
-                    'services' => ['tenant-screening', 'rent-collection', 'maintenance-coordination', 'routine-inspections'],
+                    'name' => 'Buyer Services',
+                    'slug' => 'buyer-services',
+                    'description' => 'Briefing, shortlist, and negotiation services for buyers agents.',
+                    'services' => ['buyer-briefs', 'property-shortlists', 'search-management', 'client-updates', 'negotiation-support', 'off-market-access', 'suburb-research', 'due-diligence-coordination', 'settlement-support', 'investor-strategy'],
                 ],
             ],
-            'aged-care' => [
+            'builders' => [
                 [
-                    'name' => 'Care Packages',
-                    'slug' => 'care-packages',
-                    'description' => 'Tailored support for different care needs.',
-                    'services' => ['independent-living', 'assisted-living', 'memory-care'],
+                    'name' => 'Build Operations',
+                    'slug' => 'build-operations',
+                    'description' => 'Planning, tendering, and site coordination for builders.',
+                    'services' => ['project-planning', 'tender-management', 'site-notes', 'builder-client-updates', 'project-listings', 'variation-management', 'schedule-tracking', 'progress-claims', 'defect-management', 'handover-packs'],
                 ],
             ],
-            'home-services' => [
+            'trades-professionals' => [
                 [
-                    'name' => 'Home Upkeep',
-                    'slug' => 'home-upkeep',
-                    'description' => 'Cleaning, maintenance, and outdoor care.',
-                    'services' => ['cleaning', 'landscaping', 'general-maintenance'],
-                ],
-            ],
-            'solo-traders' => [
-                [
-                    'name' => 'Solo Trader Services',
+                    'name' => 'Trade Essentials',
                     'slug' => 'solo-trader-services',
-                    'description' => 'Core services offered by solo trader businesses.',
-                    'services' => ['electrical', 'plumbing', 'fencing', 'landscapers', 'conveyancers', 'brokers'],
+                    'description' => 'Core services offered by trade and professional businesses.',
+                    'services' => [
+                        'electrical',
+                        'plumbing',
+                        'fencing',
+                        'landscapers',
+                        'excavation',
+                        'concreting',
+                        'carpentry',
+                        'painting',
+                        'roofing',
+                        'air-conditioning',
+                        'handyman',
+                        'tiling',
+                        'pest-control-solo',
+                        'conveyancers',
+                        'brokers',
+                        'solar-installation',
+                        'waterproofing',
+                        'fire-safety',
+                    ],
                 ],
             ],
         ];

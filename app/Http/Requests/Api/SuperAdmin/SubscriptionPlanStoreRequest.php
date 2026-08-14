@@ -15,7 +15,7 @@ class SubscriptionPlanStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'plan_family' => ['required', 'string', 'in:property_owner,trades_professional'],
+            'plan_family' => ['required', 'string', 'in:property_owner,trades_professional,buyers_agent,builders'],
             'name' => [
                 'required',
                 'string',

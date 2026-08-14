@@ -70,7 +70,14 @@ class User extends Authenticatable
 
     public function getDisplayIdAttribute(): string
     {
-        return $this->generated_id ?: $this->id;
+        return $this->generated_id ?: $this->formatDisplayId('USR');
+    }
+
+    private function formatDisplayId(string $prefix): string
+    {
+        $raw = str_replace('-', '', (string) $this->id);
+
+        return sprintf('%s-%s', $prefix, strtoupper(substr($raw, 0, 8)));
     }
 
     public function resolveRouteBinding($value, $field = null): ?self

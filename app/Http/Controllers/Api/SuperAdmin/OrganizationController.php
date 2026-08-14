@@ -15,6 +15,7 @@ use App\Support\Properties\PropertyWorkflow;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class OrganizationController extends Controller
 {
@@ -54,7 +55,23 @@ class OrganizationController extends Controller
         }
 
         if ($request->filled('filter.business_type')) {
-            $query->where('business_type', $request->string('filter.business_type')->toString());
+            $businessTypes = collect(explode(',', $request->string('filter.business_type')->toString()))
+                ->map(fn (string $value) => trim($value))
+                ->filter()
+                ->values();
+
+            $allowedBusinessTypes = ['organisation', 'company', 'solo_trader'];
+            $invalidBusinessTypes = $businessTypes->diff($allowedBusinessTypes)->values();
+
+            if ($invalidBusinessTypes->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'filter.business_type' => ['The selected filter.business_type is invalid.'],
+                ]);
+            }
+
+            if ($businessTypes->isNotEmpty()) {
+                $query->whereIn('business_type', $businessTypes->all());
+            }
         }
 
         if ($request->filled('filter.business_verification_status')) {

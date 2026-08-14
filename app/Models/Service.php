@@ -62,6 +62,18 @@ class Service extends Model
             ->first();
     }
 
+    public function getDisplayIdAttribute(): string
+    {
+        return $this->generated_id ?: $this->formatDisplayId('SRV');
+    }
+
+    private function formatDisplayId(string $prefix): string
+    {
+        $raw = str_replace('-', '', (string) $this->id);
+
+        return sprintf('%s-%s', $prefix, strtoupper(substr($raw, 0, 8)));
+    }
+
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class, 'organization_id');

@@ -17,99 +17,11 @@ class OrganizationSeeder extends Seeder
     {
         $generator = app(DynamicIdGeneratorService::class);
         $types = OrganizationType::all()->keyBy('slug');
-
-        $organizations = [
-            [
-                'name' => 'Harborview Realty',
-                'slug' => 'harborview-realty',
-                'type_slug' => 'real-estate',
-                'abn' => '11111111111',
-                'acn' => '111111111',
-                'contact_email' => 'hello@harborview.example',
-                'contact_phone' => '+61 2 8000 1111',
-                'logo_url' => 'https://example.com/logos/harborview.png',
-                'brand_primary_color' => '#0E4D92',
-                'brand_secondary_color' => '#F2C14E',
-                'licensed_staff_seats' => 12,
-                'ranking_priority' => 3,
-                'is_verified' => true,
-            ],
-            [
-                'name' => 'Sunrise Property Group',
-                'slug' => 'sunrise-property-group',
-                'type_slug' => 'property-management',
-                'abn' => '22222222222',
-                'acn' => '222222222',
-                'contact_email' => 'support@sunrise.example',
-                'contact_phone' => '+61 7 4000 2222',
-                'logo_url' => 'https://example.com/logos/sunrise.png',
-                'brand_primary_color' => '#1B998B',
-                'brand_secondary_color' => '#F4D35E',
-                'licensed_staff_seats' => 8,
-                'ranking_priority' => 2,
-                'is_verified' => true,
-            ],
-            [
-                'name' => 'Willowbrook Aged Care',
-                'slug' => 'willowbrook-aged-care',
-                'type_slug' => 'aged-care',
-                'abn' => '33333333333',
-                'acn' => '333333333',
-                'contact_email' => 'contact@willowbrook.example',
-                'contact_phone' => '+61 3 9000 3333',
-                'logo_url' => 'https://example.com/logos/willowbrook.png',
-                'brand_primary_color' => '#7A6C5D',
-                'brand_secondary_color' => '#E6CCB2',
-                'licensed_staff_seats' => 25,
-                'ranking_priority' => 4,
-                'is_verified' => true,
-            ],
-            [
-                'name' => 'BrightPath Home Services',
-                'slug' => 'brightpath-home-services',
-                'type_slug' => 'home-services',
-                'abn' => '44444444444',
-                'acn' => '444444444',
-                'contact_email' => 'hi@brightpath.example',
-                'contact_phone' => '+61 8 5000 4444',
-                'logo_url' => 'https://example.com/logos/brightpath.png',
-                'brand_primary_color' => '#F76C5E',
-                'brand_secondary_color' => '#6A0572',
-                'licensed_staff_seats' => 6,
-                'ranking_priority' => 1,
-                'is_verified' => false,
-            ],
-            [
-                'name' => 'Northside Electrical Co',
-                'slug' => 'northside-electrical-co',
-                'type_slug' => 'solo-traders',
-                'abn' => '55555555555',
-                'acn' => '555555555',
-                'contact_email' => 'hello@northsideelectrical.example',
-                'contact_phone' => '+61 2 5000 5555',
-                'logo_url' => 'https://example.com/logos/northside-electrical.png',
-                'brand_primary_color' => '#005F73',
-                'brand_secondary_color' => '#0A9396',
-                'licensed_staff_seats' => 3,
-                'ranking_priority' => 2,
-                'is_verified' => true,
-            ],
-            [
-                'name' => 'Harbour Plumbing & Co',
-                'slug' => 'harbour-plumbing-co',
-                'type_slug' => 'solo-traders',
-                'abn' => '66666666666',
-                'acn' => '666666666',
-                'contact_email' => 'support@harbourplumbing.example',
-                'contact_phone' => '+61 3 5000 6666',
-                'logo_url' => 'https://example.com/logos/harbour-plumbing.png',
-                'brand_primary_color' => '#3A86FF',
-                'brand_secondary_color' => '#8338EC',
-                'licensed_staff_seats' => 4,
-                'ranking_priority' => 1,
-                'is_verified' => true,
-            ],
-        ];
+        // Terms used here map to different UI/data concepts:
+        // - business_type: top-level list split used by the Organizations page
+        // - type_slug: one of the four seeded categories below
+        // - plan_id: billing plan assigned after this seeder runs
+        $organizations = $this->organizations();
 
         foreach ($organizations as $org) {
             $type = $types->get($org['type_slug']);
@@ -126,10 +38,15 @@ class OrganizationSeeder extends Seeder
                 'avg_org_rating' => $org['ranking_priority'] >= 3 ? 4.4 : 4.0,
                 'name' => $org['name'],
                 'slug' => $org['slug'],
+                'business_type' => $org['business_type'],
+                'business_verification_status' => $org['business_verification_status'],
                 'abn' => $org['abn'],
                 'acn' => $org['acn'],
                 'contact_email' => $org['contact_email'],
                 'contact_phone' => $org['contact_phone'],
+                'address' => $org['address'],
+                'state' => $org['state'],
+                'postcode' => $org['postcode'],
                 'stripe_customer_id' => null,
                 'is_verified' => $org['is_verified'],
                 'logo_url' => $org['logo_url'],
@@ -219,5 +136,164 @@ class OrganizationSeeder extends Seeder
         }
 
         return $items->shuffle()->take(min($count, $items->count()));
+    }
+
+    private function organizations(): array
+    {
+        return array_merge(
+            $this->buildCategoryOrganizations(
+                'real-estate',
+                'organisation',
+                11,
+                ['Gold', 'Silver', 'Bronze', 'Platinum'],
+                [
+                    'Harborview Realty',
+                    'Coastline Realty',
+                    'Apex Property Group',
+                    'Meridian Realty',
+                    'Keystone Estates',
+                    'Bluewater Realty',
+                    'North Coast Property',
+                    'Summit Realty Partners',
+                    'Lighthouse Realty',
+                    'Crownline Realty',
+                ],
+                ['Sydney', 'Gold Coast', 'Newcastle', 'Brisbane', 'Wollongong', 'Melbourne', 'Geelong', 'Adelaide', 'Perth', 'Hobart'],
+                ['NSW', 'QLD', 'NSW', 'QLD', 'NSW', 'VIC', 'VIC', 'SA', 'WA', 'TAS'],
+                ['2000', '4217', '2300', '4000', '2500', '3000', '3220', '5000', '6000', '7000'],
+                ['#0E4D92', '#0A9396', '#1B998B', '#2A9D8F', '#457B9D', '#264653', '#3D5A80', '#5C6B73', '#6C757D', '#2F3E46'],
+                ['#F2C14E', '#94D2BD', '#F4D35E', '#D9ED92', '#E9C46A', '#E76F51', '#A8DADC', '#CDB4DB', '#BDE0FE', '#FFD166'],
+                ['verified', 'pending', 'verified', 'verified', 'rejected', 'verified', 'pending', 'verified', 'verified', 'pending']
+            ),
+            $this->buildCategoryOrganizations(
+                'buyers-agent',
+                'organisation',
+                22,
+                ['Buyer Network', 'Buyer Assist'],
+                [
+                    'Buyer Edge Partners',
+                    'Harbour Buyers',
+                    'Priority Buyer Group',
+                    'Strategic Property Buyers',
+                    'Focus Buyer Advisory',
+                    'Urban Buyer Collective',
+                    'ClearPath Buyers',
+                    'Prime Buyer Solutions',
+                    'Atlas Buyer Partners',
+                    'Oak & Stone Buyers',
+                ],
+                ['Brisbane', 'Newcastle', 'Sydney', 'Melbourne', 'Perth', 'Adelaide', 'Canberra', 'Hobart', 'Gold Coast', 'Wollongong'],
+                ['QLD', 'NSW', 'NSW', 'VIC', 'WA', 'SA', 'ACT', 'TAS', 'QLD', 'NSW'],
+                ['4000', '2300', '2000', '3000', '6000', '5000', '2600', '7000', '4217', '2500'],
+                ['#1B998B', '#5E548E', '#4D908E', '#577590', '#43AA8B', '#277DA1', '#6D597A', '#355070', '#84A59D', '#3D5A80'],
+                ['#F4D35E', '#B8B8FF', '#E9C46A', '#F1FAEE', '#F6BD60', '#F7E1A0', '#D4A5A5', '#F28482', '#BDE0FE', '#CDB4DB'],
+                ['verified', 'verified', 'pending', 'verified', 'verified', 'pending', 'verified', 'verified', 'pending', 'verified']
+            ),
+            $this->buildCategoryOrganizations(
+                'builders',
+                'company',
+                33,
+                ['Builder Enterprise', 'Builder Growth'],
+                [
+                    'Blueprint Builders',
+                    'Northstar Builders',
+                    'Metro Homes Builders',
+                    'Summit Projects',
+                    'BuildRight Constructions',
+                    'Urban Build Co',
+                    'Apex Construction Group',
+                    'Foundation Build Partners',
+                    'Cornerstone Builders',
+                    'Horizon Build Group',
+                ],
+                ['Melbourne', 'Adelaide', 'Perth', 'Darwin', 'Brisbane', 'Sydney', 'Canberra', 'Geelong', 'Hobart', 'Newcastle'],
+                ['VIC', 'SA', 'WA', 'NT', 'QLD', 'NSW', 'ACT', 'VIC', 'TAS', 'NSW'],
+                ['3000', '5000', '6000', '0800', '4000', '2000', '2600', '3220', '7000', '2300'],
+                ['#7A6C5D', '#5D5B6A', '#6C584C', '#8D6E63', '#4E6E58', '#526D82', '#3D5A80', '#6D6875', '#8B5E3C', '#2F4858'],
+                ['#E6CCB2', '#C9ADA7', '#F1D3B3', '#E3A857', '#B7B7A4', '#D8D2CB', '#E0E1DD', '#CDE7BE', '#F4D6CC', '#B8E0D2'],
+                ['verified', 'verified', 'verified', 'pending', 'verified', 'verified', 'pending', 'verified', 'verified', 'pending']
+            ),
+            $this->buildCategoryOrganizations(
+                'trades-professionals',
+                'company',
+                44,
+                ['Starter', 'Growth', 'Elite', 'Enterprise'],
+                [
+                    'BrightPath Home Services',
+                    'Precision Trades Group',
+                    'Northside Electrical Co',
+                    'Harbour Plumbing & Co',
+                    'Urban Trade Co',
+                    'Apex Handyman Services',
+                    'ProFix Property Services',
+                    'TrueLine Maintenance',
+                    'AllState Trades',
+                    'Keyline Services',
+                ],
+                ['Perth', 'Melbourne', 'Newcastle', 'Hobart', 'Canberra', 'Sydney', 'Brisbane', 'Adelaide', 'Gold Coast', 'Wollongong'],
+                ['WA', 'VIC', 'NSW', 'TAS', 'ACT', 'NSW', 'QLD', 'SA', 'QLD', 'NSW'],
+                ['6000', '3000', '2300', '7000', '2600', '2000', '4000', '5000', '4217', '2500'],
+                ['#F76C5E', '#005F73', '#0A9396', '#3A86FF', '#8338EC', '#FF006E', '#FB5607', '#2A9D8F', '#E63946', '#6A0572'],
+                ['#6A0572', '#94D2BD', '#0A9396', '#8338EC', '#A8DADC', '#F4A261', '#FFE5B4', '#B8B8FF', '#F4D35E', '#CDB4DB'],
+                ['verified', 'verified', 'verified', 'verified', 'pending', 'verified', 'verified', 'pending', 'verified', 'rejected']
+            )
+        );
+    }
+
+    private function buildCategoryOrganizations(
+        string $typeSlug,
+        string $businessType,
+        int $categoryCode,
+        array $planCycle,
+        array $names,
+        array $cities,
+        array $states,
+        array $postcodes,
+        array $primaryColors,
+        array $secondaryColors,
+        array $verificationStatuses
+    ): array {
+        $organizations = [];
+
+        foreach ($names as $index => $name) {
+            $position = $index + 1;
+            $slug = Str::slug($name);
+            $city = $cities[$index] ?? $cities[array_key_last($cities)];
+            $state = $states[$index] ?? $states[array_key_last($states)];
+            $postcode = $postcodes[$index] ?? $postcodes[array_key_last($postcodes)];
+            $primaryColor = $primaryColors[$index] ?? $primaryColors[array_key_last($primaryColors)];
+            $secondaryColor = $secondaryColors[$index] ?? $secondaryColors[array_key_last($secondaryColors)];
+            $verificationStatus = $verificationStatuses[$index] ?? 'verified';
+
+            $organizations[] = [
+                'name' => $name,
+                'slug' => $slug,
+                'type_slug' => $typeSlug,
+                'business_type' => $businessType,
+                'business_verification_status' => $verificationStatus,
+                'abn' => sprintf('%011d', $categoryCode * 100000000 + $position),
+                'acn' => sprintf('%09d', $categoryCode * 1000000 + $position),
+                'contact_email' => sprintf('hello@%s.example', $slug),
+                'contact_phone' => sprintf('+61 %d 8%03d %04d', ($categoryCode % 9) + 1, $categoryCode, 1000 + $position),
+                'address' => sprintf('%d %s Avenue, %s %s', 10 + $position, ucwords(str_replace('-', ' ', $typeSlug)), $city, $state),
+                'state' => $state,
+                'postcode' => $postcode,
+                'logo_url' => sprintf('https://example.com/logos/%s.png', $slug),
+                'brand_primary_color' => $primaryColor,
+                'brand_secondary_color' => $secondaryColor,
+                'licensed_staff_seats' => $this->licensedSeatsFor($businessType, $position),
+                'ranking_priority' => $position,
+                'is_verified' => $verificationStatus === 'verified',
+            ];
+        }
+
+        return $organizations;
+    }
+
+    private function licensedSeatsFor(string $businessType, int $position): int
+    {
+        return $businessType === 'organisation'
+            ? 4 + $position
+            : 2 + ($position * 2);
     }
 }

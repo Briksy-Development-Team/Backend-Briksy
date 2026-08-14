@@ -17,7 +17,7 @@ class SubscriptionPlanUpdateRequest extends FormRequest
         $plan = $this->route('subscriptionPlan');
 
         return [
-            'plan_family' => ['sometimes', 'string', 'in:property_owner,trades_professional'],
+            'plan_family' => ['sometimes', 'string', 'in:property_owner,trades_professional,buyers_agent,builders'],
             'name' => [
                 'sometimes',
                 'string',

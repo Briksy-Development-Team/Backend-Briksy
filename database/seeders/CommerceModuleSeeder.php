@@ -20,8 +20,8 @@ class CommerceModuleSeeder extends Seeder
     public function run(): void
     {
         $superAdmin = User::query()->where('email', 'superadmin@brisky.example')->first();
-        $organizations = Organization::query()->with('plan')->get()->keyBy('slug');
-        $plans = SubscriptionPlan::query()->get()->keyBy('name');
+        $organizations = Organization::query()->with(['plan', 'organizationType'])->get()->keyBy('slug');
+        $plans = SubscriptionPlan::query()->get()->keyBy(fn (SubscriptionPlan $plan): string => $plan->plan_family . ':' . $plan->name);
 
         $this->seedCoupons($superAdmin?->id);
         $this->seedEmailTemplates($superAdmin?->id);
@@ -204,7 +204,7 @@ class CommerceModuleSeeder extends Seeder
     private function seedPlanRequests(iterable $organizations, $plans, ?string $createdBy): void
     {
         foreach ($organizations as $organization) {
-            $plan = $organization->plan ?? $plans->get('Growth') ?? $plans->first();
+            $plan = $this->resolvePlanForOrganization($organization, $plans);
             if (!$plan) {
                 continue;
             }
@@ -229,7 +229,7 @@ class CommerceModuleSeeder extends Seeder
     private function seedOrders(iterable $organizations, $plans, ?string $createdBy): void
     {
         foreach ($organizations as $organization) {
-            $plan = $organization->plan ?? $plans->get('Starter') ?? $plans->first();
+            $plan = $this->resolvePlanForOrganization($organization, $plans);
             if (!$plan) {
                 continue;
             }
@@ -258,5 +258,36 @@ class CommerceModuleSeeder extends Seeder
                 ]
             );
         }
+    }
+
+    private function resolvePlanForOrganization(Organization $organization, $plans): ?SubscriptionPlan
+    {
+        if ($organization->plan) {
+            return $organization->plan;
+        }
+
+        $family = match ($organization->organizationType?->slug) {
+            'real-estate' => 'property_owner',
+            'buyers-agent' => 'buyers_agent',
+            'builders' => 'builders',
+            default => 'trades_professional',
+        };
+
+        $preferredPlans = $family === 'property_owner'
+            ? ['Gold', 'Silver', 'Bronze', 'Platinum']
+            : ($family === 'buyers_agent'
+                ? ['Buyer Network', 'Buyer Assist']
+                : ($family === 'builders'
+                    ? ['Builder Enterprise', 'Builder Growth']
+                    : ['Starter', 'Growth', 'Elite', 'Enterprise']));
+
+        foreach ($preferredPlans as $planName) {
+            $plan = $plans->get($family . ':' . $planName);
+            if ($plan) {
+                return $plan;
+            }
+        }
+
+        return $plans->first();
     }
 }

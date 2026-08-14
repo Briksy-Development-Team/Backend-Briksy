@@ -97,7 +97,10 @@ class PermissionController extends Controller
         $permissionIds = $request->validatedPermissionIds();
 
         if ($request->isCoreSuperAdminRole()) {
-            $permissionIds = Permission::query()->pluck('id')->all();
+            $permissionIds = Permission::query()
+                ->where('module', '!=', 'webhook')
+                ->pluck('id')
+                ->all();
         }
 
         $permissions = Permission::query()->whereIn('id', $permissionIds)->get();

@@ -37,7 +37,7 @@ class SubscriptionPlanIndexRequest extends ApiListRequest
         return [
             'filter.is_active' => ['nullable', 'boolean'],
             'filter.popular' => ['nullable', 'boolean'],
-            'filter.plan_family' => ['nullable', 'string', 'in:property_owner,trades_professional'],
+            'filter.plan_family' => ['nullable', 'string', 'in:property_owner,trades_professional,buyers_agent,builders'],
         ];
     }
 }

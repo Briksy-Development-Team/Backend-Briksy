@@ -43,7 +43,14 @@ class PlanRequest extends Model
 
     public function getDisplayIdAttribute(): string
     {
-        return $this->request_code ?: $this->id;
+        return $this->request_code ?: $this->formatDisplayId('PRQ');
+    }
+
+    private function formatDisplayId(string $prefix): string
+    {
+        $raw = str_replace('-', '', (string) $this->id);
+
+        return sprintf('%s-%s', $prefix, strtoupper(substr($raw, 0, 8)));
     }
 
     public function resolveRouteBinding($value, $field = null): ?self

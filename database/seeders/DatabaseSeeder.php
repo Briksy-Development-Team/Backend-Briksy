@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             OrganizationSeeder::class,
             SubscriptionPlanSeeder::class,
             UserSeeder::class,
+            CategoryDemoDataSeeder::class,
             SeekerSeeder::class,
             SuperAdminSeeder::class,
             NotificationPreferenceSeeder::class,

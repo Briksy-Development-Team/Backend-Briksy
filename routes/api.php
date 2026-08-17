@@ -45,6 +45,8 @@ use App\Http\Controllers\Api\SuperAdmin\ReferralController as SuperAdminReferral
 use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerController;
 use App\Http\Controllers\Api\SuperAdmin\StaffController;
 use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController;
+use App\Http\Controllers\Api\Admin\BuyerBriefController;
+use App\Http\Controllers\Api\Admin\BuilderProjectController;
 use App\Http\Controllers\Api\Admin\PropertyOfferController as AdminPropertyOfferController;
 use App\Http\Controllers\Api\Admin\PropertyImportController as AdminPropertyImportController;
 use App\Http\Controllers\Api\Admin\BillingController as AdminBillingController;
@@ -221,6 +223,11 @@ Route::prefix('admin')->group(function (): void {
         Route::patch('property-offers/{propertyOffer}/toggle', [AdminPropertyOfferController::class, 'toggle'])->middleware(['module:property_management', 'permission:property.update']);
         Route::delete('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'destroy'])->middleware(['module:property_management', 'permission:property.delete']);
 
+        Route::get('buyer-briefs', [BuyerBriefController::class, 'index'])->middleware('module:buyer_management');
+        Route::post('buyer-briefs', [BuyerBriefController::class, 'store'])->middleware('module:buyer_management');
+        Route::get('builder-projects', [BuilderProjectController::class, 'index'])->middleware('module:builder_management');
+        Route::post('builder-projects', [BuilderProjectController::class, 'store'])->middleware('module:builder_management');
+
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
@@ -251,6 +258,7 @@ Route::prefix('admin')->group(function (): void {
         Route::post('auth/register-staff', [RegistrationController::class, 'registerAdminStaff'])
             ->withoutMiddleware('role:admin');
 
+        Route::get('staff/defaults', [AdminStaffController::class, 'defaults'])->middleware(['module:user_management', 'permission:user.view']);
         Route::get('staff', [AdminStaffController::class, 'index'])->middleware(['module:user_management', 'permission:user.view']);
         Route::post('staff', [AdminStaffController::class, 'store'])->middleware(['module:user_management', 'permission:user.create']);
         Route::get('staff/{user}', [AdminStaffController::class, 'show'])->middleware(['module:user_management', 'permission:user.view']);
@@ -287,6 +295,7 @@ Route::prefix('super-admin')->group(function (): void {
         Route::put('seekers/{seeker}', [SuperAdminSeekerController::class, 'update'])->middleware('permission:user.update');
         Route::delete('seekers/{seeker}', [SuperAdminSeekerController::class, 'destroy'])->middleware('permission:user.delete');
 
+        Route::get('staff/defaults', [StaffController::class, 'defaults'])->middleware('permission:user.view');
         Route::get('staff', [StaffController::class, 'index'])->middleware('permission:user.view');
         Route::post('staff', [StaffController::class, 'store'])->middleware('permission:user.create');
         Route::get('staff/{staff}', [StaffController::class, 'show'])->middleware('permission:user.view');

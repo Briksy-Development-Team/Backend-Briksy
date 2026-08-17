@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\PermissionInheritanceService;
 use App\Services\Webhooks\WebhookDispatcherService;
 use App\Support\Business\BusinessModuleResolver;
 use App\Support\Query\ApiQueryBuilder;
@@ -21,7 +22,8 @@ class StaffController extends Controller
     public function __construct(
         private readonly BusinessModuleResolver $moduleResolver,
         private readonly NotificationService $notificationService,
-        private readonly WebhookDispatcherService $webhookDispatcher
+        private readonly WebhookDispatcherService $webhookDispatcher,
+        private readonly PermissionInheritanceService $permissionInheritance
     )
     {
     }
@@ -52,6 +54,16 @@ class StaffController extends Controller
             $staff,
             'Staff members retrieved successfully.'
         );
+    }
+
+    public function defaults(Request $request): JsonResponse
+    {
+        $role = Role::query()->where('name', 'admin_staff')->with('permissions')->first();
+
+        return $this->success([
+            'role' => 'admin_staff',
+            'permissions' => $role?->permissions->pluck('name')->values()->all() ?? [],
+        ], 'Staff role defaults retrieved successfully.');
     }
 
     public function show(Request $request, User $user): JsonResponse
@@ -109,7 +121,11 @@ class StaffController extends Controller
                 ],
             ]);
 
-            $this->syncDirectPermissions($staff, $validated['permissions'] ?? []);
+            if (array_key_exists('permissions', $validated)) {
+                $this->syncDirectPermissions($staff, $validated['permissions']);
+            } else {
+                $this->permissionInheritance->applyDefaults($staff);
+            }
 
             return $staff->load('roles');
         });
@@ -255,21 +271,7 @@ class StaffController extends Controller
     {
         $this->assertAllowedPermissions($user, $permissionNames);
 
-        $permissionIds = Permission::query()
-            ->whereIn('name', $permissionNames)
-            ->pluck('id')
-            ->all();
-
-        $payload = [];
-
-        foreach ($permissionIds as $permissionId) {
-            $payload[$permissionId] = [
-                'id' => (string) str()->uuid(),
-                'effect' => 'allow',
-            ];
-        }
-
-        $user->directPermissions()->sync($payload);
+        $this->permissionInheritance->syncSelection($user, $permissionNames);
     }
 
     private function assertAllowedPermissions(User $user, array $permissionNames): void

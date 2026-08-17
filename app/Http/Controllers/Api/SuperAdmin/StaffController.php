@@ -11,13 +11,17 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\PermissionInheritanceService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class StaffController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly PermissionInheritanceService $permissionInheritance
+    )
     {
     }
 
@@ -38,6 +42,16 @@ class StaffController extends Controller
             $staffMembers,
             'Staff members retrieved successfully.'
         );
+    }
+
+    public function defaults(): JsonResponse
+    {
+        $role = Role::query()->where('name', 'super_admin_employee')->with('permissions')->first();
+
+        return $this->success([
+            'role' => 'super_admin_employee',
+            'permissions' => $role?->permissions->pluck('name')->values()->all() ?? [],
+        ], 'Staff role defaults retrieved successfully.');
     }
 
     public function show(User $staff): JsonResponse
@@ -82,7 +96,11 @@ class StaffController extends Controller
                 ],
             ]);
 
-            $this->syncDirectPermissions($user, $request->input('permissions', []));
+            if ($request->has('permissions')) {
+                $this->syncDirectPermissions($user, $request->input('permissions', []));
+            } else {
+                $this->permissionInheritance->applyDefaults($user);
+            }
 
             return $user->load(['roles', 'organization']);
         });
@@ -159,20 +177,6 @@ class StaffController extends Controller
 
     private function syncDirectPermissions(User $user, array $permissionNames): void
     {
-        $permissionIds = Permission::query()
-            ->whereIn('name', $permissionNames)
-            ->pluck('id')
-            ->all();
-
-        $payload = [];
-
-        foreach ($permissionIds as $permissionId) {
-            $payload[$permissionId] = [
-                'id' => (string) str()->uuid(),
-                'effect' => 'allow',
-            ];
-        }
-
-        $user->directPermissions()->sync($payload);
+        $this->permissionInheritance->syncSelection($user, $permissionNames);
     }
 }

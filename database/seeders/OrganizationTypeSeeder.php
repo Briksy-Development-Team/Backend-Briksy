@@ -22,5 +22,15 @@ class OrganizationTypeSeeder extends Seeder
                 ['name' => $name, 'deleted_at' => null]
             );
         }
+
+        // Legacy registration flows still submit these slugs. Keep them as
+        // compatibility aliases; seeded/demo categories use the four types
+        // above exclusively.
+        foreach (['property-management' => 'Legacy Property Management', 'solo-traders' => 'Legacy Solo Traders'] as $slug => $name) {
+            OrganizationType::withTrashed()->updateOrCreate(
+                ['slug' => $slug],
+                ['name' => $name, 'deleted_at' => null]
+            );
+        }
     }
 }

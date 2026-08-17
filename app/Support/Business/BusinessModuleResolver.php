@@ -3,10 +3,13 @@
 namespace App\Support\Business;
 
 use App\Models\User;
-use App\Models\Permission;
 
 class BusinessModuleResolver
 {
+    public function __construct(private readonly PlanCapabilityResolver $capabilities)
+    {
+    }
+
     public function resolve(User $user): array
     {
         if ($user->hasRole('super_admin') || $user->hasRole('super_admin_employee')) {
@@ -17,8 +20,8 @@ class BusinessModuleResolver
             return [];
         }
 
-        $organization = $user->organization;
-        $businessType = strtolower((string) ($organization?->business_type ?? 'organisation'));
+        $category = $this->category($user);
+        $capabilities = $this->capabilities->capabilities($user);
 
         $modules = [
             BusinessModules::DASHBOARD,
@@ -27,12 +30,20 @@ class BusinessModuleResolver
             BusinessModules::SETTINGS,
         ];
 
-        if ($this->shouldEnablePropertyManagement($user, $businessType)) {
+        if ($category === 'real-estate' && ($capabilities['property_management'] ?? false)) {
             $modules[] = BusinessModules::PROPERTY_MANAGEMENT;
         }
 
-        if ($this->shouldEnableServiceManagement($user, $businessType)) {
+        if ($category === 'trades-professionals' && ($capabilities['business_profile'] ?? false)) {
             $modules[] = BusinessModules::SERVICE_MANAGEMENT;
+        }
+
+        if ($category === 'buyers-agent' && ($capabilities['buyer_briefs'] ?? false)) {
+            $modules[] = BusinessModules::BUYER_MANAGEMENT;
+        }
+
+        if ($category === 'builders' && ($capabilities['projects'] ?? false)) {
+            $modules[] = BusinessModules::BUILDER_MANAGEMENT;
         }
 
         return array_values(array_unique($modules));
@@ -41,6 +52,16 @@ class BusinessModuleResolver
     public function businessType(User $user): ?string
     {
         return $user->organization?->business_type;
+    }
+
+    public function category(User $user): ?string
+    {
+        return $this->capabilities->category($user);
+    }
+
+    public function capabilities(User $user): array
+    {
+        return $this->capabilities->capabilities($user);
     }
 
     public function verificationStatus(User $user): ?string
@@ -58,11 +79,7 @@ class BusinessModuleResolver
             return false;
         }
 
-        $businessType = strtolower((string) $this->businessType($user));
-
-        return in_array($businessType, ['organisation', 'company'], true)
-            || $this->hasDirectPermission($user, ['property.view', 'property.create', 'property.update', 'property.delete'])
-            || $user->hasAddonFeature('briksy_exclusive');
+        return $this->category($user) === 'real-estate' && ($this->capabilities($user)['property_management'] ?? false);
     }
 
     public function isServiceAllowed(User $user): bool
@@ -75,33 +92,7 @@ class BusinessModuleResolver
             return false;
         }
 
-        $businessType = strtolower((string) $this->businessType($user));
-
-        return $businessType === 'solo_trader'
-            || $this->hasDirectPermission($user, ['service.view', 'service.create', 'service.update', 'service.delete']);
+        return $this->category($user) === 'trades-professionals' && ($this->capabilities($user)['business_profile'] ?? false);
     }
 
-    private function shouldEnablePropertyManagement(User $user, string $businessType): bool
-    {
-        return in_array($businessType, ['organisation', 'company'], true)
-            || $this->hasDirectPermission($user, ['property.view', 'property.create', 'property.update', 'property.delete'])
-            || $user->hasAddonFeature('briksy_exclusive');
-    }
-
-    private function shouldEnableServiceManagement(User $user, string $businessType): bool
-    {
-        return $businessType === 'solo_trader'
-            || $this->hasDirectPermission($user, ['service.view', 'service.create', 'service.update', 'service.delete']);
-    }
-
-    private function hasDirectPermission(User $user, array $permissions): bool
-    {
-        $user->loadMissing('directPermissions');
-
-        return $user->directPermissions
-            ->filter(fn (Permission $permission): bool => $permission->pivot?->effect === 'allow')
-            ->pluck('name')
-            ->intersect($permissions)
-            ->isNotEmpty();
-    }
 }

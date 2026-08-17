@@ -181,7 +181,11 @@ class RegistrationController extends Controller
 
         $businessType = $validated['business_type'];
         $abn = preg_replace('/\s+/', '', $validated['abn_number']);
-        $organizationTypeSlug = $businessType === 'solo_trader' ? 'solo-traders' : 'property-management';
+        $preferredOrganizationTypeSlug = $businessType === 'solo_trader' ? 'trades-professionals' : 'real-estate';
+        $legacyOrganizationTypeSlug = $businessType === 'solo_trader' ? 'solo-traders' : 'property-management';
+        $organizationTypeSlug = OrganizationType::query()->where('slug', $preferredOrganizationTypeSlug)->exists()
+            ? $preferredOrganizationTypeSlug
+            : $legacyOrganizationTypeSlug;
 
         try {
             $verification = $this->abnLookupService->verify($abn, $businessType);

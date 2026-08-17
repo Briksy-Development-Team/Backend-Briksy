@@ -13,6 +13,7 @@ use App\Models\PropertyListing;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Support\Properties\PropertyWorkflow;
+use App\Support\Business\BusinessModuleResolver;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,13 +26,15 @@ class PropertyController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notificationService,
-        private readonly DynamicIdGeneratorService $idGenerator
+        private readonly DynamicIdGeneratorService $idGenerator,
+        private readonly BusinessModuleResolver $moduleResolver,
     )
     {
     }
 
     public function index(PropertyListingIndexRequest $request): JsonResponse
     {
+        $this->assertPropertyCategory($request);
         $query = $this->baseQuery($request);
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         $this->applyFilters($query, $request);
@@ -48,6 +51,7 @@ class PropertyController extends Controller
 
     public function map(PropertyListingIndexRequest $request): JsonResponse
     {
+        $this->assertPropertyCategory($request);
         $query = $this->baseQuery($request);
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         $this->applyFilters($query, $request);
@@ -65,6 +69,7 @@ class PropertyController extends Controller
 
     public function show(Request $request, PropertyListing $propertyListing): JsonResponse
     {
+        $this->assertPropertyCategory($request);
         abort_unless($this->isInAdminOrganization($request, $propertyListing), 403);
 
         $propertyListing->load([
@@ -86,6 +91,7 @@ class PropertyController extends Controller
 
     public function store(PropertyListingStoreRequest $request): JsonResponse
     {
+        $this->assertPropertyCategory($request);
         $organizationId = $request->user()?->organization_id;
 
         if (!$organizationId) {
@@ -179,6 +185,7 @@ class PropertyController extends Controller
 
     public function update(PropertyListingUpdateRequest $request, PropertyListing $propertyListing): JsonResponse
     {
+        $this->assertPropertyCategory($request);
         abort_unless($this->isInAdminOrganization($request, $propertyListing), 403);
 
         $before = $propertyListing->replicate()->toArray();
@@ -253,6 +260,7 @@ class PropertyController extends Controller
 
     public function destroy(Request $request, PropertyListing $propertyListing): JsonResponse
     {
+        $this->assertPropertyCategory($request);
         abort_unless($this->isInAdminOrganization($request, $propertyListing), 403);
 
         $propertyListing->delete();
@@ -265,6 +273,15 @@ class PropertyController extends Controller
         $organizationId = $request->user()?->organization_id;
 
         return (bool) $organizationId && $propertyListing->org_id === $organizationId;
+    }
+
+    private function assertPropertyCategory(Request $request): void
+    {
+        abort_unless(
+            $request->user()?->hasRole('super_admin') || $this->moduleResolver->category($request->user()) === 'real-estate',
+            403,
+            'Property management is only available to Real Estate organisations.'
+        );
     }
 
     private function baseQuery(Request $request): Builder

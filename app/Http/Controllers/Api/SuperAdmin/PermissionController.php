@@ -242,6 +242,8 @@ class PermissionController extends Controller
             'effective_permissions' => PermissionResource::collection($effectivePermissions)->resolve(),
             'effective_permission_names' => $effectivePermissions->pluck('name')->values()->all(),
             'enabled_modules' => $this->moduleResolver->resolve($user),
+            'category' => $this->moduleResolver->category($user),
+            'capabilities' => $this->moduleResolver->capabilities($user),
             'grouped' => $this->groupPermissions($effectivePermissions),
         ];
     }

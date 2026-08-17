@@ -9,7 +9,10 @@ use App\Models\Order;
 use App\Models\PropertyListing;
 use App\Models\Service;
 use App\Models\User;
+use App\Models\BuyerBrief;
+use App\Models\BuilderProject;
 use App\Support\Properties\PropertyWorkflow;
+use App\Support\Business\BusinessModuleResolver;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,21 +22,33 @@ use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
+    public function __construct(private readonly BusinessModuleResolver $moduleResolver)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $organization = $this->organization($request);
+        $category = $organization->organizationType?->slug;
+        $propertyWorkflow = $category === 'real-estate';
+        $serviceWorkflow = $category === 'trades-professionals';
+        $buyerWorkflow = $category === 'buyers-agent';
+        $builderWorkflow = $category === 'builders';
         $currentSubscription = $organization->currentSubscription?->loadMissing(['plan', 'addons.addon']);
 
         $metrics = [
             'team_members' => User::query()->where('organization_id', $organization->id)->count(),
-            'properties' => PropertyListing::query()->where('org_id', $organization->id)->count(),
-            'published_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_PUBLISHED)->where('location_verified', true)->count(),
-            'draft_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_DRAFT)->count(),
-            'pending_review_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW)->count(),
-            'approved_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_APPROVED)->count(),
-            'rejected_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_REJECTED)->count(),
-            'archived_properties' => PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_ARCHIVED)->count(),
-            'services' => Service::query()->where('organization_id', $organization->id)->count(),
+            'properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->count() : 0,
+            'published_properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_PUBLISHED)->where('location_verified', true)->count() : 0,
+            'draft_properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_DRAFT)->count() : 0,
+            'pending_review_properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW)->count() : 0,
+            'approved_properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_APPROVED)->count() : 0,
+            'rejected_properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_REJECTED)->count() : 0,
+            'archived_properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_ARCHIVED)->count() : 0,
+            'services' => $serviceWorkflow ? Service::query()->where('organization_id', $organization->id)->count() : 0,
+            'service_regions' => $serviceWorkflow ? Service::query()->where('organization_id', $organization->id)->whereNotNull('service_area_geometry')->count() : 0,
+            'buyer_briefs' => $buyerWorkflow ? BuyerBrief::where('organization_id', $organization->id)->count() : 0,
+            'builder_projects' => $builderWorkflow ? BuilderProject::where('organization_id', $organization->id)->count() : 0,
             'inquiries' => Inquiry::query()->where('organization_id', $organization->id)->count(),
             'new_inquiries' => Inquiry::query()->where('organization_id', $organization->id)->where('status', 'new')->count(),
             'orders' => Order::query()->where('organization_id', $organization->id)->count(),
@@ -77,16 +92,33 @@ class DashboardController extends Controller
             ];
         });
 
-        $trendSeries = $months->map(function (array $month) use ($organization): array {
+        $trendSeries = $months->map(function (array $month) use ($organization, $propertyWorkflow, $serviceWorkflow, $buyerWorkflow, $builderWorkflow): array {
             $start = $month['start'];
             $end = $month['end'];
 
             return [
                 'label' => $month['label'],
-                'properties' => PropertyListing::query()
+                'properties' => $propertyWorkflow ? PropertyListing::query()
                     ->where('org_id', $organization->id)
                     ->whereBetween('created_at', [$start, $end])
-                    ->count(),
+                    ->count() : 0,
+                'services' => $serviceWorkflow ? Service::query()
+                    ->where('organization_id', $organization->id)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count() : 0,
+                'service_regions' => $serviceWorkflow ? Service::query()
+                    ->where('organization_id', $organization->id)
+                    ->whereNotNull('service_area_geometry')
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count() : 0,
+                'buyer_briefs' => $buyerWorkflow ? BuyerBrief::query()
+                    ->where('organization_id', $organization->id)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count() : 0,
+                'builder_projects' => $builderWorkflow ? BuilderProject::query()
+                    ->where('organization_id', $organization->id)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count() : 0,
                 'inquiries' => Inquiry::query()
                     ->where('organization_id', $organization->id)
                     ->whereBetween('created_at', [$start, $end])
@@ -119,7 +151,7 @@ class DashboardController extends Controller
             ];
         })->values()->all();
 
-        $recentProperties = PropertyListing::query()
+        $recentProperties = ($propertyWorkflow ? PropertyListing::query()
             ->where('org_id', $organization->id)
             ->latest()
             ->limit(5)
@@ -131,7 +163,7 @@ class DashboardController extends Controller
                 'created_at' => $property->created_at?->toISOString(),
             ])
             ->values()
-            ->all();
+            ->all() : []);
 
         $recentInquiries = Inquiry::query()
             ->where('organization_id', $organization->id)
@@ -164,6 +196,9 @@ class DashboardController extends Controller
             ->all();
 
         return $this->success([
+            'category' => $category,
+            'dashboard_config' => $this->dashboardConfig($category),
+            'capabilities' => $this->moduleResolver->capabilities($request->user()),
             'organization' => [
                 'id' => $organization->id,
                 'name' => $organization->name,
@@ -191,6 +226,17 @@ class DashboardController extends Controller
             'recent_inquiries' => $recentInquiries,
             'recent_orders' => $recentOrders,
         ], 'Dashboard analytics retrieved successfully.');
+    }
+
+    private function dashboardConfig(?string $category): array
+    {
+        return match ($category) {
+            'real-estate' => ['title' => 'Real Estate Dashboard', 'primary_metric' => 'Published Properties', 'primary_metric_key' => 'published_properties', 'recent_title' => 'Recent Properties'],
+            'buyers-agent' => ['title' => 'Buyers Agent Dashboard', 'primary_metric' => 'Buyer Briefs', 'primary_metric_key' => 'buyer_briefs', 'recent_title' => 'Recent Buyer Activity'],
+            'builders' => ['title' => 'Builders Dashboard', 'primary_metric' => 'Builder Projects', 'primary_metric_key' => 'builder_projects', 'recent_title' => 'Recent Builder Activity'],
+            'trades-professionals' => ['title' => 'Trades & Professionals Dashboard', 'primary_metric' => 'Service Regions', 'primary_metric_key' => 'service_regions', 'recent_title' => 'Recent Service Activity'],
+            default => ['title' => 'Business Dashboard', 'primary_metric' => 'New Enquiries', 'primary_metric_key' => 'new_inquiries', 'recent_title' => 'Recent Activity'],
+        };
     }
 
     private function organization(Request $request): Organization

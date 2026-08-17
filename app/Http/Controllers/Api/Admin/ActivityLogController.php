@@ -19,8 +19,7 @@ class ActivityLogController extends Controller
 
         $query = ActivityLog::query()
             ->with('organization')
-            ->where('organization_id', $organizationId)
-            ->whereIn('user_role', ['admin', 'admin_staff']);
+            ->where('organization_id', $organizationId);
 
         $this->applyFilters($query, $request->filters());
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
@@ -43,7 +42,6 @@ class ActivityLogController extends Controller
         $log = ActivityLog::query()
             ->with('organization')
             ->where('organization_id', $organizationId)
-            ->whereIn('user_role', ['admin', 'admin_staff'])
             ->findOrFail($activityLog);
 
         return $this->success(new ActivityLogResource($log), 'Activity log retrieved successfully.');

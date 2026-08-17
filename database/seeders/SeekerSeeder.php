@@ -41,7 +41,7 @@ class SeekerSeeder extends Seeder
             [
                 'name' => $data['name'],
                 'display_name' => $data['display_name'] ?? $data['name'],
-                'password_hash' => 'password',
+                'password_hash' => 'Qwerty@123',
                 'organization_id' => $data['organization_id'] ?? null,
                 'email_verified_at' => now(),
                 'mobile_number' => $data['mobile_number'] ?? null,

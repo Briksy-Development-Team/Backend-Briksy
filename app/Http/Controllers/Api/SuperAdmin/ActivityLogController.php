@@ -15,11 +15,7 @@ class ActivityLogController extends Controller
     public function index(ActivityLogIndexRequest $request): JsonResponse
     {
         $query = ActivityLog::query()
-            ->with('organization')
-            ->where(function (Builder $builder): void {
-                $builder->whereNull('organization_id')
-                    ->whereIn('user_role', ['super_admin', 'super_admin_employee']);
-            });
+            ->with('organization');
 
         $this->applyFilters($query, $request->filters());
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
@@ -39,8 +35,6 @@ class ActivityLogController extends Controller
     {
         $log = ActivityLog::query()
             ->with('organization')
-            ->whereNull('organization_id')
-            ->whereIn('user_role', ['super_admin', 'super_admin_employee'])
             ->findOrFail($activityLog);
 
         return $this->success(new ActivityLogResource($log), 'Activity log retrieved successfully.');

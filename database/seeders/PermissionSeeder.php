@@ -106,7 +106,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'super_admin'],
             ['scope' => 'global', 'is_system' => true]
         );
-        $this->syncRolePermissions(
+        $this->seedRoleDefaultsIfEmpty(
             $superAdminRole,
             $allPermissions->reject(fn (string $permissionId, string $permissionName): bool => str_starts_with($permissionName, 'webhook.'))->values()->all()
         );
@@ -115,7 +115,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'admin'],
             ['scope' => 'tenant', 'is_system' => true]
         );
-        $this->syncRolePermissions($adminRole, $allPermissions->only([
+        $this->seedRoleDefaultsIfEmpty($adminRole, $allPermissions->only([
             'dashboard.view',
             'property.view',
             'property.map',
@@ -131,11 +131,6 @@ class PermissionSeeder extends Seeder
             'user.update',
             'settings.view',
             'settings.update',
-            'webhook.view',
-            'webhook.create',
-            'webhook.update',
-            'webhook.delete',
-            'webhook.retry',
             'activity_logs.view',
             'order.view',
             'order.create',
@@ -156,11 +151,51 @@ class PermissionSeeder extends Seeder
             'activity_logs.view',
         ])->values()->all());
 
+        // Webhooks are not an Admin navigation/module capability. Keep the
+        // webhook permissions available to the platform permission catalogue,
+        // but never include them in the Admin role defaults.
+        $adminRole->permissions()
+            ->wherePivotIn('permission_id', $allPermissions->filter(
+                fn (string $permissionId, string $permissionName): bool => str_starts_with($permissionName, 'webhook.')
+            )->values()->all())
+            ->detach();
+
+        $superAdminEmployeeRole = Role::query()->firstOrCreate(
+            ['name' => 'super_admin_employee'],
+            ['scope' => 'global', 'is_system' => true]
+        );
+        $this->seedRoleDefaultsIfEmpty($superAdminEmployeeRole, $allPermissions->only([
+            'dashboard.view',
+            'company.view',
+            'user.view',
+            'user.create',
+            'user.update',
+            'activity_logs.view',
+            'order.view',
+            'plan_request.view',
+            'referral.view',
+        ])->values()->all());
+
+        $adminStaffRole = Role::query()->firstOrCreate(
+            ['name' => 'admin_staff'],
+            ['scope' => 'tenant', 'is_system' => true]
+        );
+        $this->seedRoleDefaultsIfEmpty($adminStaffRole, $allPermissions->only([
+            'dashboard.view',
+            'user.view',
+            'user.create',
+            'user.update',
+            'settings.view',
+            'property.view',
+            'property.map',
+            'service.view',
+        ])->values()->all());
+
         $viewerRole = Role::query()->firstOrCreate(
             ['name' => 'viewer'],
             ['scope' => 'tenant', 'is_system' => true]
         );
-        $this->syncRolePermissions($viewerRole, $allPermissions->only([
+        $this->seedRoleDefaultsIfEmpty($viewerRole, $allPermissions->only([
             'dashboard.view',
             'property.view',
             'user.view',
@@ -180,5 +215,14 @@ class PermissionSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+    }
+
+    private function seedRoleDefaultsIfEmpty(Role $role, array $permissionIds): void
+    {
+        if ($role->permissions()->exists()) {
+            return;
+        }
+
+        $this->syncRolePermissions($role, $permissionIds);
     }
 }

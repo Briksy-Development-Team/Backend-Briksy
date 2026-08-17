@@ -32,6 +32,23 @@ class UserSeeder extends Seeder
             $this->attachRole($admin, 'admin', $org->id);
             $this->attachRole($staff, 'admin_staff', $org->id);
         }
+
+        $demoAccounts = [
+            ['email' => 'realestate@demo.briksy.com', 'slug' => 'harborview-realty', 'name' => 'Olivia Bennett', 'display' => 'Real Estate Demo Admin'],
+            ['email' => 'buyersagent@demo.briksy.com', 'slug' => 'buyer-edge-partners', 'name' => 'Jackson Morris', 'display' => 'Buyers Agent Demo Admin'],
+            ['email' => 'builder@demo.briksy.com', 'slug' => 'blueprint-builders', 'name' => 'Sophie Turner', 'display' => 'Builder Demo Admin'],
+            ['email' => 'trades@demo.briksy.com', 'slug' => 'brightpath-home-services', 'name' => 'Liam Cooper', 'display' => 'Trades Demo Admin'],
+        ];
+
+        foreach ($demoAccounts as $demo) {
+            $organization = Organization::query()->where('slug', $demo['slug'])->first();
+            if (!$organization) {
+                continue;
+            }
+
+            $user = $this->upsertUser($organization->id, $demo['email'], $demo['name'], $demo['display']);
+            $this->attachRole($user, 'admin', $organization->id);
+        }
     }
 
     private function upsertUser(string $organizationId, string $email, string $name, string $displayName): User
@@ -41,7 +58,7 @@ class UserSeeder extends Seeder
             [
                 'name' => $name,
                 'display_name' => $displayName,
-                'password_hash' => 'password',
+                'password_hash' => 'Qwerty@123',
                 'organization_id' => $organizationId,
                 'email_verified_at' => now(),
                 'mobile_number' => null,

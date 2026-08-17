@@ -16,7 +16,7 @@ class SuperAdminSeeder extends Seeder
             [
                 'name' => 'Briksy Super Admin',
                 'display_name' => 'Super Admin',
-                'password_hash' => 'password',
+                'password_hash' => 'Qwerty@123',
                 'organization_id' => null,
                 'email_verified_at' => now(),
                 'mobile_number' => null,

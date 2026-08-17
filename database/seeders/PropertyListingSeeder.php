@@ -157,7 +157,12 @@ class PropertyListingSeeder extends Seeder
             ],
         ];
 
-        $organizations = Organization::all();
+        // Property listings belong to the Real Estate workflow only. Other
+        // categories have their own business data and must never receive
+        // property-management records by virtue of being companies.
+        $organizations = Organization::query()
+            ->whereHas('organizationType', fn ($query) => $query->where('slug', 'real-estate'))
+            ->get();
 
         foreach ($organizations as $org) {
             $creator = User::where('organization_id', $org->id)->first();

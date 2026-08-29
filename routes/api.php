@@ -85,9 +85,13 @@ Route::prefix('seeker')->group(function (): void {
 
     Route::post('inquiries', [InquiryController::class, 'store']);
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'role:seeker'])->group(function (): void {
+        Route::get('auth/me', [RegistrationController::class, 'me']);
+        Route::post('auth/logout', [RegistrationController::class, 'logoutSeeker']);
+
         Route::get('favorites', [FavoriteController::class, 'index']);
         Route::post('favorites', [FavoriteController::class, 'store']);
+        Route::post('favorites/toggle', [FavoriteController::class, 'toggle']);
         Route::delete('favorites/{favorite}', [FavoriteController::class, 'destroy']);
 
         Route::get('reviews', [ReviewController::class, 'index']);
@@ -106,42 +110,6 @@ Route::prefix('seeker')->group(function (): void {
         Route::delete('saved-searches/{savedSearch}', [SeekerSavedSearchController::class, 'destroy']);
     });
 });
-
-// Route::prefix('v1')->group(function (): void {
-    Route::prefix('seeker')->group(function (): void {
-        Route::post('auth/register', [RegistrationController::class, 'store']);
-        Route::post('auth/login', [RegistrationController::class, 'loginSeeker']);
-
-        Route::get('properties', [PropertySearchController::class, 'index']);
-        Route::get('properties/{propertyListing}', [PropertySearchController::class, 'show']);
-
-        Route::get('organizations', [OrganizationSearchController::class, 'index']);
-        Route::get('organizations/{organization}', [OrganizationSearchController::class, 'show']);
-
-        Route::post('inquiries', [InquiryController::class, 'store']);
-
-        Route::get('favorites', [FavoriteController::class, 'index']);
-        Route::post('favorites', [FavoriteController::class, 'store']);
-        Route::delete('favorites/{favorite}', [FavoriteController::class, 'destroy']);
-
-        Route::get('reviews', [ReviewController::class, 'index']);
-        Route::post('reviews', [ReviewController::class, 'store']);
-
-        Route::middleware('auth:sanctum')->group(function (): void {
-            Route::get('inquiries', [InquiryController::class, 'index']);
-            Route::get('inquiries/{inquiry}', [InquiryController::class, 'show']);
-
-            Route::get('profile', [SeekerProfileController::class, 'show']);
-            Route::put('profile', [SeekerProfileController::class, 'update']);
-
-            Route::get('saved-searches', [SeekerSavedSearchController::class, 'index']);
-            Route::post('saved-searches', [SeekerSavedSearchController::class, 'store']);
-            Route::get('saved-searches/{savedSearch}', [SeekerSavedSearchController::class, 'show']);
-            Route::put('saved-searches/{savedSearch}', [SeekerSavedSearchController::class, 'update']);
-            Route::delete('saved-searches/{savedSearch}', [SeekerSavedSearchController::class, 'destroy']);
-        });
-    });
-// });
 
 Route::prefix('admin')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'registerAdmin']);

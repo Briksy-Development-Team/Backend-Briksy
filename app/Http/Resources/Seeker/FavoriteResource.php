@@ -13,25 +13,22 @@ class FavoriteResource extends JsonResource
     {
         $favoritable = $this->favoritable;
 
+        if ($favoritable instanceof PropertyListing) {
+            $favoritable->loadMissing(['organization.organizationType', 'media']);
+        }
+
+        if ($favoritable instanceof Organization) {
+            $favoritable->loadMissing('organizationType');
+        }
+
         return [
             'id' => $this->id,
-            'user_id' => $this->user_id,
             'type' => $favoritable instanceof PropertyListing ? 'property' : ($favoritable instanceof Organization ? 'organization' : null),
-            'target' => match (true) {
-                $favoritable instanceof PropertyListing => [
-                    'id' => $favoritable->id,
-                    'title' => $favoritable->title,
-                    'suburb' => $favoritable->suburb,
-                    'postcode' => $favoritable->postcode,
-                ],
-                $favoritable instanceof Organization => [
-                    'id' => $favoritable->id,
-                    'name' => $favoritable->name,
-                    'slug' => $favoritable->slug,
-                    'is_verified' => (bool) $favoritable->is_verified,
-                ],
-                default => null,
-            },
+            'target' => $favoritable instanceof PropertyListing
+                ? PropertyListingResource::make($favoritable)->resolve($request)
+                : ($favoritable instanceof Organization
+                    ? OrganizationResource::make($favoritable)->resolve($request)
+                    : null),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

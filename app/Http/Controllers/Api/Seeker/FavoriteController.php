@@ -15,18 +15,18 @@ class FavoriteController extends Controller
 {
     public function index(FavoriteIndexRequest $request): JsonResponse
     {
-        $userId = $this->resolveUserId($request);
-
-        if ($userId === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
+        $userId = $request->user()->id;
 
         $query = Favorite::query()
             ->where('user_id', $userId)
-            ->with('favoritable')
+            ->with([
+                'favoritable' => function ($favoritableQuery): void {
+                    $favoritableQuery->with([
+                        'organization.organizationType',
+                        'media' => fn ($mediaQuery) => $mediaQuery->orderBy('sort_order'),
+                    ]);
+                },
+            ])
             ->latest();
 
         if ($request->input('type') === 'property') {
@@ -48,14 +48,7 @@ class FavoriteController extends Controller
 
     public function store(StoreFavoriteRequest $request): JsonResponse
     {
-        $userId = $this->resolveUserId($request);
-
-        if ($userId === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
+        $userId = $request->user()->id;
 
         $targetClass = $request->input('type') === 'property' ? PropertyListing::class : Organization::class;
         $target = $targetClass::query()->findOrFail($request->input('target_id'));
@@ -74,16 +67,44 @@ class FavoriteController extends Controller
         );
     }
 
+    public function toggle(StoreFavoriteRequest $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $targetClass = $request->input('type') === 'property' ? PropertyListing::class : Organization::class;
+        $target = $targetClass::query()->findOrFail($request->input('target_id'));
+
+        $favorite = Favorite::query()->where([
+            'user_id' => $userId,
+            'favoritable_type' => $targetClass,
+            'favoritable_id' => $target->getKey(),
+        ])->first();
+
+        if ($favorite) {
+            $favorite->delete();
+
+            return $this->success([
+                'favorite' => null,
+                'action' => 'removed',
+            ], 'Favorite removed successfully.');
+        }
+
+        $favorite = Favorite::query()->firstOrCreate([
+            'user_id' => $userId,
+            'favoritable_type' => $targetClass,
+            'favoritable_id' => $target->getKey(),
+        ]);
+
+        $favorite->load('favoritable');
+
+        return $this->created([
+            'favorite' => new FavoriteResource($favorite),
+            'action' => 'added',
+        ], 'Favorite added successfully.');
+    }
+
     public function destroy(Favorite $favorite): JsonResponse
     {
-        $userId = $this->resolveUserId(request());
-
-        if ($userId === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
+        $userId = request()->user()->id;
 
         if ($favorite->user_id !== $userId) {
             return response()->json([
@@ -98,10 +119,5 @@ class FavoriteController extends Controller
             null,
             'Favorite removed successfully.'
         );
-    }
-
-    protected function resolveUserId(FavoriteIndexRequest|StoreFavoriteRequest|\Illuminate\Http\Request $request): ?string
-    {
-        return $request->user()?->id ?? $request->input('user_id');
     }
 }

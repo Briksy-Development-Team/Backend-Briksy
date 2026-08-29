@@ -187,6 +187,18 @@ class SeekerApiTest extends TestCase
             'password_hash' => 'secret123',
         ]);
 
+        $seekerRole = Role::query()->firstOrCreate(
+            ['name' => 'seeker'],
+            ['scope' => 'global', 'is_system' => true]
+        );
+
+        $user->roles()->attach($seekerRole->id, [
+            'id' => (string) str()->uuid(),
+            'organization_id' => null,
+        ]);
+
+        Sanctum::actingAs($user, ['seeker']);
+
         $type = OrganizationType::create([
             'name' => 'Builder',
             'slug' => 'builder',
@@ -234,6 +246,18 @@ class SeekerApiTest extends TestCase
             'email' => 'jamie-review@example.com',
             'password_hash' => 'secret123',
         ]);
+
+        $seekerRole = Role::query()->firstOrCreate(
+            ['name' => 'seeker'],
+            ['scope' => 'global', 'is_system' => true]
+        );
+
+        $user->roles()->attach($seekerRole->id, [
+            'id' => (string) str()->uuid(),
+            'organization_id' => null,
+        ]);
+
+        Sanctum::actingAs($user, ['seeker']);
 
         $type = OrganizationType::create([
             'name' => 'Mortgage Broker',

@@ -105,6 +105,13 @@ class RegistrationController extends Controller
             ], 401);
         }
 
+        if ($user->hasAnyRole(['super_admin', 'super_admin_employee', 'admin', 'admin_staff'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This account must use the admin sign-in flow.',
+            ], 403);
+        }
+
         $token = $user->createToken('seeker-auth', ['seeker'])->plainTextToken;
 
         if ($user->organization) {
@@ -134,6 +141,13 @@ class RegistrationController extends Controller
         /** @var User $user */
         $user = $request->user()->loadMissing(['roles.permissions', 'directPermissions']);
 
+        if (!$user->hasAnyRole(['seeker']) && !$request->user()?->tokenCan('seeker')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This account is not authorized for the seeker profile.',
+            ], 403);
+        }
+
         return $this->success([
             'user' => new SeekerAccountResource($user),
         ], 'Authenticated user fetched successfully.');
@@ -142,6 +156,13 @@ class RegistrationController extends Controller
     public function logoutSeeker(Request $request): JsonResponse
     {
         $user = $request->user();
+        if ($user && !$user->hasAnyRole(['seeker']) && !$request->user()?->tokenCan('seeker')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This account is not authorized for the seeker logout flow.',
+            ], 403);
+        }
+
         if ($user?->organization) {
             $this->webhookDispatcher->dispatch(
                 'auth.logout',

@@ -18,6 +18,11 @@ class InquiryController extends Controller
 
         $inquiries = Inquiry::query()
             ->where('user_id', $user->id)
+            ->with([
+                'propertyListing.organization.organizationType',
+                'organization.organizationType',
+                'staff',
+            ])
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -64,6 +69,12 @@ class InquiryController extends Controller
     public function show(Inquiry $inquiry): JsonResponse
     {
         $user = request()->user();
+
+        $inquiry->loadMissing([
+            'propertyListing.organization.organizationType',
+            'organization.organizationType',
+            'staff',
+        ]);
 
         if ($inquiry->user_id !== $user->id) {
             return response()->json([

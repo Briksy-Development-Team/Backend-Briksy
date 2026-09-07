@@ -17,6 +17,9 @@ class OrganizationResource extends JsonResource
             'rating' => (float) $this->avg_org_rating,
             'ranking_priority' => $this->ranking_priority,
             'is_verified' => (bool) $this->is_verified,
+            'address' => $this->address,
+            'state' => $this->state,
+            'postcode' => $this->postcode,
             'contact' => [
                 'email' => $this->contact_email,
                 'phone' => $this->contact_phone,

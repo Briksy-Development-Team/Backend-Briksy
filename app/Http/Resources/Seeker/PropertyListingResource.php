@@ -47,6 +47,10 @@ class PropertyListingResource extends JsonResource
             'address' => $this->address,
             'full_address' => $this->full_address,
             'status' => $this->status,
+            'property_type' => $this->whenLoaded('propertyType', fn (): ?array => $this->propertyType ? ['name' => $this->propertyType->name, 'slug' => $this->propertyType->slug] : null),
+            'bedroom_option' => $this->bedroom_option,
+            'bathroom_option' => $this->bathroom_option,
+            'floor_area_sqm' => $this->floor_area_sqm !== null ? (float) $this->floor_area_sqm : null,
             'rating' => (float) $this->avg_prop_rating,
             'location_verified' => (bool) $this->location_verified,
             'location' => [

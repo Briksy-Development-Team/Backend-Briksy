@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\SuperAdmin\PropertyListingIndexRequest;
 use App\Http\Resources\Admin\AdminPropertyListingResource;
 use App\Models\ActivityLog;
+use App\Models\Organization;
 use App\Models\PropertyListing;
 use App\Services\NotificationService;
 use App\Support\Properties\PropertyWorkflow;
@@ -35,6 +36,25 @@ class PropertyController extends Controller
             AdminPropertyListingResource::collection($properties),
             $properties,
             'Property listings retrieved successfully.'
+        );
+    }
+
+    public function forOrganization(PropertyListingIndexRequest $request, Organization $organization): JsonResponse
+    {
+        $query = $this->baseQuery()->where('org_id', $organization->id);
+        ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
+        $this->applyFilters($query, $request);
+
+        // The organization route is authoritative; a client filter cannot broaden it.
+        $query->where('org_id', $organization->id);
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+
+        $properties = $query->paginate($request->perPage())->withQueryString();
+
+        return $this->paginated(
+            AdminPropertyListingResource::collection($properties),
+            $properties,
+            'Organization properties retrieved successfully.'
         );
     }
 

@@ -8,6 +8,7 @@ use App\Http\Requests\Api\SuperAdmin\StaffStoreRequest;
 use App\Http\Requests\Api\SuperAdmin\StaffUpdateRequest;
 use App\Http\Resources\SuperAdmin\UserResource;
 use App\Models\Permission;
+use App\Models\Organization;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\NotificationService;
@@ -41,6 +42,25 @@ class StaffController extends Controller
             UserResource::collection($staffMembers),
             $staffMembers,
             'Staff members retrieved successfully.'
+        );
+    }
+
+    public function forOrganization(StaffIndexRequest $request, Organization $organization): JsonResponse
+    {
+        $query = User::query()
+            ->where('organization_id', $organization->id)
+            ->whereHas('roles', fn ($role) => $role->whereIn('name', ['admin', 'admin_staff']))
+            ->with(['roles', 'organization']);
+
+        ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+
+        $staffMembers = $query->paginate($request->perPage())->withQueryString();
+
+        return $this->paginated(
+            UserResource::collection($staffMembers),
+            $staffMembers,
+            'Organization staff members retrieved successfully.'
         );
     }
 

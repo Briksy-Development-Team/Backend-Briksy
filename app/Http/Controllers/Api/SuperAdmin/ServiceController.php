@@ -9,6 +9,7 @@ use App\Http\Requests\Api\SuperAdmin\ServiceUpdateRequest;
 use App\Http\Resources\SuperAdmin\ServiceMapResource;
 use App\Http\Resources\SuperAdmin\ServiceResource;
 use App\Models\Service;
+use App\Models\Organization;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Services\ServiceMapService;
@@ -73,6 +74,39 @@ class ServiceController extends Controller
             ServiceResource::collection($services),
             $services,
             'Services retrieved successfully.'
+        );
+    }
+
+    public function forOrganization(ServiceIndexRequest $request, Organization $organization): JsonResponse
+    {
+        $query = Service::query()
+            ->where(function ($serviceQuery) use ($organization): void {
+                $serviceQuery
+                    ->where('organization_id', $organization->id)
+                    ->orWhereHas('organizations', fn ($organizationQuery) => $organizationQuery->whereKey($organization->id));
+            })
+            ->with(['organizationType', 'organization'])
+            ->withCount(['organizations', 'serviceGroups']);
+
+        ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
+
+        if ($request->filled('filter.type_slug')) {
+            $typeSlug = $request->string('filter.type_slug')->toString();
+            $query->whereHas('organizationType', fn ($typeQuery) => $typeQuery->where('slug', $typeSlug));
+        }
+
+        if ($request->filled('filter.is_active')) {
+            $query->where('is_active', $request->boolean('filter.is_active'));
+        }
+
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+
+        $services = $query->paginate($request->perPage())->withQueryString();
+
+        return $this->paginated(
+            ServiceResource::collection($services),
+            $services,
+            'Organization services retrieved successfully.'
         );
     }
 

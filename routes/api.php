@@ -273,6 +273,9 @@ Route::prefix('super-admin')->group(function (): void {
         Route::get('organizations', [OrganizationController::class, 'index'])->middleware('permission:company.view');
         Route::post('organizations', [OrganizationController::class, 'store'])->middleware('permission:company.create');
         Route::get('organizations/{organization}', [OrganizationController::class, 'show'])->middleware('permission:company.view');
+        Route::get('organizations/{organization}/properties', [SuperAdminPropertyController::class, 'forOrganization'])->middleware('permission:property.view');
+        Route::get('organizations/{organization}/staff', [StaffController::class, 'forOrganization'])->middleware('permission:user.view');
+        Route::get('organizations/{organization}/services', [SuperAdminServiceController::class, 'forOrganization'])->middleware('permission:service.view');
         Route::put('organizations/{organization}', [OrganizationController::class, 'update'])->middleware('permission:company.update');
         Route::delete('organizations/{organization}', [OrganizationController::class, 'destroy'])->middleware('permission:company.delete');
         Route::patch('organizations/{organization}/restore', [OrganizationController::class, 'restore'])->middleware('permission:company.update');

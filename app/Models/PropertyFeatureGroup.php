@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class PropertyType extends Model
+class PropertyFeatureGroup extends Model
 {
     use HasUuids, SoftDeletes;
 
@@ -14,11 +15,10 @@ class PropertyType extends Model
 
     public $incrementing = false;
 
-    protected $fillable = [
-        'name',
-        'slug',
-        'category',
-        'sort_order',
-        'is_active',
-    ];
+    protected $fillable = ['name', 'slug', 'sort_order'];
+
+    public function features(): HasMany
+    {
+        return $this->hasMany(PropertyFeature::class, 'group_id');
+    }
 }

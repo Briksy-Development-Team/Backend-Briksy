@@ -14,6 +14,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('name', 100);
             $table->string('slug', 100)->unique();
+            $table->string('category', 30)->default('residential')->index();
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
@@ -30,6 +31,13 @@ return new class extends Migration
             'rural' => 'Rural',
             'villa' => 'Villa',
             'block-of-units' => 'Block Of Units',
+            'commercial' => 'Commercial',
+            'office' => 'Office',
+            'shop' => 'Shop',
+            'warehouse' => 'Warehouse',
+            'showroom' => 'Showroom',
+            'industrial' => 'Industrial',
+            'retail' => 'Retail',
         ];
 
         $sort = 1;
@@ -41,6 +49,7 @@ return new class extends Migration
                 'sort_order' => $sort++,
                 'is_active' => true,
                 'created_at' => now(),
+                'category' => in_array($slug, ['commercial', 'office', 'shop', 'warehouse', 'showroom', 'industrial', 'retail'], true) ? 'commercial' : 'residential',
                 'updated_at' => now(),
             ]);
         }
@@ -51,4 +60,3 @@ return new class extends Migration
         Schema::dropIfExists('property_types');
     }
 };
-

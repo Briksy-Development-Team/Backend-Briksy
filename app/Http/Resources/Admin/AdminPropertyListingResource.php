@@ -44,6 +44,8 @@ class AdminPropertyListingResource extends JsonResource
             'display_id' => $this->generated_id ?: $this->id,
             'title' => $this->title,
             'status' => $this->status,
+            'listing_purpose' => $this->listing_purpose,
+            'price' => $this->price !== null ? (float) $this->price : null,
             'description' => $this->description,
             'address' => $this->address,
             'address_line_1' => $this->address_line_1,
@@ -87,6 +89,7 @@ class AdminPropertyListingResource extends JsonResource
                     'id' => $this->propertyType?->id,
                     'name' => $this->propertyType?->name,
                     'slug' => $this->propertyType?->slug,
+                    'category' => $this->propertyType?->category,
                 ] : null;
             }),
             'images' => $this->whenLoaded('media', function () use ($request): array {

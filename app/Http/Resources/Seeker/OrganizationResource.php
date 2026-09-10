@@ -34,6 +34,7 @@ class OrganizationResource extends JsonResource
                     'id' => $service->id,
                     'name' => $service->name,
                     'slug' => $service->slug,
+                    'description' => $service->pivot?->description,
                     'starting_price' => $service->pivot?->starting_price !== null ? (float) $service->pivot->starting_price : null,
                 ])->values()->all()),
             'service_groups' => $this->whenLoaded('serviceGroups', fn (): array => $this->serviceGroups

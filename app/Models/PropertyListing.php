@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -39,6 +40,8 @@ class PropertyListing extends Model
         'formatted_address',
         'place_id',
         'status',
+        'listing_purpose',
+        'price',
         'suburb',
         'state',
         'postcode',
@@ -62,6 +65,7 @@ class PropertyListing extends Model
             'published_at' => 'datetime',
             'location_verified_at' => 'datetime',
             'location_verified' => 'boolean',
+            'price' => 'decimal:2',
         ];
     }
 
@@ -114,6 +118,11 @@ class PropertyListing extends Model
     public function media(): HasMany
     {
         return $this->hasMany(Media::class, 'property_listing_id')->orderBy('sort_order');
+    }
+
+    public function features(): BelongsToMany
+    {
+        return $this->belongsToMany(PropertyFeature::class, 'property_listing_features', 'property_listing_id', 'feature_id');
     }
 
     public function favorites(): MorphMany

@@ -39,6 +39,7 @@ class PropertyListingIndexRequest extends ApiIndexRequest
             'filter.organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
             'filter.organization_slug' => ['nullable', 'string', 'max:100'],
             'filter.verified_only' => ['nullable', 'boolean'],
+            'filter.listing_purpose' => ['nullable', 'string', 'in:SELL,RENT,BOTH'],
         ];
     }
 }

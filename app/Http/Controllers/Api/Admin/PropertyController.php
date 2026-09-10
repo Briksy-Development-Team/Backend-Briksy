@@ -319,6 +319,10 @@ class PropertyController extends Controller
             $query->where('property_type_id', $request->string('filter.property_type_id')->toString());
         }
 
+        if ($request->filled('filter.listing_purpose')) {
+            $query->where('listing_purpose', $request->string('filter.listing_purpose')->toString());
+        }
+
         if ($request->filled('filter.organization_id')) {
             $query->where('org_id', $request->string('filter.organization_id')->toString());
         }

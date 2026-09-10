@@ -47,10 +47,15 @@ class PropertyListingResource extends JsonResource
             'address' => $this->address,
             'full_address' => $this->full_address,
             'status' => $this->status,
-            'property_type' => $this->whenLoaded('propertyType', fn (): ?array => $this->propertyType ? ['name' => $this->propertyType->name, 'slug' => $this->propertyType->slug] : null),
+            'listing_purpose' => $this->listing_purpose,
+            'price' => $this->price !== null ? (float) $this->price : null,
+            'property_type' => $this->whenLoaded('propertyType', fn (): ?array => $this->propertyType ? ['name' => $this->propertyType->name, 'slug' => $this->propertyType->slug, 'category' => $this->propertyType->category] : null),
             'bedroom_option' => $this->bedroom_option,
             'bathroom_option' => $this->bathroom_option,
             'floor_area_sqm' => $this->floor_area_sqm !== null ? (float) $this->floor_area_sqm : null,
+            'land_area_sqm' => $this->land_area_sqm !== null ? (float) $this->land_area_sqm : null,
+            'car_space_option' => $this->car_space_option,
+            'features' => $this->whenLoaded('features', fn (): array => $this->features->map(fn ($feature): array => ['name' => $feature->name, 'slug' => $feature->slug])->values()->all()),
             'rating' => (float) $this->avg_prop_rating,
             'location_verified' => (bool) $this->location_verified,
             'location' => [
@@ -58,6 +63,7 @@ class PropertyListingResource extends JsonResource
                 'postcode' => $this->postcode,
                 'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
                 'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
+                'state' => $this->state,
             ],
             'organization' => $this->whenLoaded('organization', function (): array {
                 return [

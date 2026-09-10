@@ -16,13 +16,32 @@ class PropertySearchController extends Controller
     {
         $query = PropertyListing::query()
             ->visibleToSeekers()
-            ->with(['organization.organizationType', 'propertyType', 'media', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
+            ->with(['organization.organizationType', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
 
         ApiQueryBuilder::applySearch($query, $request->search(), ['title', 'description', 'suburb', 'postcode']);
         ApiQueryBuilder::applyExactFilters($query, [
             'suburb' => $request->input('suburb'),
             'postcode' => $request->input('postcode'),
         ]);
+
+        $purpose = strtoupper((string) $request->input('purpose'));
+        if (in_array($purpose, ['SELL', 'RENT'], true)) {
+            $query->whereIn('listing_purpose', [$purpose, 'BOTH']);
+        } elseif ($purpose === 'BOTH') {
+            $query->where('listing_purpose', 'BOTH');
+        }
+
+        if ($request->filled('category')) {
+            $query->whereHas('propertyType', fn ($typeQuery) => $typeQuery->where('category', $request->string('category')->toString()));
+        }
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', $request->input('min_price'));
+        }
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', $request->input('max_price'));
+        }
+
+        $this->applyPropertyAttributeFilters($query, $request);
 
         if ($request->filled('organization_slug')) {
             $query->whereHas('organization', fn ($organizationQuery) => $organizationQuery->where('slug', $request->string('organization_slug')->toString()));
@@ -55,7 +74,7 @@ class PropertySearchController extends Controller
     {
         $property = PropertyListing::query()
             ->visibleToSeekers()
-            ->with(['organization.organizationType', 'propertyType', 'media', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')])
+            ->with(['organization.organizationType', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')])
             ->findOrFail($propertyListing->id);
 
         $this->recordVisit($property, request());
@@ -64,6 +83,39 @@ class PropertySearchController extends Controller
             new PropertyListingResource($property),
             'Property listing retrieved successfully.'
         );
+    }
+
+    private function applyPropertyAttributeFilters(\Illuminate\Database\Eloquent\Builder $query, PropertyListingIndexRequest $request): void
+    {
+        $minimums = [
+            'bedrooms' => ['studio', '1', '2', '3', '4', '5_plus'],
+            'bathrooms' => ['1', '2', '3_plus'],
+            'car_spaces' => ['1', '2', '3_plus'],
+        ];
+
+        foreach ($minimums as $input => $options) {
+            if (! $request->filled($input) || (int) $request->input($input) < 1) {
+                continue;
+            }
+
+            $minimum = (int) $request->input($input);
+            $column = $input === 'bedrooms' ? 'bedroom_option' : ($input === 'bathrooms' ? 'bathroom_option' : 'car_space_option');
+            $query->whereIn($column, array_values(array_filter($options, function (string $option) use ($minimum): bool {
+                $value = $option === 'studio' ? 0 : ($option === '5_plus' || $option === '3_plus' ? 5 : (int) $option);
+                return $value >= $minimum;
+            })));
+        }
+
+        if ($request->filled('min_land_size')) {
+            $query->where('land_area_sqm', '>=', $request->input('min_land_size'));
+        }
+        if ($request->filled('max_land_size')) {
+            $query->where('land_area_sqm', '<=', $request->input('max_land_size'));
+        }
+
+        foreach ($request->input('features', []) as $featureSlug) {
+            $query->whereHas('features', fn ($featureQuery) => $featureQuery->where('property_features.slug', $featureSlug));
+        }
     }
 
     private function recordVisit(PropertyListing $property, \Illuminate\Http\Request $request): void

@@ -203,12 +203,18 @@ class PropertyController extends Controller
             $validated['country'] = 'Australia';
         }
 
+        // Keep the publication intent of an already-public listing while its
+        // edited data is pending review. A new/unpublished listing must still
+        // remain unpublished until it is explicitly published.
+        $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED
+            && $propertyListing->published_at !== null;
+
         $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
         $validated['submitted_at'] = now();
         $validated['reviewed_by'] = null;
         $validated['reviewed_at'] = null;
         $validated['rejection_reason'] = null;
-        $validated['published_at'] = null;
+        $validated['published_at'] = $wasPublished ? $propertyListing->published_at : null;
 
         $propertyListing->fill($validated);
         $propertyListing->save();
@@ -372,9 +378,9 @@ class PropertyController extends Controller
 
     private function storageUrl(Request $request, string $path): string
     {
-        $baseUrl = rtrim($request->getSchemeAndHttpHost(), '/');
-
-        return $baseUrl.'/storage/'.ltrim($path, '/');
+        // Keep persisted media deployment-neutral; resources expose absolute
+        // URLs at response time and MediaController serves this relative path.
+        return 'storage/'.ltrim($path, '/');
     }
 
     private function recordPropertyActivity(

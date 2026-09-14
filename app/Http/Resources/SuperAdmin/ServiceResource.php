@@ -36,8 +36,31 @@ class ServiceResource extends JsonResource
             ] : null),
             'organization_count' => $this->organizations_count ?? null,
             'service_group_count' => $this->service_groups_count ?? null,
+            'images' => $this->whenLoaded('media', fn (): array => $this->media
+                ->where('media_type', 'image')->map(fn ($media): array => [
+                    'id' => $media->id,
+                    'url' => $this->mediaUrl($request, $media->file_url, $media->id),
+                    'is_primary' => (bool) $media->is_primary,
+                    'sort_order' => (int) $media->sort_order,
+                ])->values()->all()),
+            'videos' => $this->whenLoaded('media', fn (): array => $this->media
+                ->where('media_type', 'video')->map(fn ($media): array => [
+                    'id' => $media->id,
+                    'url' => $this->mediaUrl($request, $media->file_url, $media->id),
+                    'is_primary' => (bool) $media->is_primary,
+                    'sort_order' => (int) $media->sort_order,
+                ])->values()->all()),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
+    }
+
+    private function mediaUrl(Request $request, string $url, string $id): string
+    {
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/service-media/'.$id;
     }
 }

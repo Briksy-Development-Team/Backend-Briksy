@@ -36,6 +36,17 @@ class DashboardController extends Controller
 
         $payload = [
             'total_companies' => Organization::query()->count(),
+            'briksy_exclusive_count' => Organization::query()
+                ->whereHas('currentSubscription', function ($subscriptionQuery): void {
+                    $subscriptionQuery->whereHas('addons.addon', function ($addonQuery): void {
+                        $addonQuery->where(function ($featureQuery): void {
+                            $featureQuery
+                                ->whereIn('feature_key', ['briksy_exclusive', 'briksy-exclusive'])
+                                ->orWhereIn('slug', ['briksy_exclusive', 'briksy-exclusive']);
+                        });
+                    });
+                })
+                ->count(),
             'active_plans' => SubscriptionPlan::query()->where('is_active', true)->count(),
             'total_orders' => DB::table('subscriptions')->count(),
             'plan_requests' => 0,

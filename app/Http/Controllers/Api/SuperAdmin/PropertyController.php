@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Api\SuperAdmin;
 
 use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\SuperAdmin\PropertyListingIndexRequest;
+use App\Http\Requests\Api\Admin\PropertyListingStoreRequest;
+use App\Http\Requests\Api\Admin\PropertyListingUpdateRequest;
 use App\Http\Resources\Admin\AdminPropertyListingResource;
 use App\Models\ActivityLog;
 use App\Models\Organization;
 use App\Models\PropertyListing;
+use App\Models\Media;
+use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Support\Properties\PropertyWorkflow;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,10 +19,14 @@ use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class PropertyController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly DynamicIdGeneratorService $idGenerator,
+    )
     {
     }
 
@@ -92,6 +100,92 @@ class PropertyController extends Controller
             new AdminPropertyListingResource($propertyListing),
             'Property listing retrieved successfully.'
         );
+    }
+
+    public function store(PropertyListingStoreRequest $request): JsonResponse
+    {
+        $request->validate([
+            'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
+        ]);
+        $validated = $request->validated();
+        $organizationId = $request->input('organization_id');
+
+        abort_unless($organizationId && Organization::query()->whereKey($organizationId)->exists(), 422, 'A valid organization_id is required.');
+
+        $listing = PropertyListing::query()->create([
+            'org_id' => $organizationId,
+            'creator_id' => $request->user()?->id,
+            'generated_id' => $this->idGenerator->generate('properties'),
+            'property_type_id' => $validated['property_type_id'] ?? null,
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'address' => $validated['address'] ?? $validated['address_line_1'] ?? null,
+            'address_line_1' => $validated['address_line_1'] ?? $validated['address'] ?? null,
+            'address_line_2' => $validated['address_line_2'] ?? null,
+            'full_address' => $validated['full_address'] ?? $validated['address'] ?? null,
+            'formatted_address' => $validated['formatted_address'] ?? null,
+            'place_id' => $validated['place_id'] ?? null,
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
+            'listing_purpose' => $validated['listing_purpose'] ?? null,
+            'price' => $validated['price'] ?? null,
+            'suburb' => $validated['suburb'] ?? null,
+            'state' => $validated['state'] ?? null,
+            'postcode' => $validated['postcode'] ?? null,
+            'country' => $validated['country'] ?? 'Australia',
+            'status' => PropertyWorkflow::STATUS_PENDING_REVIEW,
+            'submitted_at' => now(),
+        ]);
+
+        $this->storeListingMedia($listing, $request);
+        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+
+        return $this->created(new AdminPropertyListingResource($listing), 'Property listing created successfully.');
+    }
+
+    public function update(PropertyListingUpdateRequest $request, PropertyListing $propertyListing): JsonResponse
+    {
+        $request->validate([
+            'organization_id' => ['sometimes', 'uuid', 'exists:organizations,id'],
+        ]);
+        $validated = $request->validated();
+        unset($validated['images'], $validated['videos']);
+
+        foreach (['address', 'address_line_1', 'full_address', 'formatted_address', 'country'] as $field) {
+            if (array_key_exists($field, $validated) && $validated[$field] === null) {
+                $validated[$field] = null;
+            }
+        }
+
+        // Preserve publication intent only for an already-public listing.
+        // New, approved-but-unpublished, rejected, and archived listings must
+        // not be published automatically after review.
+        $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED
+            && $propertyListing->published_at !== null;
+
+        $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
+        $validated['submitted_at'] = now();
+        $validated['reviewed_by'] = null;
+        $validated['reviewed_at'] = null;
+        $validated['rejection_reason'] = null;
+        $validated['published_at'] = $wasPublished ? $propertyListing->published_at : null;
+
+        if ($request->filled('organization_id')) {
+            $validated['org_id'] = $request->input('organization_id');
+        }
+
+        $propertyListing->fill($validated)->save();
+        $this->storeListingMedia($propertyListing, $request);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+
+        return $this->success(new AdminPropertyListingResource($propertyListing), 'Property listing updated successfully.');
+    }
+
+    public function destroy(PropertyListing $propertyListing): JsonResponse
+    {
+        $propertyListing->delete();
+
+        return $this->success([], 'Property listing deleted successfully.');
     }
 
     public function approve(Request $request, PropertyListing $propertyListing): JsonResponse
@@ -231,6 +325,32 @@ class PropertyController extends Controller
         }
     }
 
+    private function storeListingMedia(PropertyListing $listing, Request $request): void
+    {
+        $order = (int) Media::query()->where('property_listing_id', $listing->id)->max('sort_order');
+
+        foreach ((array) $request->file('images', []) as $index => $file) {
+            $path = $file->storePublicly("property-listings/{$listing->id}/images", 'public');
+            Media::query()->create([
+                'property_listing_id' => $listing->id,
+                'file_url' => 'storage/'.ltrim($path, '/'),
+                'media_type' => 'image',
+                'is_primary' => $index === 0 && $order === 0,
+                'sort_order' => ++$order,
+            ]);
+        }
+
+        foreach ((array) $request->file('videos', []) as $file) {
+            $path = $file->storePublicly("property-listings/{$listing->id}/videos", 'public');
+            Media::query()->create([
+                'property_listing_id' => $listing->id,
+                'file_url' => 'storage/'.ltrim($path, '/'),
+                'media_type' => 'video',
+                'sort_order' => ++$order,
+            ]);
+        }
+    }
+
     private function transition(
         Request $request,
         PropertyListing $propertyListing,
@@ -243,6 +363,23 @@ class PropertyController extends Controller
         array $extraUpdates = [],
     ): JsonResponse {
         $before = $propertyListing->replicate()->toArray();
+
+        // An edited listing that was public before re-review should return to
+        // public visibility when its changes are approved. New listings and
+        // intentionally unpublished listings keep the separate Approved
+        // state and still require the explicit Publish action.
+        $isReapprovalOfPublicListing = $propertyListing->status === PropertyWorkflow::STATUS_PENDING_REVIEW
+            && $status === PropertyWorkflow::STATUS_APPROVED
+            && $propertyListing->published_at !== null;
+
+        if ($isReapprovalOfPublicListing) {
+            $status = PropertyWorkflow::STATUS_PUBLISHED;
+            $action = PropertyWorkflow::ACTION_REPUBLISHED;
+            $title = 'Property republished';
+            $description = sprintf('Property "%s" was approved and republished.', $propertyListing->title);
+            $mailSubject = 'Property republished';
+            $mailCtaLabel = 'View property';
+        }
 
         $updates = array_merge([
             'status' => $status,

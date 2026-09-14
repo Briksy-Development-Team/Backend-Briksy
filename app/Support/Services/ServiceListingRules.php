@@ -31,6 +31,10 @@ final class ServiceListingRules
             'is_active' => ['nullable', 'boolean'],
             'organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
             'type_id' => ['nullable', 'uuid', 'exists:organization_types,id'],
+            'images' => ['nullable', 'array'],
+            'images.*' => ['file', 'image', 'max:5120'],
+            'videos' => ['nullable', 'array'],
+            'videos.*' => ['file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska', 'max:51200'],
         ];
     }
 }

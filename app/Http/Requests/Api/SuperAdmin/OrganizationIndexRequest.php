@@ -22,6 +22,7 @@ class OrganizationIndexRequest extends ApiListRequest
     {
         return [
             'name',
+            'generated_id',
             'trading_name',
             'slug',
             'abn',
@@ -48,6 +49,7 @@ class OrganizationIndexRequest extends ApiListRequest
             'filter.type_slug' => ['nullable', 'string', 'max:100'],
             'filter.service_slug' => ['nullable', 'string', 'max:100'],
             'filter.service_group_slug' => ['nullable', 'string', 'max:100'],
+            'filter.addon_feature' => ['nullable', 'string', 'in:briksy_exclusive,briksy-exclusive'],
             'filter.business_type' => ['nullable', 'string', 'max:100'],
             'filter.business_verification_status' => ['nullable', 'string', 'in:pending,verified,rejected'],
             'filter.is_verified' => ['nullable', 'boolean'],

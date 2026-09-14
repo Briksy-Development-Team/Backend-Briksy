@@ -9,6 +9,7 @@ use App\Http\Requests\Api\SuperAdmin\ServiceUpdateRequest;
 use App\Http\Resources\SuperAdmin\ServiceMapResource;
 use App\Http\Resources\SuperAdmin\ServiceResource;
 use App\Models\Service;
+use App\Models\ServiceMedia;
 use App\Models\Organization;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
@@ -16,6 +17,7 @@ use App\Services\ServiceMapService;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ServiceController extends Controller
 {
@@ -29,10 +31,10 @@ class ServiceController extends Controller
     public function index(ServiceIndexRequest $request): JsonResponse
     {
         $query = Service::query()
-            ->with(['organizationType', 'organization'])
+            ->with(['organizationType', 'organization', 'media'])
             ->withCount(['organizations', 'serviceGroups']);
 
-        if (!$request->user()?->hasRole('super_admin')) {
+        if (!$request->user()?->isSuperAdmin() && !$request->user()?->isGlobalStaff()) {
             $organizationId = $request->user()?->organization_id;
 
             if (!$organizationId) {
@@ -85,7 +87,7 @@ class ServiceController extends Controller
                     ->where('organization_id', $organization->id)
                     ->orWhereHas('organizations', fn ($organizationQuery) => $organizationQuery->whereKey($organization->id));
             })
-            ->with(['organizationType', 'organization'])
+            ->with(['organizationType', 'organization', 'media'])
             ->withCount(['organizations', 'serviceGroups']);
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
@@ -124,7 +126,7 @@ class ServiceController extends Controller
     {
         abort_unless($this->canAccessService($request, $service), 403);
 
-        $service->load(['organizationType', 'organization'])
+        $service->load(['organizationType', 'organization', 'media'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         return $this->success(
@@ -137,7 +139,9 @@ class ServiceController extends Controller
     {
         $service = Service::query()->create($this->buildPayload($request));
 
-        $service->load(['organizationType', 'organization'])
+        $this->storeMedia($service, $request);
+
+        $service->load(['organizationType', 'organization', 'media'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         if ($service->organization_id) {
@@ -159,7 +163,7 @@ class ServiceController extends Controller
             );
         }
 
-        if ($request->user()?->hasRole('super_admin')) {
+        if ($request->user()?->isSuperAdmin() || $request->user()?->isGlobalStaff()) {
             $this->notificationService->notifySuperAdmins(
                 $this->notificationService->buildPayload(
                     'service_created',
@@ -189,7 +193,8 @@ class ServiceController extends Controller
 
         $service->fill($this->buildPayload($request, $service));
         $service->save();
-        $service->load(['organizationType', 'organization'])
+        $this->storeMedia($service, $request);
+        $service->load(['organizationType', 'organization', 'media'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         if ($service->organization_id) {
@@ -249,7 +254,7 @@ class ServiceController extends Controller
                 : (bool) ($service?->is_active ?? true),
         ];
 
-        if ($request->user()?->hasRole('super_admin')) {
+        if ($request->user()?->isSuperAdmin() || $request->user()?->isGlobalStaff()) {
             $payload['organization_id'] = $validated['organization_id'] ?? $service?->organization_id;
             $payload['type_id'] = $validated['type_id'] ?? $service?->type_id;
         } else {
@@ -268,12 +273,38 @@ class ServiceController extends Controller
             return false;
         }
 
-        if ($user->hasRole('super_admin')) {
+        if ($user->isSuperAdmin() || $user->isGlobalStaff()) {
             return true;
         }
 
         $organizationId = $user->organization_id;
 
         return (bool) $organizationId && $service->organization_id === $organizationId;
+    }
+
+    private function storeMedia(Service $service, Request $request): void
+    {
+        $order = (int) ServiceMedia::query()->where('service_id', $service->id)->max('sort_order');
+
+        foreach ((array) $request->file('images', []) as $index => $file) {
+            $path = $file->storePublicly("services/{$service->id}/images", 'public');
+            ServiceMedia::query()->create([
+                'service_id' => $service->id,
+                'file_url' => 'storage/'.ltrim($path, '/'),
+                'media_type' => 'image',
+                'is_primary' => $index === 0 && $order === 0,
+                'sort_order' => ++$order,
+            ]);
+        }
+
+        foreach ((array) $request->file('videos', []) as $file) {
+            $path = $file->storePublicly("services/{$service->id}/videos", 'public');
+            ServiceMedia::query()->create([
+                'service_id' => $service->id,
+                'file_url' => 'storage/'.ltrim($path, '/'),
+                'media_type' => 'video',
+                'sort_order' => ++$order,
+            ]);
+        }
     }
 }

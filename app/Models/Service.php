@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Concerns\HasImmutableGeneratedId;
 use App\Services\DynamicIdGeneratorService;
 
@@ -95,5 +96,10 @@ class Service extends Model
     {
         return $this->belongsToMany(ServiceGroup::class, 'service_group_services', 'service_id', 'service_group_id')
             ->withTimestamps();
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(ServiceMedia::class)->orderBy('sort_order');
     }
 }

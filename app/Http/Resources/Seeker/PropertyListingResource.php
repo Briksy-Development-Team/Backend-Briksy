@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Seeker;
 
+use App\Services\PublicMediaEntitlementService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -38,6 +39,14 @@ class PropertyListingResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $media = $this->whenLoaded('media', fn () => $this->media);
+        $entitlements = app(PublicMediaEntitlementService::class);
+        $images = $media instanceof \Illuminate\Support\Collection ? $media->where('media_type', 'image')->values() : collect();
+        $videos = $media instanceof \Illuminate\Support\Collection ? $media->where('media_type', 'video')->values() : collect();
+        $images = $entitlements->take($images, $entitlements->limitFor($this->organization, 'property', 'image'));
+        $videos = $entitlements->take($videos, $entitlements->limitFor($this->organization, 'property', 'video'));
+        $visibleMedia = $images->concat($videos);
+
         return [
             'id' => $this->id,
             'generated_id' => $this->generated_id,
@@ -74,8 +83,8 @@ class PropertyListingResource extends JsonResource
                     'is_verified' => (bool) $this->organization?->is_verified,
                 ];
             }),
-            'media' => $this->whenLoaded('media', function () use ($request): array {
-                return $this->media
+            'media' => $this->whenLoaded('media', function () use ($request, $visibleMedia): array {
+                return $visibleMedia
                     ->map(fn ($media): array => [
                         'id' => $media->id,
                         'url' => $this->normalizeMediaUrl($request, $media->file_url, (string) $media->id),
@@ -85,6 +94,20 @@ class PropertyListingResource extends JsonResource
                     ->values()
                     ->all();
             }),
+            'images' => $this->whenLoaded('media', fn (): array => $visibleMedia
+                ->where('media_type', 'image')
+                ->map(fn ($media): array => [
+                    'id' => $media->id,
+                    'url' => $this->normalizeMediaUrl($request, $media->file_url, (string) $media->id),
+                    'is_primary' => (bool) $media->is_primary,
+                ])->values()->all()),
+            'videos' => $this->whenLoaded('media', fn (): array => $visibleMedia
+                ->where('media_type', 'video')
+                ->map(fn ($media): array => [
+                    'id' => $media->id,
+                    'url' => $this->normalizeMediaUrl($request, $media->file_url, (string) $media->id),
+                    'is_primary' => (bool) $media->is_primary,
+                ])->values()->all()),
             'has_briksy_exclusive_offer' => $this->whenLoaded('offers', fn (): bool => $this->offers->contains(fn ($offer): bool => (bool) $offer->is_active), false),
             'briksy_exclusive_offers' => $this->whenLoaded('offers', fn (): array => $this->offers
                 ->where('is_active', true)

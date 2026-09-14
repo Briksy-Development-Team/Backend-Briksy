@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\Admin\ReferralController as AdminReferralController
 use App\Http\Controllers\Api\Seeker\InquiryController;
 use App\Http\Controllers\Api\Seeker\OrganizationSearchController;
 use App\Http\Controllers\Api\Seeker\PropertySearchController;
+use App\Http\Controllers\Api\Seeker\ServiceSearchController;
+use App\Http\Controllers\Api\Seeker\SubscriptionPlanController as SeekerSubscriptionPlanController;
 use App\Http\Controllers\Api\Seeker\RegistrationController;
 use App\Http\Controllers\Api\Seeker\ReviewController;
 use App\Http\Controllers\Api\Seeker\SeekerProfileController;
@@ -30,6 +32,7 @@ use App\Http\Controllers\Api\SuperAdmin\CouponController;
 use App\Http\Controllers\Api\SuperAdmin\OrderController;
 use App\Http\Controllers\Api\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceController as SuperAdminServiceController;
+use App\Http\Controllers\Api\ServiceMediaController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceImportController as SuperAdminServiceImportController;
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
@@ -69,9 +72,12 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::get('settings/public', [SettingController::class, 'publicSettings']);
+Route::get('plans/public', [SeekerSubscriptionPlanController::class, 'index']);
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle']);
 Route::get('media/{media}', [MediaController::class, 'show'])->name('media.show');
 Route::middleware('auth:sanctum')->delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
+Route::get('service-media/{serviceMedia}', [ServiceMediaController::class, 'show'])->name('service-media.show');
+Route::middleware('auth:sanctum')->delete('service-media/{serviceMedia}', [ServiceMediaController::class, 'destroy'])->name('service-media.destroy');
 
 Route::prefix('seeker')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'store']);
@@ -79,6 +85,9 @@ Route::prefix('seeker')->group(function (): void {
 
     Route::get('properties', [PropertySearchController::class, 'index']);
     Route::get('properties/{propertyListing}', [PropertySearchController::class, 'show']);
+
+    Route::get('services', [ServiceSearchController::class, 'index']);
+    Route::get('services/{service}', [ServiceSearchController::class, 'show']);
 
     Route::get('organizations', [OrganizationSearchController::class, 'index']);
     Route::get('organizations/{organization}', [OrganizationSearchController::class, 'show']);
@@ -220,6 +229,8 @@ Route::prefix('admin')->group(function (): void {
         Route::get('services/{service}', [SuperAdminServiceController::class, 'show'])->middleware(['module:service_management', 'permission:service.view']);
         Route::put('services/{service}', [SuperAdminServiceController::class, 'update'])->middleware(['module:service_management', 'permission:service.update']);
         Route::delete('services/{service}', [SuperAdminServiceController::class, 'destroy'])->middleware(['module:service_management', 'permission:service.delete']);
+        Route::get('service-media/{serviceMedia}', [ServiceMediaController::class, 'show']);
+        Route::delete('service-media/{serviceMedia}', [ServiceMediaController::class, 'destroy']);
     });
 
     Route::middleware(['auth:sanctum', 'role:admin'])->group(function (): void {
@@ -289,7 +300,10 @@ Route::prefix('super-admin')->group(function (): void {
 
         Route::get('properties', [SuperAdminPropertyController::class, 'index'])->middleware('permission:property.view');
         Route::get('properties/map', [SuperAdminPropertyController::class, 'map'])->middleware('permission:property.view');
+        Route::post('properties', [SuperAdminPropertyController::class, 'store'])->middleware('permission:property.create');
         Route::get('properties/{propertyListing}', [SuperAdminPropertyController::class, 'show'])->middleware('permission:property.view');
+        Route::put('properties/{propertyListing}', [SuperAdminPropertyController::class, 'update'])->middleware('permission:property.update');
+        Route::delete('properties/{propertyListing}', [SuperAdminPropertyController::class, 'destroy'])->middleware('permission:property.delete');
         Route::patch('properties/{propertyListing}/approve', [SuperAdminPropertyController::class, 'approve'])->middleware('permission:property.approve');
         Route::patch('properties/{propertyListing}/reject', [SuperAdminPropertyController::class, 'reject'])->middleware('permission:property.reject');
         Route::patch('properties/{propertyListing}/publish', [SuperAdminPropertyController::class, 'publish'])->middleware('permission:property.publish');
@@ -312,6 +326,7 @@ Route::prefix('super-admin')->group(function (): void {
         Route::get('services/imports/{bulkImport}', [SuperAdminServiceImportController::class, 'show'])->middleware('permission:service.create');
         Route::get('services/imports/{bulkImport}/error-report', [SuperAdminServiceImportController::class, 'errorReport'])->middleware('permission:service.create');
         Route::get('services', [SuperAdminServiceController::class, 'index'])->middleware('permission:service.view');
+        Route::post('services', [SuperAdminServiceController::class, 'store'])->middleware('permission:service.create');
         Route::get('service-groups', function () {
             return response()->json([
                 'success' => false,
@@ -319,6 +334,10 @@ Route::prefix('super-admin')->group(function (): void {
             ], 501);
         })->middleware('permission:service.view');
         Route::get('services/{service}', [SuperAdminServiceController::class, 'show'])->middleware('permission:service.view');
+        Route::put('services/{service}', [SuperAdminServiceController::class, 'update'])->middleware('permission:service.update');
+        Route::delete('services/{service}', [SuperAdminServiceController::class, 'destroy'])->middleware('permission:service.delete');
+        Route::get('service-media/{serviceMedia}', [ServiceMediaController::class, 'show']);
+        Route::delete('service-media/{serviceMedia}', [ServiceMediaController::class, 'destroy']);
 
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware('permission:dashboard.view');
 

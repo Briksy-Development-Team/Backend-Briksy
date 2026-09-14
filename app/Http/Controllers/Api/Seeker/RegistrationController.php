@@ -141,7 +141,20 @@ class RegistrationController extends Controller
         /** @var User $user */
         $user = $request->user()->loadMissing(['roles.permissions', 'directPermissions']);
 
-        if (!$user->hasAnyRole(['seeker']) && !$request->user()?->tokenCan('seeker')) {
+        // This controller is shared by the seeker, admin and super-admin auth
+        // routes. The route middleware already restricts each portal route to
+        // its allowed roles, so rejecting every non-seeker token here causes
+        // admin session hydration to return 403 and the frontend to appear
+        // logged out after refresh/navigation.
+        $isPortalUser = $user->hasAnyRole([
+            'seeker',
+            'admin',
+            'admin_staff',
+            'super_admin',
+            'super_admin_employee',
+        ]);
+
+        if (!$isPortalUser && !$request->user()?->tokenCan('seeker')) {
             return response()->json([
                 'success' => false,
                 'message' => 'This account is not authorized for the seeker profile.',
@@ -156,12 +169,6 @@ class RegistrationController extends Controller
     public function logoutSeeker(Request $request): JsonResponse
     {
         $user = $request->user();
-        if ($user && !$user->hasAnyRole(['seeker']) && !$request->user()?->tokenCan('seeker')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This account is not authorized for the seeker logout flow.',
-            ], 403);
-        }
 
         if ($user?->organization) {
             $this->webhookDispatcher->dispatch(

@@ -54,6 +54,21 @@ class OrganizationController extends Controller
             $query->whereHas('serviceGroups', fn ($serviceGroupQuery) => $serviceGroupQuery->where('service_groups.slug', $serviceGroupSlug));
         }
 
+        if ($request->filled('filter.addon_feature')) {
+            $addonFeature = $request->string('filter.addon_feature')->toString();
+            $addonSlug = str_replace('_', '-', $addonFeature);
+
+            $query->whereHas('currentSubscription', function ($subscriptionQuery) use ($addonFeature, $addonSlug): void {
+                $subscriptionQuery->whereHas('addons.addon', function ($addonQuery) use ($addonFeature, $addonSlug): void {
+                    $addonQuery->where(function ($featureQuery) use ($addonFeature, $addonSlug): void {
+                        $featureQuery
+                            ->whereIn('feature_key', [$addonFeature, $addonSlug])
+                            ->orWhereIn('slug', [$addonFeature, $addonSlug]);
+                    });
+                });
+            });
+        }
+
         if ($request->filled('filter.business_type')) {
             $businessTypes = collect(explode(',', $request->string('filter.business_type')->toString()))
                 ->map(fn (string $value) => trim($value))

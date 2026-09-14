@@ -160,15 +160,14 @@ class PropertyController extends Controller
         // Preserve publication intent only for an already-public listing.
         // New, approved-but-unpublished, rejected, and archived listings must
         // not be published automatically after review.
-        $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED
-            && $propertyListing->published_at !== null;
+        $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED;
 
         $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
         $validated['submitted_at'] = now();
         $validated['reviewed_by'] = null;
         $validated['reviewed_at'] = null;
         $validated['rejection_reason'] = null;
-        $validated['published_at'] = $wasPublished ? $propertyListing->published_at : null;
+        $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
 
         if ($request->filled('organization_id')) {
             $validated['org_id'] = $request->input('organization_id');
@@ -364,20 +363,19 @@ class PropertyController extends Controller
     ): JsonResponse {
         $before = $propertyListing->replicate()->toArray();
 
-        // An edited listing that was public before re-review should return to
-        // public visibility when its changes are approved. New listings and
-        // intentionally unpublished listings keep the separate Approved
-        // state and still require the explicit Publish action.
-        $isReapprovalOfPublicListing = $propertyListing->status === PropertyWorkflow::STATUS_PENDING_REVIEW
+        // A location-verified listing can become public as soon as it is
+        // approved. Unverified listings remain Approved until the location
+        // verification step succeeds.
+        $shouldPublishOnApproval = $propertyListing->status === PropertyWorkflow::STATUS_PENDING_REVIEW
             && $status === PropertyWorkflow::STATUS_APPROVED
-            && $propertyListing->published_at !== null;
+            && $propertyListing->location_verified;
 
-        if ($isReapprovalOfPublicListing) {
+        if ($shouldPublishOnApproval) {
             $status = PropertyWorkflow::STATUS_PUBLISHED;
             $action = PropertyWorkflow::ACTION_REPUBLISHED;
-            $title = 'Property republished';
-            $description = sprintf('Property "%s" was approved and republished.', $propertyListing->title);
-            $mailSubject = 'Property republished';
+            $title = $propertyListing->published_at ? 'Property republished' : 'Property published';
+            $description = sprintf('Property "%s" was approved and published.', $propertyListing->title);
+            $mailSubject = $title;
             $mailCtaLabel = 'View property';
         }
 
@@ -454,11 +452,18 @@ class PropertyController extends Controller
     ): JsonResponse {
         $before = $propertyListing->replicate()->toArray();
 
-        $propertyListing->fill([
+        $updates = [
             'location_verified' => $verified,
             'location_verified_by' => $verified ? $request->user()?->id : null,
             'location_verified_at' => $verified ? now() : null,
-        ]);
+        ];
+
+        if ($verified && $propertyListing->status === PropertyWorkflow::STATUS_APPROVED) {
+            $updates['status'] = PropertyWorkflow::STATUS_PUBLISHED;
+            $updates['published_at'] = $propertyListing->published_at ?? now();
+        }
+
+        $propertyListing->fill($updates);
         $propertyListing->save();
 
         $this->recordActivity($request, $propertyListing, $action, $description, $before, $propertyListing->fresh()->toArray(), ['title' => $title]);

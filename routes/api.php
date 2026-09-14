@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\SeekerController as AdminSeekerController;
 use App\Http\Controllers\Api\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Api\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Api\Admin\PlanRequestController as AdminPlanRequestController;
+use App\Http\Controllers\Api\Admin\InquiryController as AdminInquiryController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\SubscriptionController as AdminSubscriptionController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\Api\SuperAdmin\OrderController;
 use App\Http\Controllers\Api\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceController as SuperAdminServiceController;
 use App\Http\Controllers\Api\ServiceMediaController;
+use App\Http\Controllers\Api\OrganizationMediaController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceImportController as SuperAdminServiceImportController;
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
@@ -77,6 +79,7 @@ Route::post('stripe/webhook', [StripeWebhookController::class, 'handle']);
 Route::get('media/{media}', [MediaController::class, 'show'])->name('media.show');
 Route::middleware('auth:sanctum')->delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
 Route::get('service-media/{serviceMedia}', [ServiceMediaController::class, 'show'])->name('service-media.show');
+Route::get('organization-media/{organization}/{type}', [OrganizationMediaController::class, 'show'])->name('organization-media.show');
 Route::middleware('auth:sanctum')->delete('service-media/{serviceMedia}', [ServiceMediaController::class, 'destroy'])->name('service-media.destroy');
 
 Route::prefix('seeker')->group(function (): void {
@@ -149,6 +152,9 @@ Route::prefix('admin')->group(function (): void {
         Route::post('plan-requests', [AdminPlanRequestController::class, 'store'])->middleware('permission:plan_request.create');
         Route::get('plan-requests/{planRequest}', [AdminPlanRequestController::class, 'show'])->middleware('permission:plan_request.view');
 
+        Route::get('inquiries', [AdminInquiryController::class, 'index'])->middleware('module:inquiry_management');
+        Route::get('inquiries/{inquiry}', [AdminInquiryController::class, 'show'])->middleware('module:inquiry_management');
+
         Route::get('orders', [AdminOrderController::class, 'index'])->middleware('permission:order.view');
         Route::post('orders', [AdminOrderController::class, 'store'])->middleware('permission:order.create');
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->middleware('permission:order.view');
@@ -177,8 +183,10 @@ Route::prefix('admin')->group(function (): void {
         Route::get('seekers/{user}', [AdminSeekerController::class, 'show'])->middleware('permission:user.view');
 
         Route::get('businesses', [AdminOrganizationController::class, 'index'])->middleware('permission:company.view');
+        Route::get('businesses/current', [AdminOrganizationController::class, 'current'])->middleware('permission:settings.view|company.view');
         Route::get('businesses/{organization}', [AdminOrganizationController::class, 'show'])->middleware('permission:company.view');
         Route::put('businesses/{organization}', [AdminOrganizationController::class, 'update'])->middleware('permission:company.update');
+        Route::post('businesses/{organization}/media', [AdminOrganizationController::class, 'uploadMedia'])->middleware('permission:settings.update|company.update');
 
         Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
         Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.view']);
@@ -348,6 +356,9 @@ Route::prefix('super-admin')->group(function (): void {
         Route::post('plan-requests/{planRequest}/approve', [PlanRequestController::class, 'approve'])->middleware('permission:plan_request.approve');
         Route::post('plan-requests/{planRequest}/reject', [PlanRequestController::class, 'reject'])->middleware('permission:plan_request.reject');
         Route::delete('plan-requests/{planRequest}', [PlanRequestController::class, 'destroy'])->middleware('permission:plan_request.delete');
+
+        Route::get('inquiries', [AdminInquiryController::class, 'index']);
+        Route::get('inquiries/{inquiry}', [AdminInquiryController::class, 'show']);
 
         Route::get('coupons', [CouponController::class, 'index'])->middleware('permission:coupon.view');
         Route::post('coupons', [CouponController::class, 'store'])->middleware('permission:coupon.create');

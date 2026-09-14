@@ -7,13 +7,32 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class AdminOrganizationResource extends JsonResource
 {
+    private function mediaUrl(Request $request, ?string $url, string $type): ?string
+    {
+        if (!$url) {
+            return null;
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return rtrim($request->getSchemeAndHttpHost(), '/').$url;
+        }
+
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$this->id.'/'.$type;
+    }
+
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'generated_id' => $this->generated_id,
             'display_id' => $this->generated_id ?: $this->id,
-            'image' => $this->logo_url ?: '/media/avatars/blank.png',
+            'image' => $this->mediaUrl($request, $this->logo_url, 'profile') ?: '/media/avatars/blank.png',
+            'logo_url' => $this->mediaUrl($request, $this->logo_url, 'profile'),
+            'banner_url' => $this->mediaUrl($request, $this->banner_url, 'banner'),
             'name' => $this->name,
             'referral_code' => $this->referral_code,
             'trading_name' => $this->trading_name,

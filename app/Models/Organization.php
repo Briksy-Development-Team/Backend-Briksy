@@ -50,6 +50,8 @@ class Organization extends Model
         'stripe_customer_id',
         'is_verified',
         'slug',
+        'logo_url',
+        'banner_url',
         'trial_started_at',
         'trial_ends_at',
         'subscription_status',
@@ -93,6 +95,7 @@ class Organization extends Model
 
         return static::query()
             ->where('generated_id', $value)
+            ->orWhere('slug', $value)
             ->orWhere($this->getKeyName(), $value)
             ->first();
     }

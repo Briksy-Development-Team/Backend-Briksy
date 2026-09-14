@@ -8,6 +8,23 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class PropertyListingResource extends JsonResource
 {
+    private function organizationMediaUrl(Request $request, ?string $url, ?string $organizationId, string $type): ?string
+    {
+        if (!$url || !$organizationId) {
+            return null;
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return rtrim($request->getSchemeAndHttpHost(), '/').$url;
+        }
+
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$organizationId.'/'.$type;
+    }
+
     private function normalizeMediaUrl(Request $request, ?string $url, ?string $mediaId = null): ?string
     {
         if (! $url) {
@@ -74,11 +91,13 @@ class PropertyListingResource extends JsonResource
                 'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
                 'state' => $this->state,
             ],
-            'organization' => $this->whenLoaded('organization', function (): array {
+            'organization' => $this->whenLoaded('organization', function () use ($request): array {
                 return [
                     'id' => $this->organization?->id,
                     'name' => $this->organization?->name,
                     'slug' => $this->organization?->slug,
+                    'logo_url' => $this->organizationMediaUrl($request, $this->organization?->logo_url, $this->organization?->id, 'profile'),
+                    'banner_url' => $this->organizationMediaUrl($request, $this->organization?->banner_url, $this->organization?->id, 'banner'),
                     'type' => $this->organization?->organizationType?->name,
                     'is_verified' => (bool) $this->organization?->is_verified,
                 ];

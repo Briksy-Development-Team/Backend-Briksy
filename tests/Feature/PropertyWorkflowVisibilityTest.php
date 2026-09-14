@@ -53,4 +53,60 @@ class PropertyWorkflowVisibilityTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.price', $newPrice);
     }
+
+    public function test_pending_verified_property_is_published_when_approved(): void
+    {
+        $this->seed();
+
+        $superAdmin = User::query()->where('email', 'superadmin@brisky.example')->firstOrFail();
+        $property = PropertyListing::query()
+            ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW)
+            ->firstOrFail();
+
+        $property->forceFill([
+            'location_verified' => true,
+            'published_at' => null,
+        ])->save();
+
+        Sanctum::actingAs($superAdmin, ['super_admin']);
+        $this->patchJson('/api/super-admin/properties/' . $property->generated_id . '/approve')
+            ->assertOk()
+            ->assertJsonPath('data.status', PropertyWorkflow::STATUS_PUBLISHED);
+
+        $property->refresh();
+        $this->assertSame(PropertyWorkflow::STATUS_PUBLISHED, $property->status);
+        $this->assertNotNull($property->published_at);
+
+        $this->getJson('/api/seeker/properties/' . $property->generated_id)->assertOk();
+    }
+
+    public function test_approved_property_is_published_when_location_is_verified(): void
+    {
+        $this->seed();
+
+        $superAdmin = User::query()->where('email', 'superadmin@brisky.example')->firstOrFail();
+        $property = PropertyListing::query()
+            ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW)
+            ->firstOrFail();
+
+        $property->forceFill([
+            'status' => PropertyWorkflow::STATUS_APPROVED,
+            'location_verified' => false,
+            'published_at' => null,
+        ])->save();
+
+        $this->getJson('/api/seeker/properties/' . $property->generated_id)->assertNotFound();
+
+        Sanctum::actingAs($superAdmin, ['super_admin']);
+        $this->patchJson('/api/super-admin/properties/' . $property->generated_id . '/verify-location')
+            ->assertOk()
+            ->assertJsonPath('data.status', PropertyWorkflow::STATUS_PUBLISHED);
+
+        $property->refresh();
+        $this->assertSame(PropertyWorkflow::STATUS_PUBLISHED, $property->status);
+        $this->assertTrue((bool) $property->location_verified);
+        $this->assertNotNull($property->published_at);
+
+        $this->getJson('/api/seeker/properties/' . $property->generated_id)->assertOk();
+    }
 }

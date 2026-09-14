@@ -160,8 +160,11 @@ class PropertyListing extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query
-            ->where('status', PropertyWorkflow::STATUS_PUBLISHED)
-            ->where('location_verified', true);
+            ->where('location_verified', true)
+            ->whereIn('status', [
+                PropertyWorkflow::STATUS_PUBLISHED,
+                PropertyWorkflow::STATUS_APPROVED,
+            ]);
     }
 
     public function scopeVisibleToSeekers(Builder $query): Builder

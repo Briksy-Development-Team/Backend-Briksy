@@ -18,7 +18,7 @@ class OrganizationSearchController extends Controller
         $query = Organization::query()
             ->with(['organizationType', 'services', 'serviceGroups']);
 
-        ApiQueryBuilder::applySearch($query, $request->search(), ['name', 'slug', 'abn']);
+        ApiQueryBuilder::applySearch($query, $request->search(), ['name', 'slug', 'abn', 'address', 'state', 'postcode', 'contact_email']);
 
         if ($request->filled('type')) {
             $query->whereHas('organizationType', fn ($typeQuery) => $typeQuery->where('slug', $request->string('type')->toString()));

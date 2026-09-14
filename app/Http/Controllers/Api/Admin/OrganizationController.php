@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Support\Query\ApiQueryBuilder; 
 use Illuminate\Http\JsonResponse; 
 use Illuminate\Http\Request; 
+use Illuminate\Support\Facades\Storage;
 use App\Services\Webhooks\WebhookDispatcherService;
 
 class OrganizationController extends Controller 
@@ -79,6 +80,27 @@ class OrganizationController extends Controller
             'Organizations retrieved successfully.' 
         ); 
     } 
+
+    public function current(Request $request): JsonResponse
+    {
+        $organizationId = $request->user()?->organization_id;
+
+        if (!$organizationId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin account is not assigned to an organization.',
+            ], 403);
+        }
+
+        $organization = Organization::query()
+            ->with('organizationType')
+            ->findOrFail($organizationId);
+
+        return $this->success(
+            new AdminOrganizationResource($organization),
+            'Organization retrieved successfully.'
+        );
+    }
  
     public function show(Organization $organization): JsonResponse 
     { 
@@ -128,4 +150,38 @@ class OrganizationController extends Controller
             'Organization updated successfully.'
         );
     }
-} 
+
+    public function uploadMedia(Request $request, Organization $organization): JsonResponse
+    {
+        $organizationId = $request->user()?->organization_id;
+        abort_unless($organizationId && $organization->id === $organizationId, 403);
+
+        $request->validate([
+            'profile_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            'banner_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+        ]);
+
+        if ($request->hasFile('profile_image')) {
+            $organization->logo_url = $this->replaceStoredImage($organization->logo_url, $request->file('profile_image'), "organizations/{$organization->id}/profile");
+        }
+
+        if ($request->hasFile('banner_image')) {
+            $organization->banner_url = $this->replaceStoredImage($organization->banner_url, $request->file('banner_image'), "organizations/{$organization->id}/banner");
+        }
+
+        $organization->save();
+        $organization->loadMissing('organizationType');
+
+        return $this->success(new AdminOrganizationResource($organization), 'Organization images updated successfully.');
+    }
+
+    private function replaceStoredImage(?string $oldPath, mixed $file, string $directory): string
+    {
+        $oldStoragePath = preg_replace('#^storage/#', '', ltrim((string) $oldPath, '/')) ?? '';
+        if ($oldStoragePath !== '' && Storage::disk('public')->exists($oldStoragePath)) {
+            Storage::disk('public')->delete($oldStoragePath);
+        }
+
+        return 'storage/'.ltrim($file->storePublicly($directory, 'public'), '/');
+    }
+}

@@ -142,6 +142,29 @@ class SeekerApiTest extends TestCase
             ->assertJsonPath('data.0.slug', 'apex-lending');
     }
 
+    public function test_organization_detail_can_be_loaded_by_slug(): void
+    {
+        $type = OrganizationType::create([
+            'name' => 'Builder',
+            'slug' => 'builders',
+        ]);
+
+        Organization::create([
+            'plan_id' => null,
+            'type_id' => $type->id,
+            'name' => 'Blueprint Builders',
+            'slug' => 'blueprint-builders',
+            'abn' => '52345678901',
+            'contact_email' => 'hello@blueprint.test',
+            'is_verified' => true,
+        ]);
+
+        $this->getJson('/api/seeker/organizations/blueprint-builders')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Blueprint Builders')
+            ->assertJsonPath('data.slug', 'blueprint-builders');
+    }
+
     public function test_seeker_can_create_guest_inquiry(): void
     {
         $type = OrganizationType::create([
@@ -177,6 +200,72 @@ class SeekerApiTest extends TestCase
             'seeker_email' => 'jamie@example.com',
             'status' => 'new',
         ]);
+    }
+
+    public function test_super_admin_can_list_property_inquiries(): void
+    {
+        $type = OrganizationType::create([
+            'name' => 'Real Estate Agency',
+            'slug' => 'real-estate-agency',
+        ]);
+
+        $organization = Organization::create([
+            'plan_id' => null,
+            'type_id' => $type->id,
+            'name' => 'Harborview Realty',
+            'slug' => 'harborview-realty',
+            'abn' => '62345678901',
+            'contact_email' => 'hello@harborview.test',
+        ]);
+
+        $superAdmin = User::create([
+            'name' => 'Super Admin',
+            'email' => 'super@example.com',
+            'password_hash' => 'secret123',
+        ]);
+
+        $superAdminRole = Role::query()->firstOrCreate(
+            ['name' => 'super_admin'],
+            ['scope' => 'global', 'is_system' => true]
+        );
+
+        $superAdmin->roles()->attach($superAdminRole->id, [
+            'id' => (string) str()->uuid(),
+            'organization_id' => null,
+        ]);
+
+        $creator = User::create([
+            'name' => 'Property Admin',
+            'email' => 'property-admin@example.com',
+            'password_hash' => 'secret123',
+            'organization_id' => $organization->id,
+        ]);
+
+        $property = PropertyListing::create([
+            'org_id' => $organization->id,
+            'creator_id' => $creator->id,
+            'title' => 'Harborview Townhouse',
+            'status' => 'Published',
+        ]);
+
+        $this->postJson('/api/seeker/inquiries', [
+            'organization_id' => $organization->id,
+            'property_listing_id' => $property->id,
+            'subject' => 'Inspection request',
+            'message' => 'Can I inspect this property?',
+            'seeker_name' => 'Jamie Seeker',
+            'seeker_email' => 'jamie-admin-list@example.com',
+        ])->assertCreated();
+
+        Sanctum::actingAs($superAdmin, ['super_admin']);
+
+        $this->getJson('/api/super-admin/inquiries?filter[property_listing_id]='.$property->id)
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.property_title', 'Harborview Townhouse')
+            ->assertJsonPath('data.0.organization_name', 'Harborview Realty')
+            ->assertJsonPath('data.0.seeker_email', 'jamie-admin-list@example.com');
     }
 
     public function test_seeker_can_add_and_list_property_favorites(): void

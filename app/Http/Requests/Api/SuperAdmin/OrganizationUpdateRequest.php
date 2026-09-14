@@ -36,6 +36,7 @@ class OrganizationUpdateRequest extends FormRequest
             'stripe_customer_id' => ['nullable', 'string', 'max:120'],
             'is_verified' => ['nullable', 'boolean'],
             'logo_url' => ['nullable', 'string', 'max:500'],
+            'banner_url' => ['nullable', 'string', 'max:500'],
             'brand_primary_color' => ['nullable', 'string', 'max:20'],
             'brand_secondary_color' => ['nullable', 'string', 'max:20'],
             'licensed_staff_seats' => ['nullable', 'integer', 'min:0'],

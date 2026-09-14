@@ -206,15 +206,14 @@ class PropertyController extends Controller
         // Keep the publication intent of an already-public listing while its
         // edited data is pending review. A new/unpublished listing must still
         // remain unpublished until it is explicitly published.
-        $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED
-            && $propertyListing->published_at !== null;
+        $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED;
 
         $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
         $validated['submitted_at'] = now();
         $validated['reviewed_by'] = null;
         $validated['reviewed_at'] = null;
         $validated['rejection_reason'] = null;
-        $validated['published_at'] = $wasPublished ? $propertyListing->published_at : null;
+        $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
 
         $propertyListing->fill($validated);
         $propertyListing->save();

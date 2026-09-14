@@ -22,6 +22,7 @@ class PropertyListingIndexRequest extends ApiIndexRequest
             'created_at' => 'created_at',
             'title' => 'title',
             'rating' => 'avg_prop_rating',
+            'price' => 'price',
         ];
     }
 

@@ -243,7 +243,6 @@ class ServiceController extends Controller
             'title' => $title,
             'category' => $validated['category'] ?? $service?->category,
             'slug' => $validated['slug'] ?? $service?->slug,
-            'generated_id' => $service?->generated_id ?? $this->idGenerator->generate('services'),
             'description' => $validated['description'] ?? $service?->description,
             'service_area' => $validated['service_area'] ?? $service?->service_area,
             'service_area_geometry' => $validated['service_area_geometry'] ?? $service?->service_area_geometry,
@@ -253,6 +252,10 @@ class ServiceController extends Controller
                 ? (bool) $validated['is_active']
                 : (bool) ($service?->is_active ?? true),
         ];
+
+        if ($service === null) {
+            $payload['generated_id'] = $this->idGenerator->generate('services');
+        }
 
         if ($request->user()?->isSuperAdmin() || $request->user()?->isGlobalStaff()) {
             $payload['organization_id'] = $validated['organization_id'] ?? $service?->organization_id;

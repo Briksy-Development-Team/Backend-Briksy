@@ -15,6 +15,7 @@ class AdminSeekerResource extends JsonResource
             'display_id' => $this->display_id,
             'full_name' => $this->name,
             'email_address' => $this->email,
+            'admin_notes' => $this->admin_notes,
             'status' => $this->deleted_at === null ? 'Active' : 'Inactive',
             'last_login' => null,
             'current_login' => null,

@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\SuperAdmin\ServiceImportController as SuperAdminSer
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
+use App\Http\Controllers\Api\PropertyFeatureController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyOfferController as SuperAdminPropertyOfferController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyMapController as SuperAdminPropertyMapController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionPlanController as SuperAdminSubscriptionPlanController;
@@ -181,6 +182,7 @@ Route::prefix('admin')->group(function (): void {
 
         Route::get('seekers', [AdminSeekerController::class, 'index'])->middleware('permission:user.view');
         Route::get('seekers/{user}', [AdminSeekerController::class, 'show'])->middleware('permission:user.view');
+        Route::put('seekers/{user}', [AdminSeekerController::class, 'update'])->middleware('permission:user.update');
 
         Route::get('businesses', [AdminOrganizationController::class, 'index'])->middleware('permission:company.view');
         Route::get('businesses/current', [AdminOrganizationController::class, 'current'])->middleware('permission:settings.view|company.view');
@@ -189,6 +191,7 @@ Route::prefix('admin')->group(function (): void {
         Route::post('businesses/{organization}/media', [AdminOrganizationController::class, 'uploadMedia'])->middleware('permission:settings.update|company.update');
 
         Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
+        Route::get('property-features', [PropertyFeatureController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
         Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.view']);
         Route::post('properties', [AdminPropertyController::class, 'store'])->middleware(['module:property_management', 'permission:property.create']);
         Route::get('properties/import/meta', [AdminPropertyImportController::class, 'meta'])->middleware(['module:property_management', 'permission:property.create']);
@@ -307,6 +310,7 @@ Route::prefix('super-admin')->group(function (): void {
         Route::put('organization-types/{organizationType}', [OrganizationTypeController::class, 'update'])->middleware('permission:company.update');
 
         Route::get('properties', [SuperAdminPropertyController::class, 'index'])->middleware('permission:property.view');
+        Route::get('property-features', [PropertyFeatureController::class, 'index'])->middleware('permission:property.view');
         Route::get('properties/map', [SuperAdminPropertyController::class, 'map'])->middleware('permission:property.view');
         Route::post('properties', [SuperAdminPropertyController::class, 'store'])->middleware('permission:property.create');
         Route::get('properties/{propertyListing}', [SuperAdminPropertyController::class, 'show'])->middleware('permission:property.view');

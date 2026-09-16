@@ -34,6 +34,7 @@ class User extends Authenticatable
         'id_verified',
         'organization_id',
         'email_verified_at',
+        'admin_notes',
     ];
 
     /**

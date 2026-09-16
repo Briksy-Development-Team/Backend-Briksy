@@ -31,7 +31,6 @@ class DatabaseSeeder extends Seeder
             NotificationSeeder::class,
             CommerceModuleSeeder::class,
             PropertyListingSeeder::class,
-            PropertyListingFeatureSeeder::class,
         ]);
     }
 }

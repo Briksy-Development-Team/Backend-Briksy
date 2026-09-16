@@ -77,6 +77,7 @@ class PropertyController extends Controller
             'creator',
             'media',
             'propertyType',
+            'features',
             'reviewer',
             'locationVerifier',
             'offers.creator',
@@ -133,6 +134,7 @@ class PropertyController extends Controller
             'published_at' => null,
         ]);
 
+        $listing->features()->sync($request->input('features', []));
         $this->storeListingMedia($listing, $request);
         $this->recordPropertyActivity(
             $request,
@@ -153,7 +155,7 @@ class PropertyController extends Controller
             ['title' => 'Submitted for review']
         );
 
-        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
         $this->notificationService->notifySuperAdminTeam(
                 $this->notificationService->buildPayload(
@@ -190,6 +192,8 @@ class PropertyController extends Controller
 
         $before = $propertyListing->replicate()->toArray();
         $validated = $request->validated();
+        $features = array_key_exists('features', $validated) ? $validated['features'] : null;
+        unset($validated['features']);
         if (array_key_exists('address', $validated) && !array_key_exists('full_address', $validated)) {
             $validated['full_address'] = $validated['address'];
         }
@@ -217,6 +221,9 @@ class PropertyController extends Controller
 
         $propertyListing->fill($validated);
         $propertyListing->save();
+        if ($features !== null) {
+            $propertyListing->features()->sync($features);
+        }
 
         $this->storeListingMedia($propertyListing, $request);
         $this->recordPropertyActivity(
@@ -238,7 +245,7 @@ class PropertyController extends Controller
             ['title' => 'Resubmitted for review']
         );
 
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features', 'reviewer', 'locationVerifier', 'activityLogs.user']);
         $propertyListing->loadMissing('offers.creator');
 
         $this->notificationService->notifySuperAdminTeam(
@@ -299,7 +306,7 @@ class PropertyController extends Controller
 
         return PropertyListing::query()
             ->where('org_id', $organizationId)
-            ->with(['organization.organizationType', 'creator', 'propertyType', 'media', 'offers.creator']);
+            ->with(['organization.organizationType', 'creator', 'propertyType', 'media', 'features', 'offers.creator']);
     }
 
     private function applyFilters(Builder $query, PropertyListingIndexRequest $request): void

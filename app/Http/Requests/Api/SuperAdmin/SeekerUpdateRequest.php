@@ -23,6 +23,7 @@ class SeekerUpdateRequest extends FormRequest
             'password' => ['nullable', 'confirmed', Password::min(8)],
             'mobile_number' => ['nullable', 'string', 'max:30', Rule::unique('users', 'mobile_number')->ignore($seeker?->id)],
             'display_name' => ['nullable', 'string', 'max:120'],
+            'admin_notes' => ['nullable', 'string'],
         ];
     }
 }

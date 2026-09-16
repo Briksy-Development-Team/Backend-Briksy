@@ -92,6 +92,12 @@ class AdminPropertyListingResource extends JsonResource
                     'category' => $this->propertyType?->category,
                 ] : null;
             }),
+            'features' => $this->whenLoaded('features', fn (): array => $this->features->map(fn ($feature): array => [
+                'id' => $feature->id,
+                'name' => $feature->name,
+                'slug' => $feature->slug,
+                'group_id' => $feature->group_id,
+            ])->values()->all()),
             'images' => $this->whenLoaded('media', function () use ($request): array {
                 return $this->media
                     ->where('media_type', 'image')

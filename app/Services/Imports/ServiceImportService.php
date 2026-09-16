@@ -457,6 +457,11 @@ final class ServiceImportService
         return $type?->id;
     }
 
+    private function normalizeHeader(string $value): string
+    {
+        return strtolower(preg_replace('/[^a-z0-9]+/i', '', trim($value)) ?? '');
+    }
+
     private function validatePayload(array $payload)
     {
         $organizationLookupFailed = (bool) ($payload['_organization_lookup_failed'] ?? false);

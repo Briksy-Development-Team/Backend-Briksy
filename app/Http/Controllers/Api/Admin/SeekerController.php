@@ -92,6 +92,28 @@ class SeekerController extends Controller
         );
     }
 
+    public function update(Request $request, User $user): JsonResponse
+    {
+        abort_unless($user->organization_id === $request->user()?->organization_id && $user->hasRole('seeker'), 404);
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'string', 'max:120'],
+            'email' => ['sometimes', 'email', 'max:150'],
+            'display_name' => ['nullable', 'string', 'max:120'],
+            'mobile_number' => ['nullable', 'string', 'max:30'],
+            'admin_notes' => ['nullable', 'string'],
+        ]);
+
+        $user->fill($data);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => new AdminSeekerResource($user->fresh()->load('seekerProfile')),
+            'message' => 'Seeker updated successfully.',
+        ]);
+    }
+
     public function show(User $user): JsonResponse
     {
         $organizationId = request()->user()?->organization_id;

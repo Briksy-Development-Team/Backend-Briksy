@@ -90,6 +90,7 @@ class PropertyController extends Controller
             'creator',
             'media',
             'propertyType',
+            'features',
             'reviewer',
             'locationVerifier',
             'offers.creator',
@@ -137,8 +138,9 @@ class PropertyController extends Controller
             'submitted_at' => now(),
         ]);
 
+        $listing->features()->sync($request->input('features', []));
         $this->storeListingMedia($listing, $request);
-        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features']);
 
         return $this->created(new AdminPropertyListingResource($listing), 'Property listing created successfully.');
     }
@@ -149,6 +151,8 @@ class PropertyController extends Controller
             'organization_id' => ['sometimes', 'uuid', 'exists:organizations,id'],
         ]);
         $validated = $request->validated();
+        $features = array_key_exists('features', $validated) ? $validated['features'] : null;
+        unset($validated['features']);
         unset($validated['images'], $validated['videos']);
 
         foreach (['address', 'address_line_1', 'full_address', 'formatted_address', 'country'] as $field) {
@@ -174,8 +178,11 @@ class PropertyController extends Controller
         }
 
         $propertyListing->fill($validated)->save();
+        if ($features !== null) {
+            $propertyListing->features()->sync($features);
+        }
         $this->storeListingMedia($propertyListing, $request);
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features']);
 
         return $this->success(new AdminPropertyListingResource($propertyListing), 'Property listing updated successfully.');
     }
@@ -280,7 +287,7 @@ class PropertyController extends Controller
 
     private function baseQuery(): Builder
     {
-        return PropertyListing::query()->with(['organization.organizationType', 'creator', 'propertyType', 'offers.creator']);
+        return PropertyListing::query()->with(['organization.organizationType', 'creator', 'propertyType', 'features', 'offers.creator']);
     }
 
     private function applyFilters(Builder $query, PropertyListingIndexRequest $request): void

@@ -353,10 +353,12 @@ final class PropertyImportService
             $normalized = $this->normalizeValue($field, $value);
 
             if ($field === 'property_type_id' && $normalized !== null) {
+                $submittedPropertyType = trim((string) $value);
                 $resolvedPropertyTypeId = $this->resolvePropertyTypeId((string) $normalized);
 
                 if ($resolvedPropertyTypeId === null) {
                     $payload['_property_type_lookup_failed'] = true;
+                    $payload['_property_type_value'] = $submittedPropertyType;
                     $normalized = null;
                 } else {
                     $normalized = $resolvedPropertyTypeId;
@@ -438,6 +440,11 @@ final class PropertyImportService
         return $propertyType?->id;
     }
 
+    private function normalizeHeader(string $value): string
+    {
+        return strtolower(preg_replace('/[^a-z0-9]+/i', '', trim($value)) ?? '');
+    }
+
     private function validatePayload(array $payload)
     {
         $lookupFailed = (bool) ($payload['_property_type_lookup_failed'] ?? false);
@@ -445,9 +452,13 @@ final class PropertyImportService
 
         $validator = Validator::make($payload, PropertyListingRules::store());
 
-        $validator->after(static function ($validator) use ($lookupFailed): void {
+        $validator->after(static function ($validator) use ($lookupFailed, $payload): void {
             if ($lookupFailed) {
-                $validator->errors()->add('property_type_id', 'Property Type not found.');
+                $submittedValue = $payload['_property_type_value'] ?? null;
+                $validator->errors()->add(
+                    'property_type_id',
+                    filled($submittedValue) ? "Unknown property type: {$submittedValue}" : 'Property Type not found.'
+                );
             }
         });
 

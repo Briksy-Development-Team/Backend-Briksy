@@ -13,7 +13,7 @@ class ServiceMapService
     {
         $query = $this->baseQuery();
 
-        if (!$request->user()?->hasRole('super_admin')) {
+        if (!$request->user()?->isSuperAdmin() && !$request->user()?->isGlobalStaff()) {
             $organizationId = $request->user()?->organization_id;
 
             if ($organizationId) {
@@ -21,7 +21,15 @@ class ServiceMapService
             }
         }
 
-        return $query->get();
+        return $query
+            ->where(function ($serviceQuery): void {
+                $serviceQuery
+                    ->whereNotNull('service_area_geometry')
+                    ->orWhere(function ($areaQuery): void {
+                        $areaQuery->whereNotNull('service_area')->whereRaw("TRIM(service_area) <> ''");
+                    });
+            })
+            ->get();
     }
 
     private function baseQuery(): Builder

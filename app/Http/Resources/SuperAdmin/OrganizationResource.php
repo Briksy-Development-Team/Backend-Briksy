@@ -38,6 +38,8 @@ class OrganizationResource extends JsonResource
                 'slug' => $this->organizationType?->slug,
             ]),
             'pending_properties_count' => (int) ($this->pending_properties_count ?? 0),
+            'property_count' => (int) ($this->property_count ?? 0),
+            'service_count' => (int) ($this->service_count ?? 0),
             'contact_email' => $this->contact_email,
             'contact_phone' => $this->contact_phone,
             'address' => $this->address,

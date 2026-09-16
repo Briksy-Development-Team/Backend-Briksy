@@ -13,6 +13,7 @@ use App\Models\BuyerBrief;
 use App\Models\BuilderProject;
 use App\Support\Properties\PropertyWorkflow;
 use App\Support\Business\BusinessModuleResolver;
+use App\Support\Business\PlanCapabilityResolver;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,10 @@ use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
-    public function __construct(private readonly BusinessModuleResolver $moduleResolver)
+    public function __construct(
+        private readonly BusinessModuleResolver $moduleResolver,
+        private readonly PlanCapabilityResolver $planCapabilities,
+    )
     {
     }
 
@@ -46,7 +50,14 @@ class DashboardController extends Controller
             'rejected_properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_REJECTED)->count() : 0,
             'archived_properties' => $propertyWorkflow ? PropertyListing::query()->where('org_id', $organization->id)->where('status', PropertyWorkflow::STATUS_ARCHIVED)->count() : 0,
             'services' => $serviceWorkflow ? Service::query()->where('organization_id', $organization->id)->count() : 0,
-            'service_regions' => $serviceWorkflow ? Service::query()->where('organization_id', $organization->id)->whereNotNull('service_area_geometry')->count() : 0,
+            'service_regions' => $serviceWorkflow ? Service::query()
+                ->where('organization_id', $organization->id)
+                ->where(function ($query): void {
+                    $query->whereNotNull('service_area_geometry')->orWhere(function ($areaQuery): void {
+                        $areaQuery->whereNotNull('service_area')->whereRaw("TRIM(service_area) <> ''");
+                    });
+                })
+                ->count() : 0,
             'buyer_briefs' => $buyerWorkflow ? BuyerBrief::where('organization_id', $organization->id)->count() : 0,
             'builder_projects' => $builderWorkflow ? BuilderProject::where('organization_id', $organization->id)->count() : 0,
             'inquiries' => Inquiry::query()->where('organization_id', $organization->id)->count(),
@@ -108,7 +119,11 @@ class DashboardController extends Controller
                     ->count() : 0,
                 'service_regions' => $serviceWorkflow ? Service::query()
                     ->where('organization_id', $organization->id)
-                    ->whereNotNull('service_area_geometry')
+                    ->where(function ($query): void {
+                        $query->whereNotNull('service_area_geometry')->orWhere(function ($areaQuery): void {
+                            $areaQuery->whereNotNull('service_area')->whereRaw("TRIM(service_area) <> ''");
+                        });
+                    })
                     ->whereBetween('created_at', [$start, $end])
                     ->count() : 0,
                 'buyer_briefs' => $buyerWorkflow ? BuyerBrief::query()
@@ -199,6 +214,7 @@ class DashboardController extends Controller
             'category' => $category,
             'dashboard_config' => $this->dashboardConfig($category),
             'capabilities' => $this->moduleResolver->capabilities($request->user()),
+            'service_area_limit' => $this->serviceAreaLimit($request),
             'organization' => [
                 'id' => $organization->id,
                 'name' => $organization->name,
@@ -226,6 +242,18 @@ class DashboardController extends Controller
             'recent_inquiries' => $recentInquiries,
             'recent_orders' => $recentOrders,
         ], 'Dashboard analytics retrieved successfully.');
+    }
+
+    private function serviceAreaLimit(Request $request): ?int
+    {
+        $user = $request->user();
+        if (!$user || $user->isSuperAdmin() || $user->isGlobalStaff()) {
+            return null;
+        }
+
+        $value = $this->planCapabilities->feature($user, 'Service Areas')['value'] ?? null;
+
+        return is_numeric($value) ? (int) $value : null;
     }
 
     private function dashboardConfig(?string $category): array

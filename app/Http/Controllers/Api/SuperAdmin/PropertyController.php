@@ -287,7 +287,9 @@ class PropertyController extends Controller
 
     private function baseQuery(): Builder
     {
-        return PropertyListing::query()->with(['organization.organizationType', 'creator', 'propertyType', 'features', 'offers.creator']);
+        return PropertyListing::query()
+            ->whereHas('organization.organizationType', fn ($typeQuery) => $typeQuery->whereNotIn('slug', ['trades-professionals', 'solo-traders']))
+            ->with(['organization.organizationType', 'creator', 'propertyType', 'features', 'offers.creator']);
     }
 
     private function applyFilters(Builder $query, PropertyListingIndexRequest $request): void

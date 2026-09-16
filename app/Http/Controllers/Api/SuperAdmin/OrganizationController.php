@@ -108,8 +108,10 @@ class OrganizationController extends Controller
     {
         $organization->load(['organizationType', 'plan'])
             ->loadCount([
+                'propertyListings as property_count',
                 'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
                     ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
+                'ownedServices as service_count',
             ]);
 
         return $this->success(

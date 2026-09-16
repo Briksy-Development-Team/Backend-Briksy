@@ -15,6 +15,7 @@ use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Services\ServiceMapService;
 use App\Support\Query\ApiQueryBuilder;
+use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -25,6 +26,7 @@ class ServiceController extends Controller
         private readonly NotificationService $notificationService,
         private readonly DynamicIdGeneratorService $idGenerator,
         private readonly ServiceMapService $serviceMapService,
+        private readonly PlanCapabilityResolver $planCapabilities,
     ) {
     }
 
@@ -137,6 +139,7 @@ class ServiceController extends Controller
 
     public function store(ServiceStoreRequest $request): JsonResponse
     {
+        $this->assertServiceAreaCapability($request);
         $service = Service::query()->create($this->buildPayload($request));
 
         $this->storeMedia($service, $request);
@@ -190,6 +193,7 @@ class ServiceController extends Controller
     public function update(ServiceUpdateRequest $request, Service $service): JsonResponse
     {
         abort_unless($this->canAccessService($request, $service), 403);
+        $this->assertServiceAreaCapability($request, $service);
 
         $service->fill($this->buildPayload($request, $service));
         $service->save();
@@ -283,6 +287,67 @@ class ServiceController extends Controller
         $organizationId = $user->organization_id;
 
         return (bool) $organizationId && $service->organization_id === $organizationId;
+    }
+
+    private function assertServiceAreaCapability(Request $request, ?Service $service = null): void
+    {
+        $user = $request->user();
+
+        if (!$user || $user->isSuperAdmin() || $user->isGlobalStaff()) {
+            return;
+        }
+
+        $validated = $request->validated();
+        $areaProvided = array_key_exists('service_area', $validated);
+        $geometryProvided = array_key_exists('service_area_geometry', $validated);
+
+        if (!$areaProvided && !$geometryProvided) {
+            return;
+        }
+
+        $requestedArea = $areaProvided ? ($validated['service_area'] ?: null) : $service?->service_area;
+        $requestedGeometry = $geometryProvided ? ($validated['service_area_geometry'] ?: null) : $service?->service_area_geometry;
+
+        // Updating unrelated service fields must not require a plan feature just
+        // because an existing area is included in the edit form payload.
+        if ($service && $requestedArea === $service->service_area
+            && json_encode($requestedGeometry) === json_encode($service->service_area_geometry)) {
+            return;
+        }
+
+        if (blank($requestedArea) && blank($requestedGeometry)) {
+            return;
+        }
+
+        $feature = $this->planCapabilities->feature($user, 'Service Areas');
+        abort_unless(
+            $feature['enabled'],
+            403,
+            'Service area coverage is not included in your subscription plan.'
+        );
+
+        $limit = is_numeric($feature['value']) ? (int) $feature['value'] : null;
+        if ($limit === null || !$user->organization_id) {
+            return;
+        }
+
+        $alreadyCounted = $service && $service->organization_id === $user->organization_id
+            && (filled($service->service_area) || filled($service->service_area_geometry));
+
+        $used = Service::query()
+            ->where('organization_id', $user->organization_id)
+            ->where(function ($query): void {
+                $query->whereNotNull('service_area_geometry')->orWhere(function ($areaQuery): void {
+                    $areaQuery->whereNotNull('service_area')->whereRaw("TRIM(service_area) <> ''");
+                });
+            })
+            ->count();
+
+        abort_if(
+            !$alreadyCounted && $used >= $limit,
+            422,
+            sprintf('Your subscription allows up to %d service area%s.', $limit, $limit === 1 ? '' : 's')
+        );
     }
 
     private function storeMedia(Service $service, Request $request): void

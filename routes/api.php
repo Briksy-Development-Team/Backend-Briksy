@@ -128,7 +128,7 @@ Route::prefix('admin')->group(function (): void {
     Route::post('auth/register', [RegistrationController::class, 'registerAdmin']);
     Route::post('auth/login', [RegistrationController::class, 'loginAdmin']);
 
-    Route::middleware(['auth:sanctum', 'role:admin,admin_staff'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'role:admin,admin_staff', 'subscription'])->group(function (): void {
         Route::get('dashboard', [AdminDashboardController::class, 'index'])->middleware('permission:dashboard.view');
     });
 

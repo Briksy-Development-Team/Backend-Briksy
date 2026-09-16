@@ -9,6 +9,8 @@ class ServiceIndexRequest extends ApiIndexRequest
     public function allowedSorts(): array
     {
         return [
+            // display_id is an accessor on Service; sort by its persisted source.
+            'display_id' => 'generated_id',
             'created_at' => 'created_at',
             'name' => 'name',
             'slug' => 'slug',

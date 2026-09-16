@@ -42,7 +42,6 @@ class PropertyMapResource extends JsonResource
             return $this->media
                 ->where('media_type', 'image')
                 ->sortBy('sort_order')
-                ->take(4)
                 ->map(fn ($media): array => [
                     'id' => $media->id,
                     'url' => $this->normalizeMediaUrl($request, $media->file_url, (string) $media->id),
@@ -57,7 +56,6 @@ class PropertyMapResource extends JsonResource
             return $this->media
                 ->where('media_type', 'video')
                 ->sortBy('sort_order')
-                ->take(2)
                 ->map(fn ($media): array => [
                     'id' => $media->id,
                     'url' => $this->normalizeMediaUrl($request, $media->file_url, (string) $media->id),

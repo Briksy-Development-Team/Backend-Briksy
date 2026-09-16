@@ -21,7 +21,7 @@ class OrganizationResource extends JsonResource
             return rtrim($request->getSchemeAndHttpHost(), '/').$url;
         }
 
-        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$this->id.'/'.$type;
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$this->id.'/'.$type.'?v='.rawurlencode((string) ($this->updated_at?->timestamp ?? time()));
     }
 
     public function toArray(Request $request): array
@@ -49,14 +49,34 @@ class OrganizationResource extends JsonResource
                 'name' => $this->organizationType->name,
                 'slug' => $this->organizationType->slug,
             ] : null),
-            'services' => $this->whenLoaded('services', fn (): array => $this->services
+            'services' => $this->when(
+                $this->relationLoaded('services') || $this->relationLoaded('ownedServices'),
+                function (): array {
+                    $services = collect();
+
+                    if ($this->relationLoaded('services')) {
+                        $services = $services->concat($this->services);
+                    }
+
+                    if ($this->relationLoaded('ownedServices')) {
+                        $services = $services->concat($this->ownedServices);
+                    }
+
+                    return $services
+                ->filter(fn ($service): bool => (bool) $service->is_active)
+                ->unique('id')
                 ->map(fn ($service): array => [
                     'id' => $service->id,
                     'name' => $service->name,
                     'slug' => $service->slug,
-                    'description' => $service->pivot?->description,
-                    'starting_price' => $service->pivot?->starting_price !== null ? (float) $service->pivot->starting_price : null,
-                ])->values()->all()),
+                    'description' => $service->pivot?->description ?? $service->description,
+                    'starting_price' => $service->pivot?->starting_price !== null
+                        ? (float) $service->pivot->starting_price
+                        : ($service->rate_from !== null ? (float) $service->rate_from : null),
+                ])->values()->all();
+                },
+                []
+            ),
             'service_groups' => $this->whenLoaded('serviceGroups', fn (): array => $this->serviceGroups
                 ->map(fn ($group): array => [
                     'id' => $group->id,

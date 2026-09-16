@@ -17,7 +17,7 @@ class OrganizationMediaController extends Controller
         abort_unless($path !== '' && Storage::disk('public')->exists($path), 404);
 
         return response()->file(Storage::disk('public')->path($path), [
-            'Cache-Control' => 'public, max-age=86400',
+            'Cache-Control' => 'public, max-age=86400, immutable',
         ]);
     }
 }

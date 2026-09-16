@@ -22,7 +22,9 @@ class PropertyListingResource extends JsonResource
             return rtrim($request->getSchemeAndHttpHost(), '/').$url;
         }
 
-        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$organizationId.'/'.$type;
+        $version = $this->organization?->updated_at?->timestamp;
+
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$organizationId.'/'.$type.'?v='.rawurlencode((string) ($version ?? 0));
     }
 
     private function normalizeMediaUrl(Request $request, ?string $url, ?string $mediaId = null): ?string

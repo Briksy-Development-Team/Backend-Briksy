@@ -16,7 +16,7 @@ class OrganizationSearchController extends Controller
     public function index(OrganizationIndexRequest $request)
     {
         $query = Organization::query()
-            ->with(['organizationType', 'services', 'serviceGroups']);
+            ->with(['organizationType', 'services', 'ownedServices', 'serviceGroups']);
 
         ApiQueryBuilder::applySearch($query, $request->search(), ['name', 'slug', 'abn', 'address', 'state', 'postcode', 'contact_email']);
 
@@ -25,7 +25,12 @@ class OrganizationSearchController extends Controller
         }
 
         if ($request->filled('service_slug')) {
-            $query->whereHas('services', fn ($serviceQuery) => $serviceQuery->where('services.slug', $request->string('service_slug')->toString()));
+            $serviceSlug = $request->string('service_slug')->toString();
+            $query->where(function ($organizationQuery) use ($serviceSlug): void {
+                $organizationQuery
+                    ->whereHas('services', fn ($serviceQuery) => $serviceQuery->where('services.slug', $serviceSlug))
+                    ->orWhereHas('ownedServices', fn ($serviceQuery) => $serviceQuery->where('services.slug', $serviceSlug));
+            });
         }
 
         if ($request->filled('service_group_slug')) {
@@ -53,7 +58,7 @@ class OrganizationSearchController extends Controller
 
     public function show(Organization $organization)
     {
-        $organization->load(['organizationType', 'services', 'serviceGroups']);
+        $organization->load(['organizationType', 'services', 'ownedServices', 'serviceGroups']);
         $this->recordVisit($organization, request());
 
         return $this->success(

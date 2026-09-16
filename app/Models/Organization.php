@@ -187,6 +187,14 @@ class Organization extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Services created directly for this organisation from the admin panel.
+     */
+    public function ownedServices(): HasMany
+    {
+        return $this->hasMany(Service::class, 'organization_id');
+    }
+
     public function serviceGroups(): BelongsToMany
     {
         return $this->belongsToMany(ServiceGroup::class, 'organization_service_groups', 'organization_id', 'service_group_id')

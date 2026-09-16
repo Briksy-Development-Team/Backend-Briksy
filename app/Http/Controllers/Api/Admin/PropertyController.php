@@ -299,7 +299,7 @@ class PropertyController extends Controller
 
         return PropertyListing::query()
             ->where('org_id', $organizationId)
-            ->with(['organization.organizationType', 'creator', 'propertyType', 'offers.creator']);
+            ->with(['organization.organizationType', 'creator', 'propertyType', 'media', 'offers.creator']);
     }
 
     private function applyFilters(Builder $query, PropertyListingIndexRequest $request): void

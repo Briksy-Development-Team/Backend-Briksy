@@ -40,6 +40,8 @@ class ServiceResource extends JsonResource
                 'address' => $this->organization->address,
                 'state' => $this->organization->state,
                 'postcode' => $this->organization->postcode,
+                'logo_url' => $this->organizationMediaUrl($request, $this->organization->logo_url, $this->organization->id, 'profile'),
+                'banner_url' => $this->organizationMediaUrl($request, $this->organization->banner_url, $this->organization->id, 'banner'),
             ] : null),
             'images' => $this->mediaPayload($request, $images),
             'videos' => $this->mediaPayload($request, $videos),
@@ -65,5 +67,24 @@ class ServiceResource extends JsonResource
         }
 
         return rtrim($request->getSchemeAndHttpHost(), '/').'/api/service-media/'.$id;
+    }
+
+    private function organizationMediaUrl(Request $request, ?string $url, ?string $organizationId, string $type): ?string
+    {
+        if (!$url || !$organizationId) {
+            return null;
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return rtrim($request->getSchemeAndHttpHost(), '/').$url;
+        }
+
+        $version = $this->organization?->updated_at?->timestamp;
+
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$organizationId.'/'.$type.'?v='.rawurlencode((string) ($version ?? 0));
     }
 }

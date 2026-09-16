@@ -21,7 +21,7 @@ class AdminOrganizationResource extends JsonResource
             return rtrim($request->getSchemeAndHttpHost(), '/').$url;
         }
 
-        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$this->id.'/'.$type;
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$this->id.'/'.$type.'?v='.rawurlencode((string) ($this->updated_at?->timestamp ?? time()));
     }
 
     public function toArray(Request $request): array

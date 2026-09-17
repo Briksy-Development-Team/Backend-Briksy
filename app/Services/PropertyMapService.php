@@ -32,6 +32,7 @@ class PropertyMapService
                 'generated_id',
                 'property_type_id',
                 'title',
+                'description',
                 'latitude',
                 'longitude',
                 'status',

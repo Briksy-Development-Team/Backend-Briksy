@@ -21,7 +21,7 @@ class SubscriptionResource extends JsonResource
                 'id' => $this->plan->id,
                 'name' => $this->plan->name,
                 'monthly_price' => $this->plan->monthly_price !== null ? (float) $this->plan->monthly_price : null,
-                'yearly_price' => $this->plan->yearly_price !== null ? (float) $this->plan->yearly_price : null,
+                'yearly_price' => $this->plan->discountedYearlyPrice(),
                 'currency' => $this->plan->currency ?? 'AUD',
             ] : null),
             'billing_cycle' => $this->billing_cycle,

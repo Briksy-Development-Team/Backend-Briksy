@@ -56,6 +56,15 @@ class SubscriptionPlan extends Model
         ];
     }
 
+    public function discountedYearlyPrice(): ?float
+    {
+        if ($this->monthly_price === null) {
+            return $this->yearly_price !== null ? (float) $this->yearly_price : null;
+        }
+
+        return round((float) $this->monthly_price * 12 * 0.8, 2);
+    }
+
     public function organizations(): HasMany
     {
         return $this->hasMany(Organization::class, 'plan_id');

@@ -16,6 +16,17 @@ final class PlanCapabilityResolver
         };
     }
 
+    public function planFamily(User $user): ?string
+    {
+        return match ($this->category($user)) {
+            'real-estate' => 'property_owner',
+            'buyers-agent' => 'buyers_agent',
+            'builders' => 'builders',
+            'trades-professionals' => 'trades_professional',
+            default => null,
+        };
+    }
+
     public function plan(User $user): ?SubscriptionPlan
     {
         return $user->organization?->plan;

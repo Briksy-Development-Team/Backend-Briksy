@@ -72,6 +72,7 @@ class PropertyMapResource extends JsonResource
             'id' => $this->id,
             'property_number' => $this->generated_id ?: $this->id,
             'title' => $this->title,
+            'description' => $this->description,
             'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
             'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
             'status' => $this->status,

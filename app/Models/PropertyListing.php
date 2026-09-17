@@ -122,7 +122,8 @@ class PropertyListing extends Model
 
     public function features(): BelongsToMany
     {
-        return $this->belongsToMany(PropertyFeature::class, 'property_listing_features', 'property_listing_id', 'feature_id');
+        return $this->belongsToMany(PropertyFeature::class, 'property_listing_features', 'property_listing_id', 'feature_id')
+            ->wherePivotNull('deleted_at');
     }
 
     public function favorites(): MorphMany

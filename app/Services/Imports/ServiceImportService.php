@@ -274,11 +274,11 @@ final class ServiceImportService
     public function templateSampleRow(): array
     {
         return [
-            'name' => 'Premium Plumbing',
-            'title' => 'Premium Plumbing Adelaide',
-            'category' => 'plumbing',
+            'name' => 'Premium Landscapers',
+            'title' => 'Premium Landscapers Adelaide',
+            'category' => 'landscapers',
             'slug' => 'premium-plumbing',
-            'description' => 'Residential and commercial plumbing services.',
+            'description' => 'Residential and commercial landscaping services.',
             'service_area' => 'Adelaide, SA',
             'service_area_geometry' => '{"type":"Polygon","coordinates":[[[138.55,-34.93],[138.60,-34.93],[138.60,-34.88],[138.55,-34.88],[138.55,-34.93]]]}',
             'rate_from' => 120,
@@ -309,7 +309,7 @@ final class ServiceImportService
 
     private function categories(): array
     {
-        return ['electrical', 'plumbing', 'fencing', 'landscapers', 'conveyancers', 'brokers'];
+        return ['landscapers', 'concreter', 'fencing', 'mortgage-brokers', 'conveyancers', 'building-and-pest'];
     }
 
     private function requiredFields(): array

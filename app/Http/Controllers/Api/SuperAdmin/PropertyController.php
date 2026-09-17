@@ -20,6 +20,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PropertyController extends Controller
 {
@@ -138,7 +140,7 @@ class PropertyController extends Controller
             'submitted_at' => now(),
         ]);
 
-        $listing->features()->sync($request->input('features', []));
+        $this->syncFeatures($listing, $request->input('features', []));
         $this->storeListingMedia($listing, $request);
         $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features']);
 
@@ -179,12 +181,53 @@ class PropertyController extends Controller
 
         $propertyListing->fill($validated)->save();
         if ($features !== null) {
-            $propertyListing->features()->sync($features);
+            $this->syncFeatures($propertyListing, $features);
         }
         $this->storeListingMedia($propertyListing, $request);
         $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features']);
 
         return $this->success(new AdminPropertyListingResource($propertyListing), 'Property listing updated successfully.');
+    }
+
+    private function syncFeatures(PropertyListing $listing, mixed $features): void
+    {
+        $featureIds = collect(is_array($features) ? $features : [$features])
+            ->filter(fn ($featureId): bool => filled($featureId))
+            ->map(fn ($featureId): string => (string) $featureId)
+            ->unique()
+            ->values();
+
+        DB::transaction(function () use ($listing, $featureIds): void {
+            $pivotTable = 'property_listing_features';
+            $existing = DB::table($pivotTable)
+                ->where('property_listing_id', $listing->id)
+                ->get()
+                ->keyBy('feature_id');
+
+            foreach ($existing as $pivot) {
+                DB::table($pivotTable)
+                    ->where('id', $pivot->id)
+                    ->update([
+                        'deleted_at' => $featureIds->contains((string) $pivot->feature_id) ? null : now(),
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            foreach ($featureIds as $featureId) {
+                if ($existing->has($featureId)) {
+                    continue;
+                }
+
+                DB::table($pivotTable)->insert([
+                    'id' => (string) Str::uuid(),
+                    'property_listing_id' => $listing->id,
+                    'feature_id' => $featureId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                    'deleted_at' => null,
+                ]);
+            }
+        });
     }
 
     public function destroy(PropertyListing $propertyListing): JsonResponse

@@ -16,7 +16,7 @@ class SubscriptionPlanResource extends JsonResource
             'description' => $this->description,
             'price' => (int) $this->price,
             'monthly_price' => $this->monthly_price !== null ? (float) $this->monthly_price : null,
-            'yearly_price' => $this->yearly_price !== null ? (float) $this->yearly_price : null,
+            'yearly_price' => $this->discountedYearlyPrice(),
             'currency' => $this->currency ?? 'AUD',
             'billing_enabled' => (bool) ($this->billing_enabled ?? true),
             'trial_days' => $this->trial_days !== null ? (int) $this->trial_days : null,

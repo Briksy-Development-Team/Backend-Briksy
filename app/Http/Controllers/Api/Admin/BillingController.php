@@ -26,10 +26,15 @@ use Stripe\Price;
 use Stripe\Product;
 use Stripe\StripeClient;
 use App\Services\Webhooks\WebhookDispatcherService;
+use App\Support\Business\PlanCapabilityResolver;
 
 class BillingController extends Controller
 {
     use AppliesOrganizationScope;
+
+    public function __construct(private readonly PlanCapabilityResolver $planCapabilities)
+    {
+    }
 
     public function currentSubscription(Request $request): JsonResponse
     {
@@ -42,8 +47,11 @@ class BillingController extends Controller
 
     public function plans(Request $request): JsonResponse
     {
+        $planFamily = $this->planCapabilities->planFamily($request->user());
         $plans = SubscriptionPlan::query()
             ->where('is_active', true)
+            ->when($planFamily, fn ($query) => $query->where('plan_family', $planFamily))
+            ->when(!$planFamily, fn ($query) => $query->whereRaw('1 = 0'))
             ->with(['addons' => fn ($query) => $query->where('is_active', true)])
             ->orderByDesc('popular')
             ->orderBy('ranking_priority')
@@ -70,7 +78,11 @@ class BillingController extends Controller
     {
         $organization = $this->organization($request);
         $validated = $request->validated();
-        $plan = SubscriptionPlan::query()->with(['addons' => fn ($query) => $query->where('is_active', true)])->findOrFail($validated['plan_id']);
+        $planFamily = $this->planCapabilities->planFamily($request->user());
+        $plan = SubscriptionPlan::query()
+            ->with(['addons' => fn ($query) => $query->where('is_active', true)])
+            ->where('plan_family', $planFamily)
+            ->findOrFail($validated['plan_id']);
 
         if (!$plan->is_active) {
             return response()->json(['success' => false, 'message' => 'Selected plan is inactive.'], 422);
@@ -412,7 +424,7 @@ class BillingController extends Controller
     private function planAmount(SubscriptionPlan $plan, string $billingCycle): float
     {
         return (float) ($billingCycle === 'yearly'
-            ? ($plan->yearly_price ?? $plan->monthly_price ?? 0)
+            ? ($plan->discountedYearlyPrice() ?? $plan->monthly_price ?? 0)
             : ($plan->monthly_price ?? 0));
     }
 

@@ -6,6 +6,13 @@ use App\Http\Requests\Api\ApiListRequest;
 
 class ActivityLogIndexRequest extends ApiListRequest
 {
+    public function rules(): array
+    {
+        return array_merge(parent::rules(), [
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:1000'],
+        ]);
+    }
+
     public function allowedSorts(): array
     {
         return [

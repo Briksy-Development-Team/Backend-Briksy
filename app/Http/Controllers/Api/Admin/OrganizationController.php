@@ -31,7 +31,8 @@ class OrganizationController extends Controller
 
         $query = Organization::query()
             ->whereKey($organizationId)
-            ->with('organizationType'); 
+            ->with('organizationType')
+            ->withCount(['users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff']))]);
  
         ApiQueryBuilder::applySearch( 
             $query, 
@@ -94,6 +95,7 @@ class OrganizationController extends Controller
 
         $organization = Organization::query()
             ->with('organizationType')
+            ->withCount(['users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff']))])
             ->findOrFail($organizationId);
 
         return $this->success(
@@ -108,7 +110,8 @@ class OrganizationController extends Controller
 
         abort_unless($organizationId && $organization->id === $organizationId, 403);
 
-        $organization->loadMissing('organizationType'); 
+        $organization->loadMissing('organizationType');
+        $organization->loadCount(['users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff']))]);
  
         return $this->success( 
             new AdminOrganizationResource($organization), 

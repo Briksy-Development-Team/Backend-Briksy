@@ -18,6 +18,10 @@ class OrganizationSearchController extends Controller
         $query = Organization::query()
             ->with(['organizationType', 'services', 'ownedServices', 'serviceGroups']);
 
+        if ($viewerId = $request->user('sanctum')?->id) {
+            $query->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', $viewerId)]);
+        }
+
         ApiQueryBuilder::applySearch($query, $request->search(), ['name', 'slug', 'abn', 'address', 'state', 'postcode', 'contact_email']);
 
         if ($request->filled('type')) {
@@ -26,10 +30,17 @@ class OrganizationSearchController extends Controller
 
         if ($request->filled('service_slug')) {
             $serviceSlug = $request->string('service_slug')->toString();
-            $query->where(function ($organizationQuery) use ($serviceSlug): void {
+            $serviceCategory = collect(config('service_categories', []))->firstWhere('slug', $serviceSlug);
+            $query->where(function ($organizationQuery) use ($serviceSlug, $serviceCategory): void {
+                $matchesService = function ($serviceQuery) use ($serviceSlug, $serviceCategory): void {
+                    $serviceQuery->where('services.slug', $serviceSlug);
+                    if ($serviceCategory) {
+                        $serviceQuery->orWhereRaw('LOWER(services.category) = ?', [strtolower($serviceCategory['label'])]);
+                    }
+                };
                 $organizationQuery
-                    ->whereHas('services', fn ($serviceQuery) => $serviceQuery->where('services.slug', $serviceSlug))
-                    ->orWhereHas('ownedServices', fn ($serviceQuery) => $serviceQuery->where('services.slug', $serviceSlug));
+                    ->whereHas('services', $matchesService)
+                    ->orWhereHas('ownedServices', $matchesService);
             });
         }
 

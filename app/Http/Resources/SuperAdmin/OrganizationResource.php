@@ -54,6 +54,7 @@ class OrganizationResource extends JsonResource
             'brand_primary_color' => $this->brand_primary_color,
             'brand_secondary_color' => $this->brand_secondary_color,
             'licensed_staff_seats' => $this->licensed_staff_seats,
+            'staff_count' => (int) ($this->staff_count ?? 0),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

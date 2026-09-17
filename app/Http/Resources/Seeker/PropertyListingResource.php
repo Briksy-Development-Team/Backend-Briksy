@@ -75,6 +75,7 @@ class PropertyListingResource extends JsonResource
             'address' => $this->address,
             'full_address' => $this->full_address,
             'status' => $this->status,
+            'is_favourite' => (bool) ($this->is_favourite ?? false),
             'listing_purpose' => $this->listing_purpose,
             'price' => $this->price !== null ? (float) $this->price : null,
             'property_type' => $this->whenLoaded('propertyType', fn (): ?array => $this->propertyType ? ['name' => $this->propertyType->name, 'slug' => $this->propertyType->slug, 'category' => $this->propertyType->category] : null),

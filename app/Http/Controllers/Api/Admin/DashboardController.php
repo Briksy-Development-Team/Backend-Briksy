@@ -323,23 +323,24 @@ class DashboardController extends Controller
             return [];
         }
 
-        $sourceExpression = Schema::hasColumn('inquiries', 'lead_source')
-            ? "COALESCE(NULLIF(lead_source, ''), CASE WHEN property_listing_id IS NOT NULL THEN 'property_listing' ELSE 'direct' END)"
-            : "CASE WHEN property_listing_id IS NOT NULL THEN 'property_listing' ELSE 'direct' END";
-
-        return Inquiry::query()
+        $sourceRows = Inquiry::query()
             ->where('organization_id', $organizationId)
             ->whereBetween('created_at', [$start, $end])
-            ->selectRaw("{$sourceExpression} as source")
-            ->selectRaw('COUNT(*) as total')
-            ->groupByRaw($sourceExpression)
-            ->orderByDesc('total')
-            ->get()
-            ->map(fn ($row): array => [
-                'label' => $this->leadSourceLabel($row->source),
-                'value' => (int) $row->total,
-                'share' => round(((int) $row->total / $totalInquiries) * 100, 1),
+            ->when(Schema::hasColumn('inquiries', 'lead_source'),
+                fn ($query) => $query->selectRaw('lead_source, property_listing_id, COUNT(*) as total')->groupBy('lead_source', 'property_listing_id'),
+                fn ($query) => $query->selectRaw('property_listing_id, COUNT(*) as total')->groupBy('property_listing_id'))
+            ->get();
+
+        return $sourceRows
+            ->groupBy(fn ($row): string => filled($row->lead_source ?? null)
+                ? (string) $row->lead_source
+                : ($row->property_listing_id ? 'property_listing' : 'direct'))
+            ->map(fn ($rows, $source): array => [
+                'label' => $this->leadSourceLabel($source),
+                'value' => (int) $rows->sum('total'),
+                'share' => round(((int) $rows->sum('total') / $totalInquiries) * 100, 1),
             ])
+            ->sortByDesc('value')
             ->values()
             ->all();
     }

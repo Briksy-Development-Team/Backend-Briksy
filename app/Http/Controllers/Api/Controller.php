@@ -28,9 +28,9 @@ abstract class Controller extends BaseController
         return $this->success($data, $message, 201);
     }
 
-    protected function paginated(mixed $data, LengthAwarePaginator $paginator, string $message = 'Records retrieved successfully.'): JsonResponse
+    protected function paginated(mixed $data, LengthAwarePaginator $paginator, string $message = 'Records retrieved successfully.', array $additionalMeta = []): JsonResponse
     {
-        return $this->success($data, $message, 200, [
+        return $this->success($data, $message, 200, array_merge([
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -40,6 +40,6 @@ abstract class Controller extends BaseController
                 'to' => $paginator->lastItem(),
                 'has_more_pages' => $paginator->hasMorePages(),
             ],
-        ]);
+        ], $additionalMeta));
     }
 }

@@ -18,6 +18,10 @@ class PropertySearchController extends Controller
             ->visibleToSeekers()
             ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
 
+        if ($viewerId = $request->user('sanctum')?->id) {
+            $query->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', $viewerId)]);
+        }
+
         ApiQueryBuilder::applySearch($query, $request->search(), ['title', 'description', 'suburb', 'postcode']);
         ApiQueryBuilder::applyExactFilters($query, [
             'suburb' => $request->input('suburb'),

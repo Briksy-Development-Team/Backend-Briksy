@@ -54,6 +54,7 @@ class AdminOrganizationResource extends JsonResource
             'state' => $this->state,
             'postcode' => $this->postcode,
             'licensed_staff_seats' => $this->licensed_staff_seats,
+            'staff_count' => (int) ($this->staff_count ?? 0),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

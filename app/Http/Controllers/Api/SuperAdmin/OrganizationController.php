@@ -32,6 +32,7 @@ class OrganizationController extends Controller
         $query = Organization::query()
             ->with(['organizationType', 'plan'])
             ->withCount([
+                'users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff'])),
                 'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
                     ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
             ]);
@@ -108,6 +109,7 @@ class OrganizationController extends Controller
     {
         $organization->load(['organizationType', 'plan'])
             ->loadCount([
+                'users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff'])),
                 'propertyListings as property_count',
                 'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
                     ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),

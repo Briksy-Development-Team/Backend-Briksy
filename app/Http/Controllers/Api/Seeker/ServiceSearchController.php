@@ -7,6 +7,7 @@ use App\Http\Resources\Seeker\ServiceResource;
 use App\Models\Service;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ServiceSearchController extends Controller
 {
@@ -14,6 +15,7 @@ class ServiceSearchController extends Controller
     {
         $query = Service::query()
             ->where('is_active', true)
+            ->whereIn(DB::raw('LOWER(category)'), array_map('strtolower', array_column(config('service_categories', []), 'label')))
             ->whereHas('organization', fn ($organizationQuery) => $organizationQuery->where('is_verified', true))
             ->with(['organization.currentSubscription.plan', 'media']);
 
@@ -21,7 +23,12 @@ class ServiceSearchController extends Controller
 
         foreach (['category', 'organization_id'] as $field) {
             if ($request->filled($field)) {
-                $query->where($field, $request->input($field));
+                if ($field === 'category') {
+                    $category = collect(config('service_categories', []))->firstWhere('slug', $request->input($field));
+                    $query->whereRaw('LOWER(category) = ?', [strtolower($category['label'] ?? $request->input($field))]);
+                } else {
+                    $query->where($field, $request->input($field));
+                }
             }
         }
 

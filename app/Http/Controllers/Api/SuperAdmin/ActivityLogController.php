@@ -23,11 +23,13 @@ class ActivityLogController extends Controller
         ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
 
         $logs = $query->paginate($request->perPage())->withQueryString();
+        $actions = ActivityLog::query()->whereNotNull('action')->distinct()->orderBy('action')->pluck('action')->values()->all();
 
         return $this->paginated(
             ActivityLogResource::collection($logs)->resolve(),
             $logs,
-            'Activity logs retrieved successfully.'
+            'Activity logs retrieved successfully.',
+            ['actions' => $actions]
         );
     }
 

@@ -13,6 +13,7 @@ class CouponIndexRequest extends ApiListRequest
             'expires_at' => 'expires_at',
             'status' => 'status',
             'code' => 'code',
+            'name' => 'name',
         ];
     }
 

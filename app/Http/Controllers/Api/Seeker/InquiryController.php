@@ -5,9 +5,14 @@ namespace App\Http\Controllers\Api\Seeker;
 use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\Seeker\StoreInquiryRequest;
 use App\Http\Resources\Seeker\InquiryResource;
+use App\Models\ActivityLog;
 use App\Models\Inquiry;
+use App\Models\Organization;
+use App\Models\PropertyListing;
+use App\Models\User;
 use App\Services\DynamicIdGeneratorService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 
 class InquiryController extends Controller
@@ -37,6 +42,16 @@ class InquiryController extends Controller
     public function store(StoreInquiryRequest $request): JsonResponse
     {
         $authUser = $request->user();
+        $organization = Organization::query()->findOrFail($request->input('organization_id'));
+
+        if ($propertyId = $request->input('property_listing_id')) {
+            abort_unless(PropertyListing::query()->whereKey($propertyId)->where('org_id', $organization->id)->exists(), 422, 'The selected property does not belong to this organisation.');
+        }
+
+        $staff = null;
+        if ($staffId = $request->input('staff_id')) {
+            $staff = User::query()->whereKey($staffId)->where('organization_id', $organization->id)->firstOrFail();
+        }
         $referenceNo = app(DynamicIdGeneratorService::class)->generate('inquiries');
         $leadSource = $request->input('lead_source')
             ?? ($request->filled('property_listing_id') ? 'property_listing' : 'direct');
@@ -59,6 +74,32 @@ class InquiryController extends Controller
         }
 
         $inquiry = Inquiry::query()->create($inquiryData);
+
+        $recipient = $staff?->email ?: $organization->contact_email;
+        if ($recipient) {
+            Mail::html(nl2br(e("{$inquiry->seeker_name} ({$inquiry->seeker_email}) sent an enquiry.\n\n{$inquiry->message}")), function ($message) use ($recipient, $inquiry): void {
+                $message->to($recipient)->subject($inquiry->subject);
+            });
+        }
+
+        if ($authUser && Schema::hasTable('activity_logs')) {
+            ActivityLog::query()->create([
+                'causer_id' => $authUser->id,
+                'organization_id' => $organization->id,
+                'user_id' => $authUser?->id,
+                'user_name' => $authUser?->name ?? $inquiry->seeker_name,
+                'user_email' => $authUser?->email ?? $inquiry->seeker_email,
+                'user_role' => $authUser?->roles?->first()?->name,
+                'action' => 'inquiry.created',
+                'module' => 'inquiries',
+                'description' => "Inquiry {$inquiry->reference_no} submitted.",
+                'method' => 'POST',
+                'route' => '/api/seeker/inquiries',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'metadata' => ['inquiry_id' => $inquiry->id, 'recipient' => $recipient],
+            ]);
+        }
 
         return $this->created(
             new InquiryResource($inquiry),

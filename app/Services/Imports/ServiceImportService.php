@@ -309,7 +309,7 @@ final class ServiceImportService
 
     private function categories(): array
     {
-        return ['landscapers', 'concreter', 'fencing', 'mortgage-brokers', 'conveyancers', 'building-and-pest'];
+        return array_column(config('service_categories', []), 'slug');
     }
 
     private function requiredFields(): array

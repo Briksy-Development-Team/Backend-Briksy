@@ -47,7 +47,14 @@ class StaffController extends Controller
             });
 
         ApiQueryBuilder::applySearch($query, $request->string('search')->toString(), ['name', 'email']);
-        $staff = $query->orderByDesc('created_at')->paginate(ApiQueryBuilder::normalizePerPage($request->integer('items_per_page'), 10, 100));
+        // The shared React table sends `per_page`; older admin endpoints used
+        // `items_per_page`. Accept both so the returned rows and pagination
+        // metadata always describe the same page.
+        $requestedPerPage = $request->integer('per_page') ?: $request->integer('items_per_page');
+        $staff = $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(ApiQueryBuilder::normalizePerPage($requestedPerPage, 10, 100));
 
         return $this->paginated(
             AdminStaffResource::collection($staff)->resolve(),

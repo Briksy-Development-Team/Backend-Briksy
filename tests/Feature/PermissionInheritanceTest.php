@@ -71,6 +71,10 @@ class PermissionInheritanceTest extends TestCase
             'password' => 'password',
         ])->assertCreated();
 
+        $staffList = $this->getJson('/api/admin/staff?per_page=100')->assertOk();
+        $this->assertContains('property-portal-staff@example.com', $staffList->json('data.*.email'));
+        $this->assertGreaterThanOrEqual(2, count($staffList->json('data')));
+
         $login = $this->postJson('/api/admin/auth/login', [
             'email' => 'property-portal-staff@example.com',
             'password' => 'password',

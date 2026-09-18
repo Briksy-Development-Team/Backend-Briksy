@@ -76,10 +76,15 @@ class PropertySearchController extends Controller
 
     public function show(PropertyListing $propertyListing)
     {
-        $property = PropertyListing::query()
+        $query = PropertyListing::query()
             ->visibleToSeekers()
-            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')])
-            ->findOrFail($propertyListing->id);
+            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
+
+        if ($viewerId = request()->user('sanctum')?->id) {
+            $query->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', $viewerId)]);
+        }
+
+        $property = $query->findOrFail($propertyListing->id);
 
         $this->recordVisit($property, request());
 

@@ -53,7 +53,17 @@ class FavoriteController extends Controller
         $targetClass = $request->input('type') === 'property' ? PropertyListing::class : Organization::class;
         $target = $targetClass::query()->findOrFail($request->input('target_id'));
 
-        $favorite = Favorite::query()->firstOrCreate([
+        $favorite = Favorite::withTrashed()->where([
+            'user_id' => $userId,
+            'favoritable_type' => $targetClass,
+            'favoritable_id' => $target->getKey(),
+        ])->first();
+
+        if ($favorite?->trashed()) {
+            $favorite->restore();
+        }
+
+        $favorite ??= Favorite::query()->create([
             'user_id' => $userId,
             'favoritable_type' => $targetClass,
             'favoritable_id' => $target->getKey(),
@@ -73,13 +83,23 @@ class FavoriteController extends Controller
         $targetClass = $request->input('type') === 'property' ? PropertyListing::class : Organization::class;
         $target = $targetClass::query()->findOrFail($request->input('target_id'));
 
-        $favorite = Favorite::query()->where([
+        $favorite = Favorite::withTrashed()->where([
             'user_id' => $userId,
             'favoritable_type' => $targetClass,
             'favoritable_id' => $target->getKey(),
         ])->first();
 
         if ($favorite) {
+            if ($favorite->trashed()) {
+                $favorite->restore();
+                $favorite->load('favoritable');
+
+                return $this->created([
+                    'favorite' => new FavoriteResource($favorite),
+                    'action' => 'added',
+                ], 'Favorite added successfully.');
+            }
+
             $favorite->delete();
 
             return $this->success([
@@ -88,7 +108,7 @@ class FavoriteController extends Controller
             ], 'Favorite removed successfully.');
         }
 
-        $favorite = Favorite::query()->firstOrCreate([
+        $favorite = Favorite::query()->create([
             'user_id' => $userId,
             'favoritable_type' => $targetClass,
             'favoritable_id' => $target->getKey(),

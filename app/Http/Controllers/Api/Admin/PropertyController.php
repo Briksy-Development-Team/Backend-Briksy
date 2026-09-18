@@ -12,6 +12,7 @@ use App\Models\Media;
 use App\Models\PropertyListing;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
+use App\Services\PropertyFeatureSyncService;
 use App\Support\Properties\PropertyWorkflow;
 use App\Support\Business\BusinessModuleResolver;
 use App\Support\Query\ApiQueryBuilder;
@@ -28,6 +29,7 @@ class PropertyController extends Controller
         private readonly NotificationService $notificationService,
         private readonly DynamicIdGeneratorService $idGenerator,
         private readonly BusinessModuleResolver $moduleResolver,
+        private readonly PropertyFeatureSyncService $featureSync,
     )
     {
     }
@@ -134,7 +136,7 @@ class PropertyController extends Controller
             'published_at' => null,
         ]);
 
-        $listing->features()->sync($request->input('features', []));
+        $this->featureSync->sync($listing, $request->input('features', []));
         $this->storeListingMedia($listing, $request);
         $this->recordPropertyActivity(
             $request,
@@ -222,7 +224,7 @@ class PropertyController extends Controller
         $propertyListing->fill($validated);
         $propertyListing->save();
         if ($features !== null) {
-            $propertyListing->features()->sync($features);
+            $this->featureSync->sync($propertyListing, $features);
         }
 
         $this->storeListingMedia($propertyListing, $request);

@@ -60,9 +60,22 @@ class StaffController extends Controller
     {
         $role = Role::query()->where('name', 'admin_staff')->with('permissions')->first();
 
+        $permissions = $role?->permissions
+            ->reject(fn (Permission $permission): bool => in_array($permission->name, [
+                'property.approve',
+                'property.reject',
+                'property.publish',
+                'property.archive',
+                'property.verify_location',
+                'property.unverify_location',
+            ], true))
+            ->pluck('name')
+            ->values()
+            ->all() ?? [];
+
         return $this->success([
             'role' => 'admin_staff',
-            'permissions' => $role?->permissions->pluck('name')->values()->all() ?? [],
+            'permissions' => $permissions,
         ], 'Staff role defaults retrieved successfully.');
     }
 

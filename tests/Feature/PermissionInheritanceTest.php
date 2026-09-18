@@ -59,6 +59,28 @@ class PermissionInheritanceTest extends TestCase
         $this->getJson('/api/admin/properties')->assertForbidden();
     }
 
+    public function test_new_property_staff_can_login_and_reach_property_management(): void
+    {
+        $this->seed();
+        $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
+        Sanctum::actingAs($admin, ['admin']);
+
+        $this->postJson('/api/admin/staff', [
+            'name' => 'Property Portal Staff',
+            'email' => 'property-portal-staff@example.com',
+            'password' => 'password',
+        ])->assertCreated();
+
+        $login = $this->postJson('/api/admin/auth/login', [
+            'email' => 'property-portal-staff@example.com',
+            'password' => 'password',
+        ])->assertOk();
+
+        $this->assertSame(['admin_staff'], $login->json('data.abilities'));
+        Sanctum::actingAs(User::query()->where('email', 'property-portal-staff@example.com')->firstOrFail(), ['admin_staff']);
+        $this->getJson('/api/admin/properties')->assertOk();
+    }
+
     public function test_seeding_does_not_overwrite_role_defaults_or_user_overrides(): void
     {
         $this->seed();

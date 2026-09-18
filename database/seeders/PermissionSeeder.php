@@ -180,6 +180,16 @@ class PermissionSeeder extends Seeder
             ['name' => 'admin_staff'],
             ['scope' => 'tenant', 'is_system' => true]
         );
+        $adminStaffRole->permissions()
+            ->wherePivotIn('permission_id', $allPermissions->only([
+                'property.approve',
+                'property.reject',
+                'property.publish',
+                'property.archive',
+                'property.verify_location',
+                'property.unverify_location',
+            ])->values()->all())
+            ->detach();
         $this->seedRoleDefaultsIfEmpty($adminStaffRole, $allPermissions->only([
             'dashboard.view',
             'user.view',

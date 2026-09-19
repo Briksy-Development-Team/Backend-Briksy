@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Notifications\PlatformNotification;
 use App\Services\Webhooks\WebhookDispatcherService;
+use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -12,7 +13,10 @@ use Throwable;
 
 class NotificationService
 {
-    public function __construct(private readonly WebhookDispatcherService $webhookDispatcher)
+    public function __construct(
+        private readonly WebhookDispatcherService $webhookDispatcher,
+        private readonly PlanCapabilityResolver $planCapabilities,
+    )
     {
     }
 
@@ -190,6 +194,14 @@ class NotificationService
     private function canReceiveNotification(User $user, array $payload): bool
     {
         $requiredPermission = $payload['required_permission'] ?? null;
+
+        $category = $this->planCapabilities->category($user);
+        if ($category === 'trades-professionals' && is_string($requiredPermission) && str_starts_with($requiredPermission, 'property.')) {
+            return false;
+        }
+        if (in_array($category, ['real-estate', 'buyers-agent', 'builders'], true) && is_string($requiredPermission) && str_starts_with($requiredPermission, 'service.')) {
+            return false;
+        }
 
         if (!$requiredPermission) {
             return true;

@@ -23,7 +23,7 @@ class StoreInquiryRequest extends FormRequest
             'message' => ['required', 'string', 'max:5000'],
             'seeker_name' => ['required_without:user_id', 'nullable', 'string', 'max:120'],
             'seeker_email' => ['required_without:user_id', 'nullable', 'email', 'max:150'],
-            'seeker_phone' => ['nullable', 'string', 'max:30'],
+            'seeker_phone' => ['required', 'string', 'max:30'],
         ];
     }
 }

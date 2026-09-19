@@ -62,10 +62,13 @@ class BillingController extends Controller
         ], 'Billing plans retrieved successfully.');
     }
 
-    public function addons(): JsonResponse
+    public function addons(Request $request): JsonResponse
     {
+        $category = $this->planCapabilities->category($request->user());
         $addons = Addon::query()
             ->where('is_active', true)
+            ->when($category === 'trades-professionals', fn ($query) => $query->where('feature_key', '!=', 'property_management'))
+            ->when(in_array($category, ['real-estate', 'buyers-agent', 'builders'], true), fn ($query) => $query->where('feature_key', '!=', 'service_management'))
             ->orderBy('sort_order')
             ->get();
 

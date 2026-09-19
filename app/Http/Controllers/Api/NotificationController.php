@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Resources\NotificationResource;
+use App\Support\Business\BusinessModuleResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,6 +11,10 @@ use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationController extends Controller
 {
+    public function __construct(private readonly BusinessModuleResolver $moduleResolver)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = $this->baseQuery($request);
@@ -92,15 +97,30 @@ class NotificationController extends Controller
         $permissions = $user->getPermissionNames();
 
         if ($permissions === []) {
-            return $query->whereNull('data->required_permission');
+            $query->whereNull('data->required_permission');
+        } else {
+            $query->where(function (Builder $builder) use ($permissions): void {
+                $builder->whereNull('data->required_permission');
+
+                foreach ($permissions as $permission) {
+                    $builder->orWhere('data->required_permission', $permission);
+                }
+            });
         }
 
-        return $query->where(function (Builder $builder) use ($permissions): void {
-            $builder->whereNull('data->required_permission');
+        $category = $this->moduleResolver->category($user);
+        if ($category === 'trades-professionals') {
+            $query->where(function (Builder $builder): void {
+                $builder->whereNull('data->required_permission')
+                    ->orWhere('data->required_permission', 'not like', 'property.%');
+            });
+        } elseif (in_array($category, ['real-estate', 'buyers-agent', 'builders'], true)) {
+            $query->where(function (Builder $builder): void {
+                $builder->whereNull('data->required_permission')
+                    ->orWhere('data->required_permission', 'not like', 'service.%');
+            });
+        }
 
-            foreach ($permissions as $permission) {
-                $builder->orWhere('data->required_permission', $permission);
-            }
-        });
+        return $query;
     }
 }

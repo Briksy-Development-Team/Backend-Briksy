@@ -255,6 +255,7 @@ class SeekerApiTest extends TestCase
             'message' => 'Can I inspect this property?',
             'seeker_name' => 'Jamie Seeker',
             'seeker_email' => 'jamie-admin-list@example.com',
+            'seeker_phone' => '0400000001',
         ])->assertCreated();
 
         Sanctum::actingAs($superAdmin, ['super_admin']);

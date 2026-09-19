@@ -125,20 +125,22 @@ class DynamicIdGeneratorService
     {
         $table = $this->resolveTableName($entityType);
 
-        if (!$table || !Schema::hasTable($table) || !Schema::hasColumn($table, 'generated_id')) {
+        $identifierColumn = $this->resolveIdentifierColumn($entityType);
+
+        if (!$table || !$identifierColumn || !Schema::hasTable($table) || !Schema::hasColumn($table, $identifierColumn)) {
             return 0;
         }
 
         $basePrefix = $this->formatPrefix($setting);
-        $query = DB::table($table)->whereNotNull('generated_id');
+        $query = DB::table($table)->whereNotNull($identifierColumn);
 
         if ($basePrefix !== '') {
-            $query->where('generated_id', 'like', $basePrefix.$setting->separator.'%');
+            $query->where($identifierColumn, 'like', $basePrefix.$setting->separator.'%');
         }
 
         $latestGeneratedId = $query
-            ->orderByDesc('generated_id')
-            ->value('generated_id');
+            ->orderByDesc($identifierColumn)
+            ->value($identifierColumn);
 
         if (!is_string($latestGeneratedId) || $latestGeneratedId === '') {
             return 0;
@@ -149,6 +151,15 @@ class DynamicIdGeneratorService
         $lastPart = $parts !== [] ? (string) end($parts) : '';
 
         return is_numeric($lastPart) ? (int) $lastPart : 0;
+    }
+
+    private function resolveIdentifierColumn(string $entityType): ?string
+    {
+        return match ($entityType) {
+            'orders', 'inquiries' => 'reference_no',
+            'plan_requests' => 'request_code',
+            default => 'generated_id',
+        };
     }
 
     private function formatPrefix(DynamicIdSetting $setting): string

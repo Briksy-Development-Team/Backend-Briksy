@@ -13,6 +13,8 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = $this->baseQuery($request);
+        $filter = $request->input('filter', []);
+        $filter = is_array($filter) ? $filter : [];
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
@@ -21,12 +23,14 @@ class NotificationController extends Controller
             });
         }
 
-        if ($request->boolean('filter.unread')) {
+        if (filter_var($filter['unread'] ?? $request->input('filter_unread'), FILTER_VALIDATE_BOOLEAN)) {
             $query->whereNull('read_at');
         }
 
-        if ($request->filled('filter.priority')) {
-            $query->where('data->priority', $request->string('filter.priority')->toString());
+        $priority = $filter['priority'] ?? $request->input('filter_priority');
+
+        if (filled($priority)) {
+            $query->where('data->priority', (string) $priority);
         }
 
         $notifications = $query

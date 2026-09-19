@@ -299,7 +299,7 @@ class StaffController extends Controller
         $allowed = ['dashboard.view', 'user.view', 'user.create', 'user.update', 'user.delete', 'settings.view', 'settings.update'];
 
         if ($this->moduleResolver->isPropertyAllowed($user)) {
-            $allowed = array_merge($allowed, ['property.view', 'property.create', 'property.update', 'property.delete']);
+            $allowed = array_merge($allowed, ['property.view', 'property.map', 'property.create', 'property.update', 'property.delete']);
         }
 
         if ($this->moduleResolver->isServiceAllowed($user)) {

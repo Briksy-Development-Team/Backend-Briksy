@@ -244,10 +244,11 @@ Route::prefix('admin')->group(function (): void {
         Route::delete('service-media/{serviceMedia}', [ServiceMediaController::class, 'destroy']);
     });
 
-    Route::middleware(['auth:sanctum', 'role:admin'])->group(function (): void {
-        Route::post('auth/register-staff', [RegistrationController::class, 'registerAdminStaff'])
-            ->withoutMiddleware('role:admin');
+    Route::middleware(['auth:sanctum'])->group(function (): void {
+        Route::post('auth/register-staff', [RegistrationController::class, 'registerAdminStaff']);
+    });
 
+    Route::middleware(['auth:sanctum', 'role:admin,admin_staff'])->group(function (): void {
         Route::get('staff/defaults', [AdminStaffController::class, 'defaults'])->middleware(['module:user_management', 'permission:user.view']);
         Route::get('staff', [AdminStaffController::class, 'index'])->middleware(['module:user_management', 'permission:user.view']);
         Route::post('staff', [AdminStaffController::class, 'store'])->middleware(['module:user_management', 'permission:user.create']);

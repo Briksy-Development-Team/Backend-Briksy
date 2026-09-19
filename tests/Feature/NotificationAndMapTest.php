@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -26,6 +27,7 @@ class NotificationAndMapTest extends TestCase
 
         $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
         Sanctum::actingAs($admin, ['admin']);
+        $admin->notifications()->delete();
 
         $response = $this->getJson('/api/admin/properties/map');
 
@@ -125,6 +127,52 @@ class NotificationAndMapTest extends TestCase
                 return in_array('database', $channels, true) && !in_array('mail', $channels, true);
             }
         );
+    }
+
+    public function test_notification_filters_only_return_matching_notifications(): void
+    {
+        $this->seed();
+
+        $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
+        Sanctum::actingAs($admin, ['admin']);
+
+        $notifications = [
+            ['priority' => 'high', 'read_at' => null],
+            ['priority' => 'normal', 'read_at' => null],
+            ['priority' => 'high', 'read_at' => now()],
+        ];
+
+        foreach ($notifications as $notification) {
+            DB::table('notifications')->insert([
+                'id' => (string) Str::uuid(),
+                'type' => 'platform',
+                'notifiable_type' => User::class,
+                'notifiable_id' => $admin->id,
+                'data' => json_encode([
+                    'type' => 'test_notification',
+                    'title' => 'Test notification',
+                    'message' => 'Notification filter test',
+                    'priority' => $notification['priority'],
+                ], JSON_THROW_ON_ERROR),
+                'read_at' => $notification['read_at'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $unread = $this->getJson('/api/admin/notifications?filter[unread]=1')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertNotEmpty($unread);
+        $this->assertTrue(collect($unread)->every(fn (array $notification): bool => $notification['read_at'] === null));
+
+        $highPriority = $this->getJson('/api/admin/notifications?filter[priority]=high')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertNotEmpty($highPriority);
+        $this->assertTrue(collect($highPriority)->every(fn (array $notification): bool => $notification['priority'] === 'high'));
     }
 
     public function test_property_submission_notifies_super_admins_with_high_priority(): void

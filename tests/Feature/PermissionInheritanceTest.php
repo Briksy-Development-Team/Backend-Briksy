@@ -85,6 +85,29 @@ class PermissionInheritanceTest extends TestCase
         $this->getJson('/api/admin/properties')->assertOk();
     }
 
+    public function test_admin_staff_with_user_create_permission_can_create_staff(): void
+    {
+        $this->seed();
+        $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
+        Sanctum::actingAs($admin, ['admin']);
+
+        $this->postJson('/api/admin/staff', [
+            'name' => 'Property Admin Staff',
+            'email' => 'property-admin-staff@example.com',
+            'password' => 'password',
+        ])->assertCreated();
+
+        $propertyAdmin = User::query()->where('email', 'property-admin-staff@example.com')->firstOrFail();
+        Sanctum::actingAs($propertyAdmin, ['admin_staff']);
+
+        $this->postJson('/api/admin/staff', [
+            'name' => 'Second Property Staff',
+            'email' => 'second-property-staff@example.com',
+            'password' => 'password',
+            'permissions' => ['dashboard.view', 'user.view', 'property.view', 'property.map'],
+        ])->assertCreated();
+    }
+
     public function test_seeding_does_not_overwrite_role_defaults_or_user_overrides(): void
     {
         $this->seed();

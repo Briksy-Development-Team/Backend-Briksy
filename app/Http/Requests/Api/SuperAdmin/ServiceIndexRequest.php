@@ -34,6 +34,7 @@ class ServiceIndexRequest extends ApiIndexRequest
             'filter.type_slug' => ['nullable', 'string', 'max:100'],
             'filter.organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
             'filter.is_active' => ['nullable', 'boolean'],
+            'filter.created_at' => ['nullable', 'string', 'max:25'],
         ];
     }
 }

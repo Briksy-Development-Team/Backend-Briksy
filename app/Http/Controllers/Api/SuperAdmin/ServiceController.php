@@ -64,6 +64,8 @@ class ServiceController extends Controller
             $query->where('is_active', $request->boolean('filter.is_active'));
         }
 
+        ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
+
         ApiQueryBuilder::applySort(
             $query,
             $request->sort(),
@@ -102,6 +104,8 @@ class ServiceController extends Controller
         if ($request->filled('filter.is_active')) {
             $query->where('is_active', $request->boolean('filter.is_active'));
         }
+
+        ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
 
         ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
 

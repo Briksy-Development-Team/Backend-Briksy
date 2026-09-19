@@ -94,6 +94,8 @@ class OrganizationController extends Controller
             $query->where('business_verification_status', $request->string('filter.business_verification_status')->toString());
         }
 
+        ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
+
         ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
 
         $paginator = $query->paginate($request->perPage())->withQueryString();

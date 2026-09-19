@@ -44,6 +44,7 @@ class PlanRequestIndexRequest extends ApiListRequest
             'filter.status' => ['nullable', 'string'],
             'filter.organization_id' => ['nullable', 'uuid'],
             'filter.plan_id' => ['nullable', 'uuid'],
+            'filter.created_at' => ['nullable', 'string', 'max:25'],
         ];
     }
 }

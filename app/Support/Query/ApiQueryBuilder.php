@@ -63,6 +63,24 @@ class ApiQueryBuilder
         $query->whereNull($column);
     }
 
+    public static function applyDateRangeFilter(Builder $query, string $column, mixed $range): void
+    {
+        if (is_array($range)) {
+            $from = $range['from'] ?? null;
+            $to = $range['to'] ?? null;
+        } else {
+            [$from, $to] = array_pad(explode('~', (string) $range, 2), 2, null);
+        }
+
+        if ($from) {
+            $query->whereDate($column, '>=', $from);
+        }
+
+        if ($to) {
+            $query->whereDate($column, '<=', $to);
+        }
+    }
+
     public static function applySort(
         Builder $query,
         ?string $sort,

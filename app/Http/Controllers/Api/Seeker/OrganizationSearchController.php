@@ -16,7 +16,7 @@ class OrganizationSearchController extends Controller
     public function index(OrganizationIndexRequest $request)
     {
         $query = Organization::query()
-            ->with(['organizationType', 'services', 'ownedServices', 'serviceGroups']);
+            ->with(['organizationType', 'services.media', 'ownedServices.media', 'serviceGroups']);
 
         if ($viewerId = $request->user('sanctum')?->id) {
             $query->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', $viewerId)]);
@@ -69,7 +69,7 @@ class OrganizationSearchController extends Controller
 
     public function show(Organization $organization)
     {
-        $organization->load(['organizationType', 'services', 'ownedServices', 'serviceGroups']);
+        $organization->load(['organizationType', 'services.media', 'ownedServices.media', 'serviceGroups']);
         $this->recordVisit($organization, request());
 
         return $this->success(

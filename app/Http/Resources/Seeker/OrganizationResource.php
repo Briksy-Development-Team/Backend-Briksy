@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Seeker;
 
+use App\Services\PublicMediaEntitlementService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,6 +23,11 @@ class OrganizationResource extends JsonResource
         }
 
         return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$this->id.'/'.$type.'?v='.rawurlencode((string) ($this->updated_at?->timestamp ?? time()));
+    }
+
+    private function serviceMediaUrl(Request $request, string $mediaId): string
+    {
+        return rtrim($request->getSchemeAndHttpHost(), '/').'/api/service-media/'.$mediaId;
     }
 
     public function toArray(Request $request): array
@@ -52,7 +58,7 @@ class OrganizationResource extends JsonResource
             ] : null),
             'services' => $this->when(
                 $this->relationLoaded('services') || $this->relationLoaded('ownedServices'),
-                function (): array {
+                function () use ($request): array {
                     $services = collect();
 
                     if ($this->relationLoaded('services')) {
@@ -67,6 +73,7 @@ class OrganizationResource extends JsonResource
                 ->filter(fn ($service): bool => (bool) $service->is_active)
                 ->unique('id')
                 ->map(fn ($service): array => [
+                    'images' => $this->serviceMedia($request, $service),
                     'id' => $service->id,
                     'name' => $service->name,
                     'slug' => $service->slug,
@@ -74,6 +81,10 @@ class OrganizationResource extends JsonResource
                     'starting_price' => $service->pivot?->starting_price !== null
                         ? (float) $service->pivot->starting_price
                         : ($service->rate_from !== null ? (float) $service->rate_from : null),
+                    'rate_from' => $service->rate_from !== null ? (float) $service->rate_from : null,
+                    'rate_to' => $service->rate_to !== null ? (float) $service->rate_to : null,
+                    'service_area' => $service->service_area,
+                    'service_area_geometry' => $service->service_area_geometry,
                 ])->values()->all();
                 },
                 []
@@ -86,5 +97,19 @@ class OrganizationResource extends JsonResource
                     'package_price' => $group->pivot?->package_price !== null ? (float) $group->pivot->package_price : null,
                 ])->values()->all()),
         ];
+    }
+
+    private function serviceMedia(Request $request, mixed $service): array
+    {
+        $media = $service->relationLoaded('media') ? $service->media : collect();
+        $entitlements = app(PublicMediaEntitlementService::class);
+        $images = $entitlements->take($media->where('media_type', 'image')->values(), $entitlements->limitFor($this->resource, 'service', 'image'));
+
+        return $images->map(fn ($item): array => [
+            'id' => $item->id,
+            'url' => $this->serviceMediaUrl($request, $item->id),
+            'is_primary' => (bool) $item->is_primary,
+            'sort_order' => (int) $item->sort_order,
+        ])->values()->all();
     }
 }

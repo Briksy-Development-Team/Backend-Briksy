@@ -28,6 +28,7 @@ class ServiceResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'service_area' => $this->service_area,
+            'service_area_geometry' => $this->service_area_geometry,
             'rate_from' => $this->rate_from !== null ? (float) $this->rate_from : null,
             'rate_to' => $this->rate_to !== null ? (float) $this->rate_to : null,
             'organization' => $this->whenLoaded('organization', fn (): ?array => $this->organization ? [

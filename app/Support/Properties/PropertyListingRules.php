@@ -33,7 +33,7 @@ final class PropertyListingRules
             'images' => ['nullable', 'array'],
             'images.*' => ['file', 'image', 'max:5120'],
             'videos' => ['nullable', 'array'],
-            'videos.*' => ['file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska', 'max:51200'],
+            'videos.*' => ['file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm', 'max:1048576'],
         ];
     }
 
@@ -64,7 +64,7 @@ final class PropertyListingRules
             'images' => ['nullable', 'array'],
             'images.*' => ['file', 'image', 'max:5120'],
             'videos' => ['nullable', 'array'],
-            'videos.*' => ['file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska', 'max:51200'],
+            'videos.*' => ['file', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm', 'max:1048576'],
         ];
     }
 }

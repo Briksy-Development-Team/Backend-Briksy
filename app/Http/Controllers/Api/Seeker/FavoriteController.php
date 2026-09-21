@@ -9,6 +9,7 @@ use App\Http\Resources\Seeker\FavoriteResource;
 use App\Models\Favorite;
 use App\Models\Organization;
 use App\Models\PropertyListing;
+use App\Models\Service;
 use Illuminate\Http\JsonResponse;
 
 class FavoriteController extends Controller
@@ -19,14 +20,7 @@ class FavoriteController extends Controller
 
         $query = Favorite::query()
             ->where('user_id', $userId)
-            ->with([
-                'favoritable' => function ($favoritableQuery): void {
-                    $favoritableQuery->with([
-                        'organization.organizationType',
-                        'media' => fn ($mediaQuery) => $mediaQuery->orderBy('sort_order'),
-                    ]);
-                },
-            ])
+            ->with('favoritable')
             ->latest();
 
         if ($request->input('type') === 'property') {
@@ -35,6 +29,10 @@ class FavoriteController extends Controller
 
         if ($request->input('type') === 'organization') {
             $query->where('favoritable_type', Organization::class);
+        }
+
+        if ($request->input('type') === 'service') {
+            $query->where('favoritable_type', Service::class);
         }
 
         $favorites = $query->paginate($request->perPage())->withQueryString();
@@ -50,7 +48,11 @@ class FavoriteController extends Controller
     {
         $userId = $request->user()->id;
 
-        $targetClass = $request->input('type') === 'property' ? PropertyListing::class : Organization::class;
+        $targetClass = match ($request->input('type')) {
+            'property' => PropertyListing::class,
+            'service' => Service::class,
+            default => Organization::class,
+        };
         $target = $targetClass::query()->findOrFail($request->input('target_id'));
 
         $favorite = Favorite::withTrashed()->where([
@@ -80,7 +82,11 @@ class FavoriteController extends Controller
     public function toggle(StoreFavoriteRequest $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $targetClass = $request->input('type') === 'property' ? PropertyListing::class : Organization::class;
+        $targetClass = match ($request->input('type')) {
+            'property' => PropertyListing::class,
+            'service' => Service::class,
+            default => Organization::class,
+        };
         $target = $targetClass::query()->findOrFail($request->input('target_id'));
 
         $favorite = Favorite::withTrashed()->where([

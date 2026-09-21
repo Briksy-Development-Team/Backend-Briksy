@@ -10,7 +10,7 @@ class FavoriteIndexRequest extends ApiIndexRequest
     public function rules(): array
     {
         return array_merge(parent::rules(), [
-            'type' => ['nullable', 'string', Rule::in(['property', 'organization'])],
+            'type' => ['nullable', 'string', Rule::in(['property', 'organization', 'service'])],
         ]);
     }
 

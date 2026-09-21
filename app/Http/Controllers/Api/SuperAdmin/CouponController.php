@@ -189,7 +189,7 @@ class CouponController extends Controller
     {
         return Coupon::query()
             ->where('code', $coupon)
-            ->orWhereKey($coupon)
+            ->orWhere('id', $coupon)
             ->firstOrFail();
     }
 }

@@ -25,6 +25,16 @@ class UserResource extends JsonResource
             'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
             'status' => $this->deleted_at ? 'inactive' : 'active',
             'created_at' => $this->created_at?->toISOString(),
+            'inquiries' => $this->whenLoaded('inquiries', fn (): array => $this->inquiries->map(fn ($inquiry): array => [
+                'id' => $inquiry->id,
+                'reference_no' => $inquiry->reference_no,
+                'subject' => $inquiry->subject,
+                'status' => $inquiry->status,
+                'lead_source' => $inquiry->lead_source,
+                'property_title' => $inquiry->propertyListing?->title,
+                'organization_name' => $inquiry->organization?->name,
+                'created_at' => $inquiry->created_at?->toISOString(),
+            ])->values()->all()),
         ];
     }
 }

@@ -31,11 +31,19 @@ class OrganizationSearchController extends Controller
         if ($request->filled('service_slug')) {
             $serviceSlug = $request->string('service_slug')->toString();
             $serviceCategory = collect(config('service_categories', []))->firstWhere('slug', $serviceSlug);
-            $query->where(function ($organizationQuery) use ($serviceSlug, $serviceCategory): void {
-                $matchesService = function ($serviceQuery) use ($serviceSlug, $serviceCategory): void {
+            $categoryValues = collect([
+                $serviceSlug,
+                $serviceCategory['label'] ?? null,
+                // Keep existing records created with the previous typo/value format visible.
+                $serviceSlug === 'landscapers' ? 'Landscappers' : null,
+                $serviceSlug === 'landscapers' ? 'Landscaping' : null,
+            ])->filter()->map(fn ($value): string => strtolower(trim((string) $value)))->unique()->values()->all();
+            $query->where(function ($organizationQuery) use ($serviceSlug, $categoryValues): void {
+                $matchesService = function ($serviceQuery) use ($serviceSlug, $categoryValues): void {
                     $serviceQuery->where('services.slug', $serviceSlug);
-                    if ($serviceCategory) {
-                        $serviceQuery->orWhereRaw('LOWER(services.category) = ?', [strtolower($serviceCategory['label'])]);
+                    if ($categoryValues !== []) {
+                        $placeholders = implode(', ', array_fill(0, count($categoryValues), '?'));
+                        $serviceQuery->orWhereRaw("LOWER(services.category) IN ({$placeholders})", $categoryValues);
                     }
                 };
                 $organizationQuery

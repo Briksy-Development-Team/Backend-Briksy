@@ -52,6 +52,13 @@ class ServiceResource extends JsonResource
                 ])->values()->all()),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
+            'timeline_events' => $this->whenLoaded('activityLogs', fn (): array => $this->activityLogs->map(fn ($log): array => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'title' => str($log->action ?: 'Activity')->replace('_', ' ')->title()->toString(),
+                'description' => $log->description,
+                'created_at' => $log->created_at?->toISOString(),
+            ])->values()->all()),
         ];
     }
 

@@ -11,6 +11,7 @@ use App\Http\Resources\SuperAdmin\ServiceResource;
 use App\Models\Service;
 use App\Models\ServiceMedia;
 use App\Models\Organization;
+use App\Models\ActivityLog;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Services\ServiceMapService;
@@ -19,6 +20,7 @@ use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 class ServiceController extends Controller
 {
@@ -132,7 +134,7 @@ class ServiceController extends Controller
     {
         abort_unless($this->canAccessService($request, $service), 403);
 
-        $service->load(['organizationType', 'organization', 'media'])
+        $service->load(['organizationType', 'organization', 'media', 'activityLogs'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         return $this->success(
@@ -146,9 +148,11 @@ class ServiceController extends Controller
         $this->assertServiceAreaCapability($request);
         $service = Service::query()->create($this->buildPayload($request));
 
+        $this->recordActivity($request, $service, 'created', 'Service was created.');
+
         $this->storeMedia($service, $request);
 
-        $service->load(['organizationType', 'organization', 'media'])
+        $service->load(['organizationType', 'organization', 'media', 'activityLogs'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         if ($service->organization_id) {
@@ -201,8 +205,9 @@ class ServiceController extends Controller
 
         $service->fill($this->buildPayload($request, $service));
         $service->save();
+        $this->recordActivity($request, $service, 'updated', 'Service details were updated.');
         $this->storeMedia($service, $request);
-        $service->load(['organizationType', 'organization', 'media'])
+        $service->load(['organizationType', 'organization', 'media', 'activityLogs'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         if ($service->organization_id) {
@@ -378,5 +383,30 @@ class ServiceController extends Controller
                 'sort_order' => ++$order,
             ]);
         }
+    }
+
+    private function recordActivity(Request $request, Service $service, string $action, string $description): void
+    {
+        if (!Schema::hasTable('activity_logs')) {
+            return;
+        }
+
+        $user = $request->user();
+        ActivityLog::query()->create([
+            'causer_id' => $user?->id,
+            'subject_id' => $service->id,
+            'organization_id' => $service->organization_id,
+            'user_id' => $user?->id,
+            'user_name' => $user?->name,
+            'user_email' => $user?->email,
+            'user_role' => $user?->roles?->pluck('name')->implode(', '),
+            'action' => $action,
+            'module' => 'service',
+            'description' => $description,
+            'method' => $request->method(),
+            'route' => $request->path(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
     }
 }

@@ -67,7 +67,7 @@ class Coupon extends Model
 
         return $this->newQuery()
             ->where('code', $value)
-            ->orWhereKey($value)
+            ->orWhere($this->getKeyName(), $value)
             ->first();
     }
 }

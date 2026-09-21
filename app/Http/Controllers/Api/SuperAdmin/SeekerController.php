@@ -7,6 +7,7 @@ use App\Http\Requests\Api\SuperAdmin\SeekerIndexRequest;
 use App\Http\Requests\Api\SuperAdmin\SeekerStoreRequest;
 use App\Http\Requests\Api\SuperAdmin\SeekerUpdateRequest;
 use App\Http\Resources\SuperAdmin\UserResource;
+use App\Models\Inquiry;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Query\ApiQueryBuilder;
@@ -62,6 +63,21 @@ class SeekerController extends Controller
         }
 
         $seeker->load('roles');
+
+        // Older enquiries may not have user_id populated, but retain the
+        // seeker's email. Include both forms so the superadmin detail matches
+        // the enquiries visible in the organisation inbox.
+        $inquiries = Inquiry::query()
+            ->with(['propertyListing', 'organization'])
+            ->where(function ($query) use ($seeker): void {
+                $query
+                    ->where('user_id', $seeker->id)
+                    ->orWhere('seeker_email', $seeker->email);
+            })
+            ->latest()
+            ->get();
+
+        $seeker->setRelation('inquiries', $inquiries);
 
         return $this->success(
             new UserResource($seeker),

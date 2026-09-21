@@ -73,7 +73,8 @@ class OrganizationResource extends JsonResource
                 ->filter(fn ($service): bool => (bool) $service->is_active)
                 ->unique('id')
                 ->map(fn ($service): array => [
-                    'images' => $this->serviceMedia($request, $service),
+                    'images' => $this->serviceMedia($request, $service, 'image'),
+                    'videos' => $this->serviceMedia($request, $service, 'video'),
                     'id' => $service->id,
                     'name' => $service->name,
                     'slug' => $service->slug,
@@ -99,13 +100,16 @@ class OrganizationResource extends JsonResource
         ];
     }
 
-    private function serviceMedia(Request $request, mixed $service): array
+    private function serviceMedia(Request $request, mixed $service, string $mediaType): array
     {
         $media = $service->relationLoaded('media') ? $service->media : collect();
         $entitlements = app(PublicMediaEntitlementService::class);
-        $images = $entitlements->take($media->where('media_type', 'image')->values(), $entitlements->limitFor($this->resource, 'service', 'image'));
+        $visibleMedia = $entitlements->take(
+            $media->where('media_type', $mediaType)->values(),
+            $entitlements->limitFor($this->resource, 'service', $mediaType),
+        );
 
-        return $images->map(fn ($item): array => [
+        return $visibleMedia->map(fn ($item): array => [
             'id' => $item->id,
             'url' => $this->serviceMediaUrl($request, $item->id),
             'is_primary' => (bool) $item->is_primary,

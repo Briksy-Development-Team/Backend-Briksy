@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\Seeker\OrganizationIndexRequest;
 use App\Http\Resources\Seeker\OrganizationResource;
 use App\Models\Organization;
+use App\Models\BuilderProject;
 use App\Models\VisitorLog;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\Request;
@@ -84,6 +85,16 @@ class OrganizationSearchController extends Controller
             new OrganizationResource($organization),
             'Organization retrieved successfully.'
         );
+    }
+
+    public function builderProjects(Organization $organization)
+    {
+        $projects = BuilderProject::query()
+            ->where('organization_id', $organization->id)
+            ->latest()
+            ->get(['id', 'name', 'project_type', 'status', 'description', 'location', 'state', 'postcode']);
+
+        return $this->success($projects, 'Builder projects retrieved successfully.');
     }
 
     private function recordVisit(Organization $organization, Request $request): void

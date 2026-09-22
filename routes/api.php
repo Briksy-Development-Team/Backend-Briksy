@@ -95,6 +95,7 @@ Route::prefix('seeker')->group(function (): void {
 
     Route::get('organizations', [OrganizationSearchController::class, 'index']);
     Route::get('organizations/{organization}', [OrganizationSearchController::class, 'show']);
+    Route::get('organizations/{organization}/builder-projects', [OrganizationSearchController::class, 'builderProjects']);
 
     Route::post('inquiries', [InquiryController::class, 'store']);
 

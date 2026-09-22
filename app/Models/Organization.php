@@ -105,6 +105,11 @@ class Organization extends Model
         return $this->hasMany(User::class, 'organization_id');
     }
 
+    public function builderProjects(): HasMany
+    {
+        return $this->hasMany(BuilderProject::class, 'organization_id');
+    }
+
     public function inquiries(): HasMany
     {
         return $this->hasMany(Inquiry::class, 'organization_id');

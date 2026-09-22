@@ -10,6 +10,6 @@ class BuilderProject extends Model
 {
     use HasUuids, SoftDeletes;
     protected $keyType = 'string'; public $incrementing = false;
-    protected $fillable = ['organization_id','created_by','name','project_type','status','description','location','state','postcode','latitude','longitude'];
-    protected function casts(): array { return ['latitude' => 'float', 'longitude' => 'float']; }
+    protected $fillable = ['organization_id','created_by','name','project_type','status','description','features','location','state','postcode','latitude','longitude'];
+    protected function casts(): array { return ['latitude' => 'float', 'longitude' => 'float', 'features' => 'array']; }
 }

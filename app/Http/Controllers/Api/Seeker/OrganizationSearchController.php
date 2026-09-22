@@ -92,7 +92,7 @@ class OrganizationSearchController extends Controller
         $projects = BuilderProject::query()
             ->where('organization_id', $organization->id)
             ->latest()
-            ->get(['id', 'name', 'project_type', 'status', 'description', 'location', 'state', 'postcode']);
+            ->get(['id', 'name', 'project_type', 'status', 'description', 'features', 'location', 'state', 'postcode']);
 
         return $this->success($projects, 'Builder projects retrieved successfully.');
     }

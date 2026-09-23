@@ -144,13 +144,15 @@ class StripeWebhookController extends Controller
                     ]);
                     $subscription->save();
 
-                    if ($plan && in_array($subscriptionStatus, ['active', 'trialing'], true)) {
+                    if ($resolvedOrganizationId) {
                         Organization::query()
                             ->where('id', $resolvedOrganizationId)
                             ->update([
                                 'plan_id' => $plan->id,
                                 'subscription_status' => $subscriptionStatus,
-                                'subscription_activated_at' => now(),
+                                'subscription_activated_at' => in_array($subscriptionStatus, ['active', 'trialing'], true)
+                                    ? now()
+                                    : DB::raw('subscription_activated_at'),
                             ]);
                     }
 
@@ -182,6 +184,12 @@ class StripeWebhookController extends Controller
                         'payment_status' => $eventType === 'invoice.payment_succeeded' ? 'paid' : 'failed',
                         'status' => $eventType === 'invoice.payment_succeeded' ? 'active' : 'past_due',
                     ]);
+                    Organization::query()
+                        ->where('id', $resolvedOrganizationId)
+                        ->update([
+                            'plan_id' => $subscription->subscription_plan_id,
+                            'subscription_status' => $eventType === 'invoice.payment_succeeded' ? 'active' : 'past_due',
+                        ]);
                 }
 
                 $this->webhookDispatcher->dispatch(

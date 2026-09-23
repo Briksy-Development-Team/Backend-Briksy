@@ -30,6 +30,7 @@ class SubscriptionPlanStoreRequest extends FormRequest
             'billing_enabled' => ['sometimes', 'boolean'],
             'trial_days' => ['nullable', 'integer', 'min:0'],
             'propertyLimit' => ['required', 'integer', 'min:0'],
+            'staff_seat_limit' => ['sometimes', 'integer', 'min:0'],
             'popular' => ['required', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'features' => ['required', 'array'],

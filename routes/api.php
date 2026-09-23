@@ -229,6 +229,7 @@ Route::prefix('admin')->group(function (): void {
         Route::get('activity-logs/{activityLog}', [AdminActivityLogController::class, 'show'])->middleware('permission:activity_logs.view');
         Route::get('referrals', [AdminReferralController::class, 'index'])->middleware('permission:referral.view');
 
+        Route::get('services/categories', [SuperAdminServiceController::class, 'categories'])->middleware(['module:service_management', 'permission:service.view']);
         Route::get('services/map', [SuperAdminServiceController::class, 'map'])->middleware(['module:service_management', 'permission:service.view']);
         Route::get('services/import/meta', [SuperAdminServiceImportController::class, 'meta'])->middleware(['module:service_management', 'permission:service.create']);
         Route::get('services/import/template', [SuperAdminServiceImportController::class, 'template'])->middleware(['module:service_management', 'permission:service.create']);
@@ -332,6 +333,7 @@ Route::prefix('super-admin')->group(function (): void {
         Route::patch('property-offers/{propertyOffer}/toggle', [SuperAdminPropertyOfferController::class, 'toggle'])->middleware('permission:property.update');
         Route::delete('property-offers/{propertyOffer}', [SuperAdminPropertyOfferController::class, 'destroy'])->middleware('permission:property.delete');
 
+        Route::get('services/categories', [SuperAdminServiceController::class, 'categories'])->middleware('permission:service.view');
         Route::get('services/map', [SuperAdminServiceController::class, 'map'])->middleware('permission:service.view');
         Route::get('services/import/meta', [SuperAdminServiceImportController::class, 'meta'])->middleware('permission:service.create');
         Route::get('services/import/template', [SuperAdminServiceImportController::class, 'template'])->middleware('permission:service.create');

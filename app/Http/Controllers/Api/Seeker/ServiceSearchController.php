@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\Seeker\ServiceResource;
 use App\Models\Service;
 use App\Support\Query\ApiQueryBuilder;
+use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\Request;
 
 class ServiceSearchController extends Controller
@@ -36,6 +37,10 @@ class ServiceSearchController extends Controller
 
         $query->orderBy('name');
         $services = $query->paginate(min(max((int) $request->input('per_page', 24), 1), 100))->withQueryString();
+        $resolver = app(PlanCapabilityResolver::class);
+        $services->setCollection($services->getCollection()->filter(fn (Service $service): bool =>
+            $resolver->serviceCategoryAllowedForOrganization($service->organization, $service->slug ?: $service->category)
+        )->values());
 
         return $this->paginated(ServiceResource::collection($services), $services, 'Services retrieved successfully.');
     }
@@ -43,6 +48,7 @@ class ServiceSearchController extends Controller
     public function show(Service $service)
     {
         abort_unless($service->is_active && $service->organization?->is_verified, 404);
+        abort_unless(app(PlanCapabilityResolver::class)->serviceCategoryAllowedForOrganization($service->organization, $service->slug ?: $service->category), 404);
         $service->load(['organization.currentSubscription.plan', 'media']);
 
         return $this->success(new ServiceResource($service), 'Service retrieved successfully.');

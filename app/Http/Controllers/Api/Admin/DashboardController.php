@@ -52,6 +52,7 @@ class DashboardController extends Controller
             'services' => $serviceWorkflow ? Service::query()->where('organization_id', $organization->id)->count() : 0,
             'service_regions' => $serviceWorkflow ? Service::query()
                 ->where('organization_id', $organization->id)
+                ->where('is_active', true)
                 ->where(function ($query): void {
                     $query->whereNotNull('service_area_geometry')->orWhere(function ($areaQuery): void {
                         $areaQuery->whereNotNull('service_area')->whereRaw("TRIM(service_area) <> ''");
@@ -119,6 +120,7 @@ class DashboardController extends Controller
                     ->count() : 0,
                 'service_regions' => $serviceWorkflow ? Service::query()
                     ->where('organization_id', $organization->id)
+                    ->where('is_active', true)
                     ->where(function ($query): void {
                         $query->whereNotNull('service_area_geometry')->orWhere(function ($areaQuery): void {
                             $areaQuery->whereNotNull('service_area')->whereRaw("TRIM(service_area) <> ''");

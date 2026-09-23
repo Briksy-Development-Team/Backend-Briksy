@@ -28,7 +28,16 @@ class Inquiry extends Model
         'seeker_email',
         'seeker_phone',
         'status',
+        'email_delivery_status',
+        'email_delivery_error',
+        'email_recipient',
+        'email_sent_at',
     ];
+
+    protected function casts(): array
+    {
+        return ['email_sent_at' => 'datetime'];
+    }
 
     public function getDisplayIdAttribute(): string
     {

@@ -12,6 +12,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Business\BusinessModuleResolver;
+use App\Support\Business\PlanCapabilityResolver;
 use App\Models\UserPermission;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,10 @@ use Illuminate\Support\Str;
 
 class PermissionController extends Controller
 {
-    public function __construct(private readonly BusinessModuleResolver $moduleResolver)
+    public function __construct(
+        private readonly BusinessModuleResolver $moduleResolver,
+        private readonly PlanCapabilityResolver $planCapabilities,
+    )
     {
     }
 
@@ -244,6 +248,7 @@ class PermissionController extends Controller
             'enabled_modules' => $this->moduleResolver->resolve($user),
             'category' => $this->moduleResolver->category($user),
             'capabilities' => $this->moduleResolver->capabilities($user),
+            'entitlements' => $this->planCapabilities->resolved($user),
             'grouped' => $this->groupPermissions($effectivePermissions),
         ];
     }

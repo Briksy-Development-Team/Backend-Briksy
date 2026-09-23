@@ -10,7 +10,12 @@ class ServiceMediaController extends Controller
 {
     public function show(ServiceMedia $serviceMedia)
     {
-        $path = ltrim((string) $serviceMedia->file_url, '/');
+        $rawUrl = (string) $serviceMedia->file_url;
+        if (filter_var($rawUrl, FILTER_VALIDATE_URL) && preg_match('#^https?://#i', $rawUrl)) {
+            return redirect()->away($rawUrl);
+        }
+
+        $path = ltrim($rawUrl, '/');
         $path = preg_replace('#^storage/#', '', $path) ?? $path;
         abort_unless(Storage::disk('public')->exists($path), 404);
 

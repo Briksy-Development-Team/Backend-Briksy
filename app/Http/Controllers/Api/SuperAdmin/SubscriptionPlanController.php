@@ -122,6 +122,7 @@ class SubscriptionPlanController extends Controller
             'billing_enabled' => $validated['billing_enabled'] ?? $subscriptionPlan->billing_enabled ?? true,
             'trial_days' => $validated['trial_days'] ?? $subscriptionPlan->trial_days,
             'property_limit' => $validated['property_limit'] ?? $subscriptionPlan->property_limit,
+            'staff_seat_limit' => $validated['staff_seat_limit'] ?? $subscriptionPlan->staff_seat_limit,
             'popular' => $validated['popular'] ?? $subscriptionPlan->popular,
             'features' => $validated['features'] ?? $subscriptionPlan->features,
             'permissions' => $validated['permissions'] ?? $subscriptionPlan->permissions,

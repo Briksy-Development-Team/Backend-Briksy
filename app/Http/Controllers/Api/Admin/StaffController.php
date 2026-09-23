@@ -12,6 +12,7 @@ use App\Services\PermissionInheritanceService;
 use App\Services\Webhooks\WebhookDispatcherService;
 use App\Support\Business\BusinessModuleResolver;
 use App\Support\Query\ApiQueryBuilder;
+use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -23,7 +24,8 @@ class StaffController extends Controller
         private readonly BusinessModuleResolver $moduleResolver,
         private readonly NotificationService $notificationService,
         private readonly WebhookDispatcherService $webhookDispatcher,
-        private readonly PermissionInheritanceService $permissionInheritance
+        private readonly PermissionInheritanceService $permissionInheritance,
+        private readonly PlanCapabilityResolver $planCapabilities
     )
     {
     }
@@ -108,6 +110,7 @@ class StaffController extends Controller
             ], 403);
         }
 
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
@@ -118,7 +121,22 @@ class StaffController extends Controller
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $staff = DB::transaction(function () use ($validated, $organizationId): User {
+        $staff = DB::transaction(function () use ($validated, $organizationId, $request): User {
+            $organization = \App\Models\Organization::query()->with(['plan', 'currentSubscription'])->lockForUpdate()->findOrFail($organizationId);
+            $request->user()->setRelation('organization', $organization);
+            $entitlements = $this->planCapabilities->resolved($request->user());
+            if (!$entitlements['active']) {
+                throw new HttpResponseException(response()->json(['success' => false, 'code' => 'SUBSCRIPTION_REQUIRED', 'message' => 'An active subscription is required.'], 402));
+            }
+            $staffLimit = $entitlements['limits']['staff_members'] ?? 0;
+            $staffCount = User::query()
+                ->where('organization_id', $organizationId)
+                ->whereHas('roles', static fn ($roleQuery) => $roleQuery->whereIn('roles.name', ['admin', 'admin_staff']))
+                ->count();
+            if ($staffLimit !== null && $staffCount >= (int) $staffLimit) {
+                throw new HttpResponseException(response()->json(['success' => false, 'code' => 'PLAN_STAFF_LIMIT_REACHED', 'message' => sprintf('Your %s plan allows up to %d staff members. Upgrade your plan to add more staff.', $entitlements['plan']['name'] ?? 'current', $staffLimit)], 422));
+            }
+
             $staff = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],

@@ -17,7 +17,8 @@ class RoleAccessTest extends TestCase
 
         $superAdminResponse = $this->postJson('/api/super-admin/auth/login', [
             'email' => 'superadmin@brisky.example',
-            'password' => 'password',
+            // SuperAdminSeeder intentionally uses the stronger seeded secret.
+            'password' => 'Qwerty@123',
         ]);
 
         $superAdminResponse->assertOk()
@@ -26,7 +27,8 @@ class RoleAccessTest extends TestCase
 
         $adminResponse = $this->postJson('/api/admin/auth/login', [
             'email' => 'harborview-realty@brisky.example',
-            'password' => 'password',
+            // UserSeeder uses the same seeded development credential.
+            'password' => 'Qwerty@123',
         ]);
 
         $adminResponse->assertOk()

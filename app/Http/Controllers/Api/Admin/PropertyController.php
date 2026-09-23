@@ -15,6 +15,7 @@ use App\Services\NotificationService;
 use App\Services\PropertyFeatureSyncService;
 use App\Support\Properties\PropertyWorkflow;
 use App\Support\Business\BusinessModuleResolver;
+use App\Support\Business\PlanCapabilityResolver;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,6 +30,7 @@ class PropertyController extends Controller
         private readonly NotificationService $notificationService,
         private readonly DynamicIdGeneratorService $idGenerator,
         private readonly BusinessModuleResolver $moduleResolver,
+        private readonly PlanCapabilityResolver $planCapabilities,
         private readonly PropertyFeatureSyncService $featureSync,
     )
     {
@@ -102,6 +104,18 @@ class PropertyController extends Controller
                 'success' => false,
                 'message' => 'Admin account is not assigned to an organization.',
             ], 403);
+        }
+
+        $this->assertMediaEntitlements($request);
+
+        $limit = $this->planCapabilities->resolved($request->user())['limits']['property_listings'] ?? 0;
+        $used = PropertyListing::query()->where('org_id', $organizationId)->count();
+        if ($limit !== null && $limit > 0 && $used >= $limit) {
+            return response()->json([
+                'success' => false,
+                'code' => 'PLAN_PROPERTY_LIMIT_REACHED',
+                'message' => sprintf('Your plan allows up to %d property listings.', $limit),
+            ], 422);
         }
 
         $listing = PropertyListing::query()->create([
@@ -221,6 +235,7 @@ class PropertyController extends Controller
         $validated['rejection_reason'] = null;
         $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
 
+        $this->assertMediaEntitlements($request, $propertyListing);
         $propertyListing->fill($validated);
         $propertyListing->save();
         if ($features !== null) {
@@ -381,6 +396,48 @@ class PropertyController extends Controller
                 'is_primary' => false,
                 'sort_order' => ++$mediaOrder,
             ]);
+        }
+    }
+
+    private function assertMediaEntitlements(Request $request, ?PropertyListing $listing = null): void
+    {
+        $user = $request->user();
+        if (!$user || $user->isSuperAdmin() || $user->isGlobalStaff()) {
+            return;
+        }
+
+        $entitlements = $this->planCapabilities->resolved($user);
+        $images = count((array) $request->file('images', []));
+        $videos = count((array) $request->file('videos', []));
+        $existingImages = $listing?->media()->where('media_type', 'image')->count() ?? 0;
+        $existingVideos = $listing?->media()->where('media_type', 'video')->count() ?? 0;
+        $imageLimit = $entitlements['limits']['images'];
+        $videoLimit = $entitlements['limits']['videos'];
+
+        if ($videos > 0
+            && ($entitlements['features']['video_upload']['configured'] ?? false)
+            && !($entitlements['features']['video_upload']['enabled'] ?? false)) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'success' => false,
+                'code' => 'PLAN_VIDEO_NOT_INCLUDED',
+                'message' => 'Video uploads are not included in your subscription plan.',
+            ], 422));
+        }
+        if (($entitlements['features']['maximum_images']['configured'] ?? false)
+            && $imageLimit !== null && $existingImages + $images > (int) $imageLimit) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'success' => false,
+                'code' => 'PLAN_IMAGE_LIMIT_REACHED',
+                'message' => sprintf('Your %s plan allows a maximum of %d images. Remove an image or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $imageLimit),
+            ], 422));
+        }
+        if (($entitlements['features']['maximum_videos']['configured'] ?? false)
+            && $videoLimit !== null && $existingVideos + $videos > (int) $videoLimit) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'success' => false,
+                'code' => 'PLAN_VIDEO_LIMIT_REACHED',
+                'message' => sprintf('Your %s plan allows a maximum of %d videos. Remove a video or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $videoLimit),
+            ], 422));
         }
     }
 

@@ -102,7 +102,9 @@ class PropertyListingResource extends JsonResource
                     'logo_url' => $this->organizationMediaUrl($request, $this->organization?->logo_url, $this->organization?->id, 'profile'),
                     'banner_url' => $this->organizationMediaUrl($request, $this->organization?->banner_url, $this->organization?->id, 'banner'),
                     'type' => $this->organization?->organizationType?->name,
-                    'is_verified' => (bool) $this->organization?->is_verified,
+                    'is_verified' => (bool) $this->organization?->is_verified
+                        && $this->organization
+                        && app(\App\Support\Business\PlanCapabilityResolver::class)->organizationFeatureEnabled($this->organization, 'verified_badge'),
                 ];
             }),
             'media' => $this->whenLoaded('media', function () use ($request, $visibleMedia): array {

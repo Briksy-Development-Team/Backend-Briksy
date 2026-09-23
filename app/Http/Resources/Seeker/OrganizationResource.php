@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Seeker;
 
 use App\Services\PublicMediaEntitlementService;
+use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,13 +26,21 @@ class OrganizationResource extends JsonResource
         return rtrim($request->getSchemeAndHttpHost(), '/').'/api/organization-media/'.$this->id.'/'.$type.'?v='.rawurlencode((string) ($this->updated_at?->timestamp ?? time()));
     }
 
-    private function serviceMediaUrl(Request $request, string $mediaId): string
+    private function serviceMediaUrl(Request $request, string $mediaId, ?string $url = null): string
     {
+        if ($url && filter_var($url, FILTER_VALIDATE_URL) && preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+
         return rtrim($request->getSchemeAndHttpHost(), '/').'/api/service-media/'.$mediaId;
     }
 
     public function toArray(Request $request): array
     {
+        $planCapabilities = app(PlanCapabilityResolver::class);
+        $verifiedBadgeEntitled = $planCapabilities->organizationFeatureEnabled($this->resource, 'verified_badge');
+        $businessProfileEntitled = $planCapabilities->organizationFeatureEnabled($this->resource, 'business_profile');
+
         return [
             'id' => $this->id,
             'generated_id' => $this->generated_id,
@@ -42,7 +51,9 @@ class OrganizationResource extends JsonResource
             'abn' => $this->abn,
             'rating' => (float) $this->avg_org_rating,
             'ranking_priority' => $this->ranking_priority,
-            'is_verified' => (bool) $this->is_verified,
+            'is_verified' => $verifiedBadgeEntitled && (bool) $this->is_verified,
+            'verified_badge_entitled' => $verifiedBadgeEntitled,
+            'business_profile_available' => $businessProfileEntitled,
             'is_favourite' => (bool) ($this->is_favourite ?? false),
             'address' => $this->address,
             'state' => $this->state,
@@ -111,7 +122,7 @@ class OrganizationResource extends JsonResource
 
         return $visibleMedia->map(fn ($item): array => [
             'id' => $item->id,
-            'url' => $this->serviceMediaUrl($request, $item->id),
+            'url' => $this->serviceMediaUrl($request, $item->id, $item->file_url),
             'is_primary' => (bool) $item->is_primary,
             'sort_order' => (int) $item->sort_order,
         ])->values()->all();

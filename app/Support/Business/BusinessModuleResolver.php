@@ -26,24 +26,35 @@ class BusinessModuleResolver
         $modules = [
             BusinessModules::DASHBOARD,
             BusinessModules::USER_MANAGEMENT,
-            BusinessModules::INQUIRY_MANAGEMENT,
             BusinessModules::SETTINGS,
         ];
 
         if ($category === 'real-estate' && ($capabilities['property_management'] ?? false)) {
             $modules[] = BusinessModules::PROPERTY_MANAGEMENT;
+            if ($capabilities['property_enquiries'] ?? false) {
+                $modules[] = BusinessModules::INQUIRY_MANAGEMENT;
+            }
         }
 
         if ($category === 'trades-professionals' && ($capabilities['business_profile'] ?? false)) {
             $modules[] = BusinessModules::SERVICE_MANAGEMENT;
+            if ($capabilities['service_enquiry'] ?? false) {
+                $modules[] = BusinessModules::INQUIRY_MANAGEMENT;
+            }
         }
 
         if ($category === 'buyers-agent' && ($capabilities['buyer_briefs'] ?? false)) {
             $modules[] = BusinessModules::BUYER_MANAGEMENT;
+            if ($capabilities['buyer_enquiries'] ?? false) {
+                $modules[] = BusinessModules::INQUIRY_MANAGEMENT;
+            }
         }
 
         if ($category === 'builders' && ($capabilities['projects'] ?? false)) {
             $modules[] = BusinessModules::BUILDER_MANAGEMENT;
+            if ($capabilities['enquiries'] ?? false) {
+                $modules[] = BusinessModules::INQUIRY_MANAGEMENT;
+            }
         }
 
         return array_values(array_unique($modules));

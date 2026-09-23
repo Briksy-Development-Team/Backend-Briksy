@@ -8,7 +8,8 @@ final class ServiceListingRules
 {
     public static function store(?string $ignoreServiceId = null): array
     {
-        $slugRule = ['required', 'string', 'max:100'];
+        // Slugs are internal routing identifiers and are generated when omitted.
+        $slugRule = ['nullable', 'string', 'max:100'];
 
         if ($ignoreServiceId) {
             $slugRule[] = Rule::unique('services', 'slug')->ignore($ignoreServiceId);

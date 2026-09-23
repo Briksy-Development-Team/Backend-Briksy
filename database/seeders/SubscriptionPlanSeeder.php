@@ -174,6 +174,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'ranking_priority' => 1,
                 'features' => [
                     $this->feature('Business Profile', true),
+                    $this->feature('Active Services', true, 3),
                     $this->feature('Verified Badge', true),
                     $this->feature('Service Areas', true, 5),
                     $this->feature('Service Categories', true, 3),
@@ -202,6 +203,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'ranking_priority' => 2,
                 'features' => [
                     $this->feature('Business Profile', true),
+                    $this->feature('Active Services', true, 10),
                     $this->feature('Verified Badge', true),
                     $this->feature('Service Areas', true, 20),
                     $this->feature('Service Categories', true, 6),
@@ -230,6 +232,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'ranking_priority' => 3,
                 'features' => [
                     $this->feature('Business Profile', true),
+                    $this->feature('Active Services', true, 25),
                     $this->feature('Verified Badge', true),
                     $this->feature('Service Areas', true, 35),
                     $this->feature('Service Categories', true, 10),
@@ -258,6 +261,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'ranking_priority' => 4,
                 'features' => [
                     $this->feature('Business Profile', true),
+                    $this->feature('Active Services', true, null),
                     $this->feature('Verified Badge', true),
                     $this->feature('Service Areas', true, null),
                     $this->feature('Service Categories', true, 25),

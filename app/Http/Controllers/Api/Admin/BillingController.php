@@ -63,6 +63,7 @@ class BillingController extends Controller
 
         return $this->success([
             'subscription' => $payload,
+            'entitlements' => $this->planCapabilities->resolved($request->user()),
         ], 'Current subscription retrieved successfully.');
     }
 
@@ -404,6 +405,7 @@ class BillingController extends Controller
                 'checkout_status' => $checkoutSession->status,
                 'payment_status' => $checkoutSession->payment_status ?? null,
                 'subscription' => $this->subscriptionPayload($organization->currentSubscription?->loadMissing(['organization', 'plan', 'addons.addon'])),
+                'entitlements' => $this->planCapabilities->resolved($request->user()),
                 'stripe_details' => [
                     'subscription_id' => $subscription?->stripe_subscription_id ?? ($stripeSubscription?->id ?? null),
                     'customer_id' => $subscription?->stripe_customer_id ?? ($checkoutSession->customer ?? null),

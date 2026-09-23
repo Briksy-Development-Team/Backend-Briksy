@@ -1,5 +1,16 @@
 <?php
 
+$mailScheme = env('MAIL_SCHEME');
+if (! in_array($mailScheme, ['smtp', 'smtps'], true)) {
+    // MAIL_ENCRYPTION describes TLS/SSL encryption; Symfony's DSN scheme
+    // must remain smtp or smtps.
+    $mailScheme = env('MAIL_ENCRYPTION') === 'ssl' ? 'smtps' : 'smtp';
+}
+$mailUrl = env('MAIL_URL');
+if ($mailUrl !== null && ! preg_match('/^(smtp|smtps):\/\//i', (string) $mailUrl)) {
+    $mailUrl = null;
+}
+
 return [
 
     /*
@@ -39,8 +50,8 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME', env('MAIL_ENCRYPTION')),
-            'url' => env('MAIL_URL'),
+            'scheme' => $mailScheme,
+            'url' => $mailUrl,
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),

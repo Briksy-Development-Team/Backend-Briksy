@@ -20,7 +20,10 @@ use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Str;
 
 class ServiceController extends Controller
 {
@@ -120,6 +123,24 @@ class ServiceController extends Controller
         );
     }
 
+    public function categories(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $catalog = $user ? $this->planCapabilities->serviceCatalog($user) : collect();
+
+        return $this->success([
+            'active' => $user ? $this->planCapabilities->resolved($user)['active'] : false,
+            'categories' => $catalog->map(fn (Service $service): array => [
+                'slug' => $service->slug,
+                'label' => $service->category ?: $service->name,
+                'name' => $service->name,
+            ])->values()->all(),
+            'message' => $catalog->isEmpty()
+                ? 'No service categories are available on the current subscription plan.'
+                : null,
+        ], 'Service categories retrieved successfully.');
+    }
+
     public function map(Request $request): JsonResponse
     {
         $services = $this->serviceMapService->list($request);
@@ -145,8 +166,13 @@ class ServiceController extends Controller
 
     public function store(ServiceStoreRequest $request): JsonResponse
     {
-        $this->assertServiceAreaCapability($request);
-        $service = Service::query()->create($this->buildPayload($request));
+        $service = DB::transaction(function () use ($request): Service {
+            $this->lockOrganizationForActiveService($request);
+            $this->demoteNewServiceWhenActiveLimitReached($request);
+            $this->assertPlanEntitlements($request);
+            $this->assertServiceAreaCapability($request);
+            return Service::query()->create($this->buildPayload($request));
+        });
 
         $this->recordActivity($request, $service, 'created', 'Service was created.');
 
@@ -201,10 +227,13 @@ class ServiceController extends Controller
     public function update(ServiceUpdateRequest $request, Service $service): JsonResponse
     {
         abort_unless($this->canAccessService($request, $service), 403);
-        $this->assertServiceAreaCapability($request, $service);
-
-        $service->fill($this->buildPayload($request, $service));
-        $service->save();
+        DB::transaction(function () use ($request, $service): void {
+            $this->lockOrganizationForActiveService($request, $service);
+            $this->assertPlanEntitlements($request, $service);
+            $this->assertServiceAreaCapability($request, $service);
+            $service->fill($this->buildPayload($request, $service));
+            $service->save();
+        });
         $this->recordActivity($request, $service, 'updated', 'Service details were updated.');
         $this->storeMedia($service, $request);
         $service->load(['organizationType', 'organization', 'media', 'activityLogs'])
@@ -254,15 +283,15 @@ class ServiceController extends Controller
         $payload = [
             'name' => $name,
             'title' => $title,
-            'category' => $validated['category'] ?? $service?->category,
-            'slug' => $validated['slug'] ?? $service?->slug,
+            'category' => $this->derivedCategory($request, $service),
+            'slug' => $this->uniqueServiceSlug($validated['slug'] ?? null, $name, $service),
             'description' => $validated['description'] ?? $service?->description,
             'service_area' => $validated['service_area'] ?? $service?->service_area,
             'service_area_geometry' => $validated['service_area_geometry'] ?? $service?->service_area_geometry,
             'rate_from' => $validated['rate_from'] ?? $service?->rate_from,
             'rate_to' => $validated['rate_to'] ?? $service?->rate_to,
-            'is_active' => array_key_exists('is_active', $validated)
-                ? (bool) $validated['is_active']
+            'is_active' => array_key_exists('is_active', $request->all())
+                ? $request->boolean('is_active')
                 : (bool) ($service?->is_active ?? true),
         ];
 
@@ -279,6 +308,36 @@ class ServiceController extends Controller
         }
 
         return $payload;
+    }
+
+    private function derivedCategory(Request $request, ?Service $service = null): ?string
+    {
+        $validated = $request->validated();
+        $category = trim((string) ($validated['category'] ?? ''));
+
+        return $category !== ''
+            ? $category
+            : ($service?->category ?: trim((string) ($validated['name'] ?? $service?->name ?? '')) ?: null);
+    }
+
+    private function uniqueServiceSlug(?string $requestedSlug, ?string $name, ?Service $service = null): string
+    {
+        if ($service && !request()->has('slug') && filled($service->slug)) {
+            return (string) $service->slug;
+        }
+
+        $base = Str::slug(trim((string) ($requestedSlug ?: $name))) ?: 'service';
+        $slug = $base;
+        $suffix = 2;
+
+        while (Service::withTrashed()
+            ->when($service, fn ($query) => $query->where($service->getKeyName(), '!=', $service->getKey()))
+            ->where('slug', $slug)
+            ->exists()) {
+            $slug = $base.'-'.$suffix++;
+        }
+
+        return $slug;
     }
 
     private function canAccessService(Request $request, Service $service): bool
@@ -340,11 +399,22 @@ class ServiceController extends Controller
             return;
         }
 
+        $requestedActive = array_key_exists('is_active', $request->all())
+            ? $request->boolean('is_active')
+            : (bool) ($service?->is_active ?? true);
+        // Draft services may carry a future service area without consuming a
+        // public service-area slot. The slot is counted when the service is
+        // activated.
+        if (!$requestedActive) {
+            return;
+        }
+
         $alreadyCounted = $service && $service->organization_id === $user->organization_id
             && (filled($service->service_area) || filled($service->service_area_geometry));
 
         $used = Service::query()
             ->where('organization_id', $user->organization_id)
+            ->where('is_active', true)
             ->where(function ($query): void {
                 $query->whereNotNull('service_area_geometry')->orWhere(function ($areaQuery): void {
                     $areaQuery->whereNotNull('service_area')->whereRaw("TRIM(service_area) <> ''");
@@ -357,6 +427,110 @@ class ServiceController extends Controller
             422,
             sprintf('Your subscription allows up to %d service area%s.', $limit, $limit === 1 ? '' : 's')
         );
+    }
+
+    private function lockOrganizationForActiveService(Request $request, ?Service $service = null): void
+    {
+        $user = $request->user();
+        if (!$user || $user->isSuperAdmin() || $user->isGlobalStaff() || !$user->organization_id) {
+            return;
+        }
+
+        $requestedActive = array_key_exists('is_active', $request->all())
+            ? $request->boolean('is_active')
+            : (bool) ($service?->is_active ?? true);
+        if (!$requestedActive || ($service && $service->is_active)) {
+            return;
+        }
+
+        $organization = \App\Models\Organization::query()
+            ->with(['plan', 'currentSubscription'])
+            ->lockForUpdate()
+            ->findOrFail($user->organization_id);
+        $user->setRelation('organization', $organization);
+    }
+
+    private function demoteNewServiceWhenActiveLimitReached(Request $request): void
+    {
+        $user = $request->user();
+        if (!$user || $user->isSuperAdmin() || $user->isGlobalStaff() || !$user->organization_id) {
+            return;
+        }
+
+        $requestedActive = array_key_exists('is_active', $request->all())
+            ? $request->boolean('is_active')
+            : true;
+        if (!$requestedActive) {
+            return;
+        }
+
+        $activeLimit = $this->planCapabilities->resolved($user)['limits']['active_services'] ?? null;
+        if ($activeLimit === null) {
+            return;
+        }
+
+        $activeServices = Service::query()
+            ->where('organization_id', $user->organization_id)
+            ->where('is_active', true)
+            ->count();
+        if ($activeServices >= (int) $activeLimit) {
+            $request->merge(['is_active' => false]);
+        }
+    }
+
+    private function assertPlanEntitlements(Request $request, ?Service $service = null): void
+    {
+        $user = $request->user();
+        if (!$user || $user->isSuperAdmin() || $user->isGlobalStaff()) {
+            return;
+        }
+
+        $entitlements = $this->planCapabilities->resolved($user);
+        if (!$entitlements['active'] || !($entitlements['features']['service_management']['enabled'] ?? false)) {
+            $this->planError('PLAN_SERVICE_MANAGEMENT_NOT_INCLUDED', 'Service Management is not included in your subscription plan.');
+        }
+
+        $organizationId = $user->organization_id;
+        $requestedActive = array_key_exists('is_active', $request->all())
+            ? $request->boolean('is_active')
+            : (bool) ($service?->is_active ?? true);
+        $activating = $requestedActive && (!$service || !$service->is_active);
+        $activeLimit = $entitlements['limits']['active_services'];
+        if ($activating && $activeLimit !== null) {
+            $activeServices = Service::query()
+                ->where('organization_id', $organizationId)
+                ->where('is_active', true)
+                ->count();
+            if ($activeServices >= (int) $activeLimit) {
+                $this->planError('PLAN_ACTIVE_SERVICE_LIMIT_REACHED', sprintf('Your %s plan allows up to %d active services. Deactivate another service or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $activeLimit));
+            }
+        }
+
+        $images = count((array) $request->file('images', []));
+        $videos = count((array) $request->file('videos', []));
+        if ($videos > 0 && ($entitlements['features']['video_upload']['configured'] ?? false) && !($entitlements['features']['video_upload']['enabled'] ?? false)) {
+            $this->planError('PLAN_VIDEO_NOT_INCLUDED', 'Video uploads are not included in your subscription plan.');
+        }
+
+        $existingImages = $service?->media()->where('media_type', 'image')->count() ?? 0;
+        $existingVideos = $service?->media()->where('media_type', 'video')->count() ?? 0;
+        $imageLimit = $entitlements['limits']['images'];
+        $videoLimit = $entitlements['limits']['videos'];
+        if (($entitlements['features']['maximum_images']['configured'] ?? false) && $imageLimit !== null && $existingImages + $images > (int) $imageLimit) {
+            $this->planError('PLAN_IMAGE_LIMIT_REACHED', sprintf('Your %s plan allows a maximum of %d images. Remove an image or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $imageLimit));
+        }
+        if (($entitlements['features']['maximum_videos']['configured'] ?? false) && $videoLimit !== null && $existingVideos + $videos > (int) $videoLimit) {
+            $this->planError('PLAN_VIDEO_LIMIT_REACHED', sprintf('Your %s plan allows a maximum of %d videos. Remove a video or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $videoLimit));
+        }
+    }
+
+    private function planError(string $code, string $message): never
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'code' => $code,
+            'message' => $message,
+        ], 422));
     }
 
     private function storeMedia(Service $service, Request $request): void

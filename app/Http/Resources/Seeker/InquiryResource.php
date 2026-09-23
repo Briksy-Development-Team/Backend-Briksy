@@ -45,6 +45,11 @@ class InquiryResource extends JsonResource
             'display_id' => $this->display_id,
             'lead_source' => $this->lead_source,
             'status' => $this->status,
+            'email_delivery' => [
+                'status' => $this->email_delivery_status,
+                'recipient' => $this->email_recipient,
+                'sent_at' => $this->email_sent_at?->toISOString(),
+            ],
             'subject' => $this->subject,
             'message' => $this->message,
             'seeker' => [

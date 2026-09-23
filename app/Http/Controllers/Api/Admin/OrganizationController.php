@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\SuperAdmin\OrganizationUpdateRequest;
 use App\Http\Resources\Admin\AdminOrganizationResource; 
 use App\Models\Organization; 
-use App\Support\Query\ApiQueryBuilder; 
+use App\Support\Query\ApiQueryBuilder;
+use App\Support\Business\PlanCapabilityResolver;
+use Illuminate\Http\Exceptions\HttpResponseException; 
 use Illuminate\Http\JsonResponse; 
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Storage;
@@ -14,7 +16,10 @@ use App\Services\Webhooks\WebhookDispatcherService;
 
 class OrganizationController extends Controller 
 { 
-    public function __construct(private readonly WebhookDispatcherService $webhookDispatcher)
+    public function __construct(
+        private readonly WebhookDispatcherService $webhookDispatcher,
+        private readonly PlanCapabilityResolver $planCapabilities,
+    )
     {
     }
 
@@ -158,6 +163,15 @@ class OrganizationController extends Controller
     {
         $organizationId = $request->user()?->organization_id;
         abort_unless($organizationId && $organization->id === $organizationId, 403);
+
+        $entitlements = $this->planCapabilities->resolved($request->user());
+        if (!$entitlements['active'] || !($entitlements['features']['business_profile']['enabled'] ?? false)) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'code' => 'PLAN_BUSINESS_PROFILE_NOT_INCLUDED',
+                'message' => 'Business Profile media is not included in your current plan.',
+            ], 422));
+        }
 
         $request->validate([
             'profile_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],

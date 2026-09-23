@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Seeker;
 
 use App\Services\PublicMediaEntitlementService;
+use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -11,6 +12,7 @@ class ServiceResource extends JsonResource
     public function toArray(Request $request): array
     {
         $entitlements = app(PublicMediaEntitlementService::class);
+        $planCapabilities = app(PlanCapabilityResolver::class);
         $media = $this->whenLoaded('media', fn () => $this->media);
         $images = $media instanceof \Illuminate\Support\Collection ? $media->where('media_type', 'image')->values() : collect();
         $videos = $media instanceof \Illuminate\Support\Collection ? $media->where('media_type', 'video')->values() : collect();
@@ -35,7 +37,8 @@ class ServiceResource extends JsonResource
                 'id' => $this->organization->id,
                 'name' => $this->organization->name,
                 'slug' => $this->organization->slug,
-                'is_verified' => (bool) $this->organization->is_verified,
+                'is_verified' => $planCapabilities->organizationFeatureEnabled($this->organization, 'verified_badge')
+                    && (bool) $this->organization->is_verified,
                 'contact_email' => $this->organization->contact_email,
                 'contact_phone' => $this->organization->contact_phone,
                 'address' => $this->organization->address,

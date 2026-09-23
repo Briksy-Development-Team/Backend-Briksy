@@ -34,6 +34,7 @@ class SubscriptionPlanUpdateRequest extends FormRequest
             'billing_enabled' => ['sometimes', 'boolean'],
             'trial_days' => ['nullable', 'integer', 'min:0'],
             'propertyLimit' => ['sometimes', 'integer', 'min:0'],
+            'staff_seat_limit' => ['sometimes', 'integer', 'min:0'],
             'popular' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'features' => ['sometimes', 'array'],

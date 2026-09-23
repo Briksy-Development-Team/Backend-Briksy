@@ -1,5 +1,15 @@
 <?php
 
+$normalizeRedirectUrl = static function (?string $url): ?string {
+    if ($url === null || $url === '') {
+        return $url;
+    }
+
+    // Keep the protocol separator intact while collapsing duplicate slashes
+    // in the URL path (for example, FRONTEND_APP_URL ending in `/`).
+    return preg_replace('#(?<!:)//+#', '/', $url) ?? $url;
+};
+
 return [
 
     /*
@@ -52,14 +62,14 @@ return [
         'secret' => env('STRIPE_SECRET_KEY', env('STRIPE_SECRET')),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
         'currency' => env('STRIPE_CURRENCY', 'AUD'),
-        'success_url' => env(
+        'success_url' => $normalizeRedirectUrl(env(
             'STRIPE_SUCCESS_URL',
             rtrim(env('FRONTEND_APP_URL', env('FRONTEND_URL', env('APP_URL'))), '/') . '/admin/billing/success?session_id={CHECKOUT_SESSION_ID}'
-        ),
-        'cancel_url' => env(
+        )),
+        'cancel_url' => $normalizeRedirectUrl(env(
             'STRIPE_CANCEL_URL',
             rtrim(env('FRONTEND_APP_URL', env('FRONTEND_URL', env('APP_URL'))), '/') . '/admin/billing/cancel'
-        ),
+        )),
     ],
 
     'abn_lookup' => [

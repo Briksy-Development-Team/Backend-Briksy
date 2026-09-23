@@ -139,7 +139,12 @@ class RegistrationController extends Controller
     public function me(Request $request): JsonResponse
     {
         /** @var User $user */
-        $user = $request->user()->loadMissing(['roles.permissions', 'directPermissions']);
+        $user = $request->user()->loadMissing([
+            'roles.permissions',
+            'directPermissions',
+            'organization.plan',
+            'organization.currentSubscription',
+        ]);
 
         // This controller is shared by the seeker, admin and super-admin auth
         // routes. The route middleware already restricts each portal route to
@@ -411,6 +416,37 @@ class RegistrationController extends Controller
             'token_type' => 'Bearer',
             'abilities' => $abilities,
         ], 'Login successful.');
+    }
+
+    /** Route shared website logins to the portal assigned to the account's role. */
+    public function loginByEmail(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::query()
+            ->where('email', $validated['email'])
+            ->with('roles')
+            ->first();
+
+        if (!$user || !Hash::check($validated['password'], $user->password_hash)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email or password.',
+            ], 401);
+        }
+
+        if ($user->hasAnyRole(['super_admin', 'super_admin_employee'])) {
+            return $this->loginSuperAdmin($request);
+        }
+
+        if ($user->hasAnyRole(['admin', 'admin_staff'])) {
+            return $this->loginAdmin($request);
+        }
+
+        return $this->loginSeeker($request);
     }
 
     public function registerAdminStaff(Request $request): JsonResponse

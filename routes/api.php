@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->get('me/permissions', [SuperAdminPermissionController::class, 'me']);
 
 Route::prefix('auth')->group(function (): void {
+    Route::post('login', [RegistrationController::class, 'loginByEmail']);
     Route::post('verify-abn', [AbnVerificationController::class, 'store'])->middleware('throttle:abn-verify');
     Route::post('social/{provider}', [SocialAuthController::class, 'login']);
 });

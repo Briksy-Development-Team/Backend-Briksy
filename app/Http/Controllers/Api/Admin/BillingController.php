@@ -14,6 +14,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionAddon;
 use App\Models\SubscriptionPlan;
 use App\Models\SubscriptionEvent;
+use App\Models\PlatformSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -39,9 +40,29 @@ class BillingController extends Controller
     public function currentSubscription(Request $request): JsonResponse
     {
         $organization = $this->organization($request);
+        $subscription = $organization->currentSubscription?->loadMissing(['organization', 'plan', 'addons.addon']);
+        $payload = $this->subscriptionPayload($subscription);
+
+        // Keep the latest invoice link available from Billing after the one-time
+        // checkout success screen has been left.
+        if ($payload && $subscription?->latest_invoice_id && config('services.stripe.secret') && class_exists(StripeClient::class)) {
+            try {
+                $invoice = (new StripeClient(config('services.stripe.secret')))
+                    ->invoices
+                    ->retrieve($subscription->latest_invoice_id, []);
+                $payload['invoice_download_url'] = $invoice->invoice_pdf ?? $invoice->hosted_invoice_url ?? null;
+            } catch (\Throwable $exception) {
+                Log::warning('Unable to retrieve latest Stripe invoice link.', [
+                    'organization_id' => $organization->id,
+                    'invoice_id' => $subscription->latest_invoice_id,
+                    'message' => $exception->getMessage(),
+                ]);
+                $payload['invoice_download_url'] = null;
+            }
+        }
 
         return $this->success([
-            'subscription' => $this->subscriptionPayload($organization->currentSubscription?->loadMissing(['organization', 'plan', 'addons.addon'])),
+            'subscription' => $payload,
         ], 'Current subscription retrieved successfully.');
     }
 
@@ -103,10 +124,15 @@ class BillingController extends Controller
         }
 
         $currency = $plan->currency ?? config('services.stripe.currency', 'AUD');
+        $taxRate = round((float) (PlatformSetting::query()->where('key', 'tax_rate')->value('value') ?? 0), 4);
+        if ($taxRate < 0 || $taxRate > 100) {
+            return response()->json(['success' => false, 'message' => 'The configured platform tax rate must be between 0 and 100.'], 422);
+        }
         $planAmount = $this->planAmount($plan, $billingCycle);
         $addonAmount = 0.0;
         $lineItems = [];
 
+        $lineItemTaxRates = [];
         $lineItems[] = [
             'price_data' => [
                 'currency' => strtolower($currency),
@@ -154,6 +180,15 @@ class BillingController extends Controller
         }
 
         $stripe = new StripeClient($stripeKey);
+        if ($taxRate > 0) {
+            $taxRateId = $this->getOrCreateInclusiveTaxRate($stripe, $taxRate, strtoupper($currency));
+            $lineItemTaxRates = [$taxRateId];
+            foreach ($lineItems as &$lineItem) {
+                $lineItem['tax_rates'] = $lineItemTaxRates;
+            }
+            unset($lineItem);
+        }
+
         $customerId = $organization->stripe_customer_id;
 
         if (!$customerId) {
@@ -195,6 +230,7 @@ class BillingController extends Controller
                     'amount' => number_format($amount, 2, '.', ''),
                     'currency' => strtoupper($currency),
                 ],
+                ...($lineItemTaxRates ? ['default_tax_rates' => $lineItemTaxRates] : []),
             ],
         ]);
 
@@ -394,6 +430,36 @@ class BillingController extends Controller
         }
 
         return SubscriptionResource::make($subscription)->resolve();
+    }
+
+    private function getOrCreateInclusiveTaxRate(StripeClient $stripe, float $percentage, string $currency): string
+    {
+        $rateKey = sprintf('%s:%.4f', $currency, $percentage);
+        $existingRates = $stripe->taxRates->all([
+            'active' => true,
+            'inclusive' => true,
+            'limit' => 100,
+        ]);
+
+        foreach ($existingRates->data as $taxRate) {
+            if (data_get($taxRate->metadata ?? [], 'briksy_platform_rate') === $rateKey) {
+                return $taxRate->id;
+            }
+        }
+
+        $payload = [
+            'display_name' => $currency === 'AUD' ? 'GST' : 'Tax',
+            'description' => sprintf('Briksy platform tax rate %s%% (%s)', $percentage, $currency),
+            'inclusive' => true,
+            'percentage' => $percentage,
+            'metadata' => ['briksy_platform_rate' => $rateKey],
+        ];
+
+        if ($currency === 'AUD') {
+            $payload['country'] = 'AU';
+        }
+
+        return $stripe->taxRates->create($payload)->id;
     }
 
     /**

@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('service_offers', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->uuid('organization_id')->index();
+            $table->uuid('service_id')->index();
+            $table->uuid('created_by')->nullable()->index();
+            $table->string('title');
+            $table->string('tag_label', 100)->nullable();
+            $table->string('summary')->nullable();
+            $table->longText('description')->nullable();
+            $table->json('highlights')->nullable();
+            $table->longText('terms')->nullable();
+            $table->timestamp('starts_at')->nullable()->index();
+            $table->timestamp('ends_at')->nullable()->index();
+            $table->boolean('is_active')->default(true)->index();
+            $table->integer('sort_order')->default(0)->index();
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->foreign('organization_id')->references('id')->on('organizations')->cascadeOnDelete();
+            $table->foreign('service_id')->references('id')->on('services')->cascadeOnDelete();
+            $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('service_offers');
+    }
+};

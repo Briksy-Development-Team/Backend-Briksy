@@ -30,6 +30,7 @@ final class PlanCapabilityResolver
         'projects' => ['Projects'],
         'project_listings' => ['Project Listings'],
         'buyer_briefs' => ['Buyer Briefs'],
+        'promo_offers' => ['Promo Offers'],
         'analytics' => ['Analytics Dashboard', 'Performance Analytics'],
     ];
     public function category(User $user): ?string
@@ -191,6 +192,7 @@ final class PlanCapabilityResolver
                 'service_categories' => $features['service_categories']['value'],
                 'projects' => $features['projects']['value'],
                 'buyer_briefs' => $features['buyer_briefs']['value'],
+                'promo_offers' => $features['promo_offers']['value'],
             ],
             'features' => $features,
             'capabilities' => $this->capabilities($user),

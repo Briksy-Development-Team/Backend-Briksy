@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermis
 use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
 use App\Http\Controllers\Api\PropertyFeatureController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyOfferController as SuperAdminPropertyOfferController;
+use App\Http\Controllers\Api\SuperAdmin\ServiceOfferController as SuperAdminServiceOfferController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyMapController as SuperAdminPropertyMapController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionPlanController as SuperAdminSubscriptionPlanController;
 use App\Http\Controllers\Api\SuperAdmin\DynamicIdSettingController as SuperAdminDynamicIdSettingController;
@@ -54,6 +55,7 @@ use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController
 use App\Http\Controllers\Api\Admin\BuyerBriefController;
 use App\Http\Controllers\Api\Admin\BuilderProjectController;
 use App\Http\Controllers\Api\Admin\PropertyOfferController as AdminPropertyOfferController;
+use App\Http\Controllers\Api\Admin\ServiceOfferController as AdminServiceOfferController;
 use App\Http\Controllers\Api\Admin\PropertyImportController as AdminPropertyImportController;
 use App\Http\Controllers\Api\Admin\BillingController as AdminBillingController;
 use App\Http\Controllers\MediaController;
@@ -212,6 +214,12 @@ Route::prefix('admin')->group(function (): void {
         Route::put('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'update'])->middleware(['module:property_management', 'permission:property.update']);
         Route::patch('property-offers/{propertyOffer}/toggle', [AdminPropertyOfferController::class, 'toggle'])->middleware(['module:property_management', 'permission:property.update']);
         Route::delete('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'destroy'])->middleware(['module:property_management', 'permission:property.delete']);
+        Route::get('service-offers', [AdminServiceOfferController::class, 'index'])->middleware(['module:service_management', 'permission:service.view']);
+        Route::post('service-offers', [AdminServiceOfferController::class, 'store'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::get('service-offers/{serviceOffer}', [AdminServiceOfferController::class, 'show'])->middleware(['module:service_management', 'permission:service.view']);
+        Route::put('service-offers/{serviceOffer}', [AdminServiceOfferController::class, 'update'])->middleware(['module:service_management', 'permission:service.update']);
+        Route::patch('service-offers/{serviceOffer}/toggle', [AdminServiceOfferController::class, 'toggle'])->middleware(['module:service_management', 'permission:service.update']);
+        Route::delete('service-offers/{serviceOffer}', [AdminServiceOfferController::class, 'destroy'])->middleware(['module:service_management', 'permission:service.delete']);
 
         Route::get('buyer-briefs', [BuyerBriefController::class, 'index'])->middleware('module:buyer_management');
         Route::post('buyer-briefs', [BuyerBriefController::class, 'store'])->middleware('module:buyer_management');
@@ -332,6 +340,12 @@ Route::prefix('super-admin')->group(function (): void {
         Route::put('property-offers/{propertyOffer}', [SuperAdminPropertyOfferController::class, 'update'])->middleware('permission:property.update');
         Route::patch('property-offers/{propertyOffer}/toggle', [SuperAdminPropertyOfferController::class, 'toggle'])->middleware('permission:property.update');
         Route::delete('property-offers/{propertyOffer}', [SuperAdminPropertyOfferController::class, 'destroy'])->middleware('permission:property.delete');
+        Route::get('service-offers', [SuperAdminServiceOfferController::class, 'index'])->middleware('permission:service.view');
+        Route::post('service-offers', [SuperAdminServiceOfferController::class, 'store'])->middleware('permission:service.create');
+        Route::get('service-offers/{serviceOffer}', [SuperAdminServiceOfferController::class, 'show'])->middleware('permission:service.view');
+        Route::put('service-offers/{serviceOffer}', [SuperAdminServiceOfferController::class, 'update'])->middleware('permission:service.update');
+        Route::patch('service-offers/{serviceOffer}/toggle', [SuperAdminServiceOfferController::class, 'toggle'])->middleware('permission:service.update');
+        Route::delete('service-offers/{serviceOffer}', [SuperAdminServiceOfferController::class, 'destroy'])->middleware('permission:service.delete');
 
         Route::get('services/categories', [SuperAdminServiceController::class, 'categories'])->middleware('permission:service.view');
         Route::get('services/map', [SuperAdminServiceController::class, 'map'])->middleware('permission:service.view');

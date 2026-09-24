@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use App\Services\PropertyFeatureSyncService;
+use App\Services\PublicMediaEntitlementService;
 
 class PropertyController extends Controller
 {
@@ -28,6 +29,7 @@ class PropertyController extends Controller
         private readonly NotificationService $notificationService,
         private readonly DynamicIdGeneratorService $idGenerator,
         private readonly PropertyFeatureSyncService $featureSync,
+        private readonly PublicMediaEntitlementService $mediaEntitlements,
     )
     {
     }
@@ -114,6 +116,7 @@ class PropertyController extends Controller
         $organizationId = $request->input('organization_id');
 
         abort_unless($organizationId && Organization::query()->whereKey($organizationId)->exists(), 422, 'A valid organization_id is required.');
+        $this->assertMediaEntitlements($request, Organization::query()->with(['currentSubscription.plan'])->find($organizationId));
 
         $listing = PropertyListing::query()->create([
             'org_id' => $organizationId,
@@ -149,6 +152,7 @@ class PropertyController extends Controller
 
     public function update(PropertyListingUpdateRequest $request, PropertyListing $propertyListing): JsonResponse
     {
+        $this->assertMediaEntitlements($request, $propertyListing->organization()->with(['currentSubscription.plan'])->first(), $propertyListing);
         $request->validate([
             'organization_id' => ['sometimes', 'uuid', 'exists:organizations,id'],
         ]);
@@ -359,6 +363,17 @@ class PropertyController extends Controller
                 'sort_order' => ++$order,
             ]);
         }
+    }
+
+    private function assertMediaEntitlements(Request $request, ?Organization $organization, ?PropertyListing $listing = null): void
+    {
+        $images = count((array) $request->file('images', []));
+        $videos = count((array) $request->file('videos', []));
+        $existingImages = $listing?->media()->where('media_type', 'image')->count() ?? 0;
+        $existingVideos = $listing?->media()->where('media_type', 'video')->count() ?? 0;
+
+        $this->mediaEntitlements->assertUploadAllowed($organization, 'property', 'image', $existingImages, $images);
+        $this->mediaEntitlements->assertUploadAllowed($organization, 'property', 'video', $existingVideos, $videos);
     }
 
     private function transition(

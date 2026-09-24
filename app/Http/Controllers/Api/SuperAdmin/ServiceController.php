@@ -15,6 +15,7 @@ use App\Models\ActivityLog;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
 use App\Services\ServiceMapService;
+use App\Services\PublicMediaEntitlementService;
 use App\Support\Query\ApiQueryBuilder;
 use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +33,7 @@ class ServiceController extends Controller
         private readonly DynamicIdGeneratorService $idGenerator,
         private readonly ServiceMapService $serviceMapService,
         private readonly PlanCapabilityResolver $planCapabilities,
+        private readonly PublicMediaEntitlementService $mediaEntitlements,
     ) {
     }
 
@@ -168,6 +170,7 @@ class ServiceController extends Controller
     {
         $service = DB::transaction(function () use ($request): Service {
             $this->lockOrganizationForActiveService($request);
+            $this->enforceServiceAreaActivationLimit($request);
             $this->demoteNewServiceWhenActiveLimitReached($request);
             $this->assertPlanEntitlements($request);
             $this->assertServiceAreaCapability($request);
@@ -229,6 +232,7 @@ class ServiceController extends Controller
         abort_unless($this->canAccessService($request, $service), 403);
         DB::transaction(function () use ($request, $service): void {
             $this->lockOrganizationForActiveService($request, $service);
+            $this->enforceServiceAreaActivationLimit($request, $service);
             $this->assertPlanEntitlements($request, $service);
             $this->assertServiceAreaCapability($request, $service);
             $service->fill($this->buildPayload($request, $service));
@@ -429,6 +433,60 @@ class ServiceController extends Controller
         );
     }
 
+    /**
+     * Service-area slots are consumed by active services with coverage. Keep
+     * an inactive service inactive when an edit tries to activate it after
+     * all slots have been consumed. This is intentionally a demotion rather
+     * than an error so repeated edits remain safe and idempotent.
+     */
+    private function enforceServiceAreaActivationLimit(Request $request, ?Service $service = null): void
+    {
+        $user = $request->user();
+        if (!$user || $user->isSuperAdmin() || $user->isGlobalStaff() || !$user->organization_id) {
+            return;
+        }
+
+        $wasActive = (bool) ($service?->is_active ?? false);
+        $requestedActive = array_key_exists('is_active', $request->all())
+            ? $request->boolean('is_active')
+            : ($service === null);
+
+        // An already-active service may remain active. An update without an
+        // explicit activation request must never promote an inactive service.
+        if ($wasActive || !$requestedActive) {
+            return;
+        }
+
+        $areaProvided = array_key_exists('service_area', $request->all());
+        $geometryProvided = array_key_exists('service_area_geometry', $request->all());
+        $requestedArea = $areaProvided ? ($request->input('service_area') ?: null) : $service?->service_area;
+        $requestedGeometry = $geometryProvided ? ($request->input('service_area_geometry') ?: null) : $service?->service_area_geometry;
+
+        if (blank($requestedArea) && blank($requestedGeometry)) {
+            return;
+        }
+
+        $feature = $this->planCapabilities->feature($user, 'Service Areas');
+        $limit = is_numeric($feature['value']) ? (int) $feature['value'] : null;
+        if (!$feature['enabled'] || $limit === null) {
+            return;
+        }
+
+        $activeAreas = Service::query()
+            ->where('organization_id', $user->organization_id)
+            ->where('is_active', true)
+            ->where(function ($query): void {
+                $query->whereNotNull('service_area_geometry')->orWhere(function ($areaQuery): void {
+                    $areaQuery->whereNotNull('service_area')->whereRaw("TRIM(service_area) <> ''");
+                });
+            })
+            ->count();
+
+        if ($activeAreas >= $limit) {
+            $request->merge(['is_active' => false]);
+        }
+    }
+
     private function lockOrganizationForActiveService(Request $request, ?Service $service = null): void
     {
         $user = $request->user();
@@ -481,7 +539,16 @@ class ServiceController extends Controller
     private function assertPlanEntitlements(Request $request, ?Service $service = null): void
     {
         $user = $request->user();
-        if (!$user || $user->isSuperAdmin() || $user->isGlobalStaff()) {
+        if (!$user) {
+            return;
+        }
+
+        $organization = ($user->isSuperAdmin() || $user->isGlobalStaff())
+            ? Organization::query()->with(['currentSubscription.plan'])->find($request->input('organization_id') ?? $service?->organization_id)
+            : $user->organization;
+        $this->assertServiceMediaEntitlements($request, $service, $organization);
+
+        if ($user->isSuperAdmin() || $user->isGlobalStaff()) {
             return;
         }
 
@@ -506,22 +573,17 @@ class ServiceController extends Controller
             }
         }
 
+    }
+
+    private function assertServiceMediaEntitlements(Request $request, ?Service $service, ?Organization $organization): void
+    {
         $images = count((array) $request->file('images', []));
         $videos = count((array) $request->file('videos', []));
-        if ($videos > 0 && ($entitlements['features']['video_upload']['configured'] ?? false) && !($entitlements['features']['video_upload']['enabled'] ?? false)) {
-            $this->planError('PLAN_VIDEO_NOT_INCLUDED', 'Video uploads are not included in your subscription plan.');
-        }
-
         $existingImages = $service?->media()->where('media_type', 'image')->count() ?? 0;
         $existingVideos = $service?->media()->where('media_type', 'video')->count() ?? 0;
-        $imageLimit = $entitlements['limits']['images'];
-        $videoLimit = $entitlements['limits']['videos'];
-        if (($entitlements['features']['maximum_images']['configured'] ?? false) && $imageLimit !== null && $existingImages + $images > (int) $imageLimit) {
-            $this->planError('PLAN_IMAGE_LIMIT_REACHED', sprintf('Your %s plan allows a maximum of %d images. Remove an image or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $imageLimit));
-        }
-        if (($entitlements['features']['maximum_videos']['configured'] ?? false) && $videoLimit !== null && $existingVideos + $videos > (int) $videoLimit) {
-            $this->planError('PLAN_VIDEO_LIMIT_REACHED', sprintf('Your %s plan allows a maximum of %d videos. Remove a video or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $videoLimit));
-        }
+
+        $this->mediaEntitlements->assertUploadAllowed($organization, 'service', 'image', $existingImages, $images);
+        $this->mediaEntitlements->assertUploadAllowed($organization, 'service', 'video', $existingVideos, $videos);
     }
 
     private function planError(string $code, string $message): never

@@ -12,6 +12,7 @@ use App\Models\Media;
 use App\Models\PropertyListing;
 use App\Services\DynamicIdGeneratorService;
 use App\Services\NotificationService;
+use App\Services\PublicMediaEntitlementService;
 use App\Services\PropertyFeatureSyncService;
 use App\Support\Properties\PropertyWorkflow;
 use App\Support\Business\BusinessModuleResolver;
@@ -31,6 +32,7 @@ class PropertyController extends Controller
         private readonly DynamicIdGeneratorService $idGenerator,
         private readonly BusinessModuleResolver $moduleResolver,
         private readonly PlanCapabilityResolver $planCapabilities,
+        private readonly PublicMediaEntitlementService $mediaEntitlements,
         private readonly PropertyFeatureSyncService $featureSync,
     )
     {
@@ -406,39 +408,12 @@ class PropertyController extends Controller
             return;
         }
 
-        $entitlements = $this->planCapabilities->resolved($user);
         $images = count((array) $request->file('images', []));
         $videos = count((array) $request->file('videos', []));
         $existingImages = $listing?->media()->where('media_type', 'image')->count() ?? 0;
         $existingVideos = $listing?->media()->where('media_type', 'video')->count() ?? 0;
-        $imageLimit = $entitlements['limits']['images'];
-        $videoLimit = $entitlements['limits']['videos'];
-
-        if ($videos > 0
-            && ($entitlements['features']['video_upload']['configured'] ?? false)
-            && !($entitlements['features']['video_upload']['enabled'] ?? false)) {
-            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
-                'success' => false,
-                'code' => 'PLAN_VIDEO_NOT_INCLUDED',
-                'message' => 'Video uploads are not included in your subscription plan.',
-            ], 422));
-        }
-        if (($entitlements['features']['maximum_images']['configured'] ?? false)
-            && $imageLimit !== null && $existingImages + $images > (int) $imageLimit) {
-            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
-                'success' => false,
-                'code' => 'PLAN_IMAGE_LIMIT_REACHED',
-                'message' => sprintf('Your %s plan allows a maximum of %d images. Remove an image or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $imageLimit),
-            ], 422));
-        }
-        if (($entitlements['features']['maximum_videos']['configured'] ?? false)
-            && $videoLimit !== null && $existingVideos + $videos > (int) $videoLimit) {
-            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
-                'success' => false,
-                'code' => 'PLAN_VIDEO_LIMIT_REACHED',
-                'message' => sprintf('Your %s plan allows a maximum of %d videos. Remove a video or upgrade your plan.', $entitlements['plan']['name'] ?? 'current', $videoLimit),
-            ], 422));
-        }
+        $this->mediaEntitlements->assertUploadAllowed($user->organization, 'property', 'image', $existingImages, $images);
+        $this->mediaEntitlements->assertUploadAllowed($user->organization, 'property', 'video', $existingVideos, $videos);
     }
 
     private function storageUrl(Request $request, string $path): string

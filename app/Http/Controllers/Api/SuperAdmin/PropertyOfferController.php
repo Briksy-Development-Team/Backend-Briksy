@@ -47,7 +47,7 @@ class PropertyOfferController extends Controller
             'property_listing_id' => $propertyListing->id,
             'created_by' => $request->user()?->id,
             'title' => $validated['title'],
-            'tag_label' => $validated['tag_label'] ?? 'BRIKSY EXCLUSIVE',
+            'tag_label' => $validated['tag_label'] ?? null,
             'summary' => $validated['summary'] ?? null,
             'description' => $validated['description'] ?? null,
             'highlights' => $validated['highlights'] ?? [],

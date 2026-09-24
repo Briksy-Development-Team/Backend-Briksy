@@ -12,15 +12,15 @@ return new class extends Migration
         ]);
 
         $addon->fill([
-            'name' => 'Briksy Exclusive',
-            'description' => 'Highlights the property with a BRIKSY EXCLUSIVE tag and offer section for end users.',
+            'name' => 'Promotional Add-on',
+            'description' => 'Highlights the property with a promotional tag and offer section for end users.',
             'feature_key' => 'briksy_exclusive',
             'pricing_type' => 'one_time',
             'monthly_price' => 0,
             'yearly_price' => 0,
             'one_time_price' => 0,
             'currency' => 'AUD',
-            'limits' => ['tag_label' => 'BRIKSY EXCLUSIVE'],
+            'limits' => ['tag_label' => null],
             'is_active' => true,
             'sort_order' => 0,
         ]);

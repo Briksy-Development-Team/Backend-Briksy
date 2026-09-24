@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PropertyListing;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -49,6 +50,62 @@ class PropertyMediaUploadTest extends TestCase
 
         $response->assertOk();
         $this->assertSame($existingVideoCount + 2, $property->fresh()->media()->where('media_type', 'video')->count());
+    }
+
+    public function test_real_estate_image_and_video_limits_are_independent_and_block_storage(): void
+    {
+        $this->seed();
+        Storage::fake('public');
+
+        $admin = User::query()->where('email', 'realestate@demo.briksy.com')->firstOrFail();
+        $plan = SubscriptionPlan::query()->where('plan_family', 'property_owner')->where('name', 'Bronze')->firstOrFail();
+        $features = collect($plan->features ?? [])->map(function (array $feature): array {
+            if ($feature['name'] === 'Property Images') {
+                $feature['enabled'] = true;
+                $feature['value'] = 2;
+            }
+            if ($feature['name'] === 'Property Videos') {
+                $feature['enabled'] = true;
+                $feature['value'] = 1;
+            }
+
+            return $feature;
+        })->all();
+        $plan->update(['features' => $features]);
+        $admin->organization()->update(['plan_id' => $plan->id]);
+        $admin->organization->currentSubscription()->update(['subscription_plan_id' => $plan->id, 'status' => 'active']);
+        $admin = $admin->fresh(['organization.currentSubscription.plan', 'organization.plan']);
+        Sanctum::actingAs($admin, ['admin']);
+
+        $payload = array_merge($this->propertyPayload([UploadedFile::fake()->create('tour.mp4', 1024, 'video/mp4')]), [
+            'title' => 'Independent Media Limits',
+            'images' => [
+                UploadedFile::fake()->image('one.jpg'),
+                UploadedFile::fake()->image('two.jpg'),
+            ],
+        ]);
+        $createResponse = $this->post('/api/admin/properties', $payload);
+        $createResponse->assertCreated();
+        $property = PropertyListing::query()->where('title', 'Independent Media Limits')->firstOrFail();
+
+        $this->post('/api/admin/properties/'.$property->generated_id, [
+            '_method' => 'PUT',
+            'title' => $property->title,
+            'images' => [UploadedFile::fake()->image('three.jpg')],
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'PLAN_IMAGE_LIMIT_REACHED');
+
+        $this->post('/api/admin/properties/'.$property->generated_id, [
+            '_method' => 'PUT',
+            'title' => $property->title,
+            'videos' => [UploadedFile::fake()->create('tour-two.mp4', 1024, 'video/mp4')],
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'PLAN_VIDEO_LIMIT_REACHED');
+
+        $this->assertSame(2, $property->fresh()->media()->where('media_type', 'image')->count());
+        $this->assertSame(1, $property->fresh()->media()->where('media_type', 'video')->count());
     }
 
     private function propertyPayload(array $videos): array

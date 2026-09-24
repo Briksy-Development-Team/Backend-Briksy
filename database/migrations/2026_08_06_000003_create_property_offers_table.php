@@ -14,7 +14,7 @@ return new class extends Migration
             $table->uuid('property_listing_id')->index();
             $table->uuid('created_by')->nullable()->index();
             $table->string('title');
-            $table->string('tag_label', 100)->default('BRIKSY EXCLUSIVE');
+            $table->string('tag_label', 100)->nullable();
             $table->string('summary')->nullable();
             $table->longText('description')->nullable();
             $table->json('highlights')->nullable();

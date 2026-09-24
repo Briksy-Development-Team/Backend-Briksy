@@ -10,7 +10,9 @@ use App\Http\Requests\Api\SuperAdmin\PropertyOfferUpdateRequest;
 use App\Http\Resources\PropertyOfferResource;
 use App\Models\PropertyListing;
 use App\Models\PropertyOffer;
+use App\Models\Organization;
 use App\Support\Query\ApiQueryBuilder;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -41,6 +43,8 @@ class PropertyOfferController extends Controller
     {
         $validated = $request->validated();
         $propertyListing = $this->resolvePropertyListing($request, $validated['property_listing_id']);
+        $organization = $propertyListing->organization()->with('currentSubscription.plan')->firstOrFail();
+        $this->assertPromoOfferAllowed($organization, (bool) ($validated['is_active'] ?? true));
 
         $offer = PropertyOffer::query()->create([
             'organization_id' => $propertyListing->org_id,
@@ -73,6 +77,19 @@ class PropertyOfferController extends Controller
             $validated['organization_id'] = $model->propertyListing?->org_id ?? $model->organization_id;
         }
 
+        $organization = $model->propertyListing?->organization;
+        if (isset($validated['property_listing_id'])) {
+            $organization = $propertyListing->organization()->with('currentSubscription.plan')->firstOrFail();
+        } else {
+            $organization?->loadMissing('currentSubscription.plan');
+        }
+        if ($organization) {
+            $requestedActive = array_key_exists('is_active', $validated)
+                ? (bool) $validated['is_active']
+                : (bool) $model->is_active;
+            $this->assertPromoOfferAllowed($organization, $requestedActive, $model);
+        }
+
         $model->fill($validated);
         $model->save();
 
@@ -94,6 +111,8 @@ class PropertyOfferController extends Controller
             'is_active' => ['required', 'boolean'],
         ]);
 
+        $organization = $model->propertyListing()->with('organization.currentSubscription.plan')->firstOrFail()->organization;
+        $this->assertPromoOfferAllowed($organization, (bool) $validated['is_active'], $model);
         $model->update(['is_active' => $validated['is_active']]);
 
         return $this->success(new PropertyOfferResource($model->fresh()->load(['propertyListing.organization', 'creator'])), 'Property offer status updated successfully.');
@@ -120,5 +139,48 @@ class PropertyOfferController extends Controller
         }
 
         return $query->findOrFail($propertyListingId);
+    }
+
+    private function assertPromoOfferAllowed(Organization $organization, bool $activating, ?PropertyOffer $current = null): void
+    {
+        $user = request()->user();
+        if ($user?->isSuperAdmin() || $user?->isGlobalStaff()) {
+            return;
+        }
+
+        $feature = collect($organization->plan?->features ?? [])->first(
+            fn (array $item): bool => strcasecmp((string) ($item['name'] ?? ''), 'Promo Offers') === 0
+        );
+
+        if (!($feature['enabled'] ?? false)) {
+            $this->planError('PLAN_PROMO_OFFERS_NOT_INCLUDED', 'Promotional offers are not included in your current plan.');
+        }
+
+        $limit = array_key_exists('value', $feature ?? []) && $feature['value'] !== null
+            ? max(0, (int) $feature['value'])
+            : null;
+        if ($activating && $limit !== null) {
+            $active = PropertyOffer::query()
+                ->where('organization_id', $organization->id)
+                ->where('is_active', true)
+                ->when($current, fn ($query) => $query->where($current->getKeyName(), '!=', $current->getKey()))
+                ->count();
+
+            if ($active >= $limit) {
+                $this->planError(
+                    'PLAN_PROMO_OFFERS_LIMIT_REACHED',
+                    sprintf('Your plan allows up to %d promotional offers. Please upgrade your plan to add more.', $limit)
+                );
+            }
+        }
+    }
+
+    private function planError(string $code, string $message): never
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'code' => $code,
+            'message' => $message,
+        ], 422));
     }
 }

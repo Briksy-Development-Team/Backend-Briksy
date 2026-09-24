@@ -134,7 +134,7 @@ class ServiceOfferController extends Controller
         if ($activating && $limit !== null) {
             $active = ServiceOffer::query()->where('organization_id', $organization->id)->where('is_active', true)->when($current, fn ($query) => $query->where($current->getKeyName(), '!=', $current->getKey()))->count();
             if ($active >= $limit) {
-                $this->planError('PLAN_PROMO_OFFERS_LIMIT_REACHED', sprintf('Your plan allows up to %d promotional offers.', $limit));
+                $this->planError('PLAN_PROMO_OFFERS_LIMIT_REACHED', sprintf('Your plan allows up to %d promotional offers. Please upgrade your plan to add more.', $limit));
             }
         }
     }

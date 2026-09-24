@@ -81,6 +81,7 @@ class SubscriptionPlanSeeder extends Seeder
                     $this->feature('Custom Branding', false),
                     $this->feature('Analytics Dashboard', false),
                     $this->feature('Priority Support', false),
+                    $this->feature('Promo Offers', true, 2),
                 ],
             ],
             [
@@ -109,6 +110,7 @@ class SubscriptionPlanSeeder extends Seeder
                     $this->feature('Custom Branding', true),
                     $this->feature('Analytics Dashboard', true),
                     $this->feature('Priority Support', false),
+                    $this->feature('Promo Offers', true, 5),
                 ],
             ],
             [
@@ -137,6 +139,7 @@ class SubscriptionPlanSeeder extends Seeder
                     $this->feature('Custom Branding', true),
                     $this->feature('Analytics Dashboard', true),
                     $this->feature('Priority Support', true),
+                    $this->feature('Promo Offers', true, 10),
                 ],
             ],
             [
@@ -165,6 +168,7 @@ class SubscriptionPlanSeeder extends Seeder
                     $this->feature('Custom Branding', true),
                     $this->feature('Analytics Dashboard', true),
                     $this->feature('Priority Support', true),
+                    $this->feature('Promo Offers', true, 10),
                 ],
             ],
             [

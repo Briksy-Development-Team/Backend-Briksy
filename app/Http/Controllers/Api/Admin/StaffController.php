@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Api\Controller;
+use App\Http\Requests\Api\Admin\StaffIndexRequest;
 use App\Http\Resources\Admin\AdminStaffResource;
 use App\Models\Permission;
 use App\Models\Role;
@@ -30,7 +31,7 @@ class StaffController extends Controller
     {
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(StaffIndexRequest $request): JsonResponse
     {
         $organizationId = $request->user()?->organization_id;
 
@@ -49,13 +50,31 @@ class StaffController extends Controller
             });
 
         ApiQueryBuilder::applySearch($query, $request->string('search')->toString(), ['name', 'email']);
+        $filters = $request->filters();
+        $roles = collect(explode(',', (string) ($filters['roles'] ?? '')))
+            ->map(fn (string $role): string => trim($role))
+            ->filter()
+            ->intersect(['admin', 'admin_staff'])
+            ->values()
+            ->all();
+        if ($roles !== []) {
+            $query->whereHas('roles', static fn ($roleQuery) => $roleQuery->whereIn('roles.name', $roles));
+        }
+        if (!empty($filters['created_at'])) {
+            ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $filters['created_at']);
+        }
         // The shared React table sends `per_page`; older admin endpoints used
         // `items_per_page`. Accept both so the returned rows and pagination
         // metadata always describe the same page.
         $requestedPerPage = $request->integer('per_page') ?: $request->integer('items_per_page');
-        $staff = $query
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+        ApiQueryBuilder::applySort(
+            $query,
+            $request->sort(),
+            $request->direction(),
+            $request->allowedSorts(),
+            'created_at'
+        );
+        $staff = $query->orderByDesc('id')
             ->paginate(ApiQueryBuilder::normalizePerPage($requestedPerPage, 10, 100));
 
         return $this->paginated(

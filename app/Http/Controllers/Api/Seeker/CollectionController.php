@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Seeker\AddCollectionPropertyRequest;
 use App\Http\Requests\Api\Seeker\StoreCollectionRequest;
 use App\Http\Requests\Api\Seeker\UpdateCollectionRequest;
 use App\Http\Resources\Seeker\CollectionResource;
+use App\Http\Resources\Seeker\CollectionItemResource;
 use App\Http\Resources\Seeker\PropertyListingResource;
 use App\Models\Collection;
 use App\Models\Organization;
@@ -86,6 +87,25 @@ class CollectionController extends Controller
             ->withQueryString();
 
         return $this->paginated(PropertyListingResource::collection($properties), $properties, 'Collection properties retrieved successfully.');
+    }
+
+    public function items(Collection $collection)
+    {
+        $this->owned($collection);
+
+        $items = $collection->items()
+            ->with(['collectable' => function ($morphQuery): void {
+                $morphQuery->morphWith([
+                    PropertyListing::class => ['organization.organizationType', 'propertyType', 'media', 'features'],
+                    Organization::class => ['organizationType', 'services'],
+                    Service::class => ['organization', 'media'],
+                ]);
+            }])
+            ->latest()
+            ->paginate(24)
+            ->withQueryString();
+
+        return $this->paginated(CollectionItemResource::collection($items), $items, 'Collection items retrieved successfully.');
     }
 
     public function add(AddCollectionPropertyRequest $request, Collection $collection): JsonResponse

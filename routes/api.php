@@ -120,6 +120,7 @@ Route::prefix('seeker')->group(function (): void {
         Route::patch('collections/{collection}', [CollectionController::class, 'update']);
         Route::delete('collections/{collection}', [CollectionController::class, 'destroy']);
         Route::get('collections/{collection}/properties', [CollectionController::class, 'properties']);
+        Route::get('collections/{collection}/items', [CollectionController::class, 'items']);
         Route::post('collections/{collection}/properties', [CollectionController::class, 'add']);
         Route::delete('collections/{collection}/properties/{property}', [CollectionController::class, 'remove']);
         Route::post('collections/{collection}/items', [CollectionController::class, 'addItem']);

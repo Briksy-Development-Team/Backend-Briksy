@@ -112,7 +112,7 @@ class PropertyController extends Controller
 
         $limit = $this->planCapabilities->resolved($request->user())['limits']['property_listings'] ?? 0;
         $used = PropertyListing::query()->where('org_id', $organizationId)->count();
-        if ($limit !== null && $limit > 0 && $used >= $limit) {
+        if ($limit !== null && $used >= (int) $limit) {
             return response()->json([
                 'success' => false,
                 'code' => 'PLAN_PROPERTY_LIMIT_REACHED',

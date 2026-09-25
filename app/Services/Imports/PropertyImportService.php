@@ -32,7 +32,7 @@ final class PropertyImportService
             'property_types' => PropertyType::query()
                 ->where('is_active', true)
                 ->orderBy('sort_order')
-                ->get(['id', 'name', 'slug'])
+                ->get(['id', 'name', 'slug', 'category'])
                 ->values()
                 ->all(),
         ];
@@ -210,6 +210,7 @@ final class PropertyImportService
                         'creator_id' => $import->created_by,
                         'generated_id' => $this->idGenerator->generate('properties'),
                         'property_type_id' => $payload['property_type_id'] ?? null,
+                        'transaction_status' => $payload['transaction_status'] ?? null,
                         'avg_prop_rating' => 0,
                         'address_line_1' => $payload['address_line_1'] ?? ($payload['address'] ?? null),
                         'address_line_2' => $payload['address_line_2'] ?? null,
@@ -295,6 +296,7 @@ final class PropertyImportService
             'title' => 'Modern Family Home',
             'description' => 'A modern three-bedroom family home with renovated kitchen.',
             'property_type_id' => '',
+            'transaction_status' => '',
             'address_line_1' => '123 Sample Street',
             'address_line_2' => 'Unit 4',
             'address' => '123 Sample Street, Adelaide SA 5000',
@@ -316,6 +318,7 @@ final class PropertyImportService
             ['key' => 'title', 'label' => 'Property Name', 'required' => true, 'aliases' => ['title', 'name', 'property name', 'property title', 'listing name']],
             ['key' => 'description', 'label' => 'Description', 'required' => false, 'aliases' => ['description', 'details', 'summary']],
             ['key' => 'property_type_id', 'label' => 'Property Type', 'required' => false, 'aliases' => ['property type', 'type', 'property_type', 'property type id']],
+            ['key' => 'transaction_status', 'label' => 'Commercial Transaction Status', 'required' => false, 'aliases' => ['transaction status', 'commercial status', 'listing status', 'transaction_status']],
             ['key' => 'address_line_1', 'label' => 'Address Line 1', 'required' => false, 'aliases' => ['address line 1', 'address 1', 'street address', 'address']],
             ['key' => 'address_line_2', 'label' => 'Address Line 2', 'required' => false, 'aliases' => ['address line 2', 'address 2', 'suite', 'unit']],
             ['key' => 'address', 'label' => 'Address', 'required' => false, 'aliases' => ['address', 'property address', 'location address']],
@@ -399,6 +402,7 @@ final class PropertyImportService
 
         return match ($field) {
             'latitude', 'longitude' => $value !== null && $value !== '' ? (float) $value : null,
+            'transaction_status' => strtoupper((string) $value),
             'location_verified' => $this->normalizeBoolean($value),
             default => $value,
         };
@@ -459,6 +463,12 @@ final class PropertyImportService
                     'property_type_id',
                     filled($submittedValue) ? "Unknown property type: {$submittedValue}" : 'Property Type not found.'
                 );
+            }
+
+            foreach (PropertyListingRules::categoryErrors($payload) as $field => $messages) {
+                foreach ($messages as $message) {
+                    $validator->errors()->add($field, $message);
+                }
             }
         });
 

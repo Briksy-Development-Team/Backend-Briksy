@@ -41,6 +41,7 @@ class PropertyListing extends Model
         'place_id',
         'status',
         'listing_purpose',
+        'transaction_status',
         'price',
         'suburb',
         'state',
@@ -129,6 +130,13 @@ class PropertyListing extends Model
     public function favorites(): MorphMany
     {
         return $this->morphMany(Favorite::class, 'favoritable');
+    }
+
+    public function collections(): BelongsToMany
+    {
+        return $this->belongsToMany(Collection::class, 'collection_property', 'property_id', 'collection_id')
+            ->withPivot('id')
+            ->withTimestamps();
     }
 
     public function inquiries(): HasMany

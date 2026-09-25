@@ -145,6 +145,7 @@ class CommercialPropertySeeder extends Seeder
                     'description' => $template['description'],
                     'status' => 'Published',
                     'listing_purpose' => $template['listing_purpose'],
+                    'transaction_status' => $template['listing_purpose'] === 'RENT' ? 'LEASE' : 'BUY',
                     'price' => $template['price'],
                     'suburb' => $template['suburb'],
                     'state' => $template['state'],

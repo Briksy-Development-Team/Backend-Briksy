@@ -91,6 +91,7 @@ class OrganizationSearchController extends Controller
     {
         $projects = BuilderProject::query()
             ->where('organization_id', $organization->id)
+            ->where('status', \App\Support\Properties\PropertyWorkflow::STATUS_PUBLISHED)
             ->latest()
             ->get(['id', 'name', 'project_type', 'status', 'description', 'features', 'location', 'state', 'postcode']);
 

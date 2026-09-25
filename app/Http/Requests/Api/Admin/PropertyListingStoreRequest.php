@@ -16,4 +16,12 @@ class PropertyListingStoreRequest extends FormRequest
     {
         return PropertyListingRules::store();
     }
+
+    protected function passedValidation(): void
+    {
+        $errors = PropertyListingRules::categoryErrors($this->validated());
+        if ($errors !== []) {
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
+        }
+    }
 }

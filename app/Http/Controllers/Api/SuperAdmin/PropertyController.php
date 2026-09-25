@@ -134,6 +134,7 @@ class PropertyController extends Controller
             'latitude' => $validated['latitude'] ?? null,
             'longitude' => $validated['longitude'] ?? null,
             'listing_purpose' => $validated['listing_purpose'] ?? null,
+            'transaction_status' => $validated['transaction_status'] ?? null,
             'price' => $validated['price'] ?? null,
             'suburb' => $validated['suburb'] ?? null,
             'state' => $validated['state'] ?? null,
@@ -178,6 +179,14 @@ class PropertyController extends Controller
         $validated['reviewed_at'] = null;
         $validated['rejection_reason'] = null;
         $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
+
+        $typeId = $validated['property_type_id'] ?? $propertyListing->property_type_id;
+        $typeCategory = \App\Models\PropertyType::query()->whereKey($typeId)->value('category');
+        if ($typeCategory === 'commercial') {
+            abort_if(blank($validated['transaction_status'] ?? $propertyListing->transaction_status), 422, 'A commercial transaction status is required.');
+        } else {
+            $validated['transaction_status'] = null;
+        }
 
         if ($request->filled('organization_id')) {
             $validated['org_id'] = $request->input('organization_id');
@@ -322,6 +331,9 @@ class PropertyController extends Controller
 
         if ($request->filled('filter.listing_purpose')) {
             $query->where('listing_purpose', $request->string('filter.listing_purpose')->toString());
+        }
+        if ($request->filled('filter.transaction_status')) {
+            $query->where('transaction_status', $request->string('filter.transaction_status')->toString());
         }
 
         if ($request->filled('filter.organization_id')) {

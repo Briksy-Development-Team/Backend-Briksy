@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Seeker;
 
 use App\Http\Requests\Api\ApiIndexRequest;
 use Illuminate\Validation\Validator;
+use App\Support\Properties\CommercialTransactionStatus;
 
 class PropertyListingIndexRequest extends ApiIndexRequest
 {
@@ -36,6 +37,7 @@ class PropertyListingIndexRequest extends ApiIndexRequest
             'service_slug' => ['nullable', 'string', 'max:100'],
             'verified_only' => ['nullable', 'boolean'],
             'purpose' => ['nullable', 'string', 'in:sell,rent,both,SELL,RENT,BOTH'],
+            'transaction_status' => ['nullable', 'string', 'in:'.implode(',', CommercialTransactionStatus::VALUES)],
             'category' => ['nullable', 'string', 'max:100'],
             'min_price' => ['nullable', 'numeric', 'min:0'],
             'max_price' => ['nullable', 'numeric', 'min:0'],

@@ -45,6 +45,8 @@ class AdminPropertyListingResource extends JsonResource
             'title' => $this->title,
             'status' => $this->status,
             'listing_purpose' => $this->listing_purpose,
+            'transaction_status' => $this->transaction_status,
+            'property_category' => $this->propertyType?->category,
             'price' => $this->price !== null ? (float) $this->price : null,
             'description' => $this->description,
             'address' => $this->address,

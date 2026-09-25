@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Auth\SocialAuthController;
 use App\Http\Controllers\Api\Auth\AbnVerificationController;
 use App\Http\Controllers\Api\Seeker\FavoriteController;
+use App\Http\Controllers\Api\Seeker\CollectionController;
 use App\Http\Controllers\Api\Admin\SeekerController as AdminSeekerController;
 use App\Http\Controllers\Api\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Api\Admin\StaffController as AdminStaffController;
@@ -40,6 +41,7 @@ use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
 use App\Http\Controllers\Api\PropertyFeatureController;
+use App\Http\Controllers\Api\PropertyTypeController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyOfferController as SuperAdminPropertyOfferController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceOfferController as SuperAdminServiceOfferController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyMapController as SuperAdminPropertyMapController;
@@ -54,6 +56,7 @@ use App\Http\Controllers\Api\SuperAdmin\StaffController;
 use App\Http\Controllers\Api\Admin\PropertyController as AdminPropertyController;
 use App\Http\Controllers\Api\Admin\BuyerBriefController;
 use App\Http\Controllers\Api\Admin\BuilderProjectController;
+use App\Http\Controllers\Api\SuperAdmin\BuilderProjectController as SuperAdminBuilderProjectController;
 use App\Http\Controllers\Api\Admin\PropertyOfferController as AdminPropertyOfferController;
 use App\Http\Controllers\Api\Admin\ServiceOfferController as AdminServiceOfferController;
 use App\Http\Controllers\Api\Admin\PropertyImportController as AdminPropertyImportController;
@@ -110,6 +113,15 @@ Route::prefix('seeker')->group(function (): void {
         Route::post('favorites', [FavoriteController::class, 'store']);
         Route::post('favorites/toggle', [FavoriteController::class, 'toggle']);
         Route::delete('favorites/{favorite}', [FavoriteController::class, 'destroy']);
+
+        Route::get('collections', [CollectionController::class, 'index']);
+        Route::post('collections', [CollectionController::class, 'store']);
+        Route::put('collections/{collection}', [CollectionController::class, 'update']);
+        Route::patch('collections/{collection}', [CollectionController::class, 'update']);
+        Route::delete('collections/{collection}', [CollectionController::class, 'destroy']);
+        Route::get('collections/{collection}/properties', [CollectionController::class, 'properties']);
+        Route::post('collections/{collection}/properties', [CollectionController::class, 'add']);
+        Route::delete('collections/{collection}/properties/{property}', [CollectionController::class, 'remove']);
 
         Route::get('reviews', [ReviewController::class, 'index']);
         Route::post('reviews', [ReviewController::class, 'store']);
@@ -194,26 +206,28 @@ Route::prefix('admin')->group(function (): void {
         Route::put('businesses/{organization}', [AdminOrganizationController::class, 'update'])->middleware('permission:company.update');
         Route::post('businesses/{organization}/media', [AdminOrganizationController::class, 'uploadMedia'])->middleware('permission:settings.update|company.update');
 
-        Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
-        Route::get('property-features', [PropertyFeatureController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
-        Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management', 'permission:property.view']);
-        Route::post('properties', [AdminPropertyController::class, 'store'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::get('properties/import/meta', [AdminPropertyImportController::class, 'meta'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::get('properties/import/template', [AdminPropertyImportController::class, 'template'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::post('properties/import', [AdminPropertyImportController::class, 'analyze'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::post('properties/imports/{propertyImport}/preview', [AdminPropertyImportController::class, 'preview'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::post('properties/imports/{propertyImport}/start', [AdminPropertyImportController::class, 'start'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::get('properties/imports/{propertyImport}', [AdminPropertyImportController::class, 'show'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::get('properties/imports/{propertyImport}/error-report', [AdminPropertyImportController::class, 'errorReport'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::get('properties/{propertyListing}', [AdminPropertyController::class, 'show'])->middleware(['module:property_management', 'permission:property.view']);
-        Route::put('properties/{propertyListing}', [AdminPropertyController::class, 'update'])->middleware(['module:property_management', 'permission:property.update']);
-        Route::delete('properties/{propertyListing}', [AdminPropertyController::class, 'destroy'])->middleware(['module:property_management', 'permission:property.delete']);
-        Route::get('property-offers', [AdminPropertyOfferController::class, 'index'])->middleware(['module:property_management', 'permission:property.view']);
-        Route::post('property-offers', [AdminPropertyOfferController::class, 'store'])->middleware(['module:property_management', 'permission:property.create']);
-        Route::get('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'show'])->middleware(['module:property_management', 'permission:property.view']);
-        Route::put('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'update'])->middleware(['module:property_management', 'permission:property.update']);
-        Route::patch('property-offers/{propertyOffer}/toggle', [AdminPropertyOfferController::class, 'toggle'])->middleware(['module:property_management', 'permission:property.update']);
-        Route::delete('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'destroy'])->middleware(['module:property_management', 'permission:property.delete']);
+        Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management|builder_management', 'permission:property.view']);
+        Route::get('property-features', [PropertyFeatureController::class, 'index'])->middleware(['module:property_management|builder_management', 'permission:property.view']);
+        Route::get('property-types', [PropertyTypeController::class, 'index'])->middleware(['module:property_management|builder_management', 'permission:property.view|property.create']);
+        Route::get('properties/map', [AdminPropertyController::class, 'map'])->middleware(['module:property_management|builder_management', 'permission:property.view']);
+        // Builders use the shared property form to submit listings for review.
+        Route::post('properties', [AdminPropertyController::class, 'store'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::get('properties/import/meta', [AdminPropertyImportController::class, 'meta'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::get('properties/import/template', [AdminPropertyImportController::class, 'template'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::post('properties/import', [AdminPropertyImportController::class, 'analyze'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::post('properties/imports/{propertyImport}/preview', [AdminPropertyImportController::class, 'preview'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::post('properties/imports/{propertyImport}/start', [AdminPropertyImportController::class, 'start'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::get('properties/imports/{propertyImport}', [AdminPropertyImportController::class, 'show'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::get('properties/imports/{propertyImport}/error-report', [AdminPropertyImportController::class, 'errorReport'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::get('properties/{propertyListing}', [AdminPropertyController::class, 'show'])->middleware(['module:property_management|builder_management', 'permission:property.view']);
+        Route::put('properties/{propertyListing}', [AdminPropertyController::class, 'update'])->middleware(['module:property_management|builder_management', 'permission:property.update']);
+        Route::delete('properties/{propertyListing}', [AdminPropertyController::class, 'destroy'])->middleware(['module:property_management|builder_management', 'permission:property.delete']);
+        Route::get('property-offers', [AdminPropertyOfferController::class, 'index'])->middleware(['module:property_management|builder_management', 'permission:property.view']);
+        Route::post('property-offers', [AdminPropertyOfferController::class, 'store'])->middleware(['module:property_management|builder_management', 'permission:property.create']);
+        Route::get('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'show'])->middleware(['module:property_management|builder_management', 'permission:property.view']);
+        Route::put('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'update'])->middleware(['module:property_management|builder_management', 'permission:property.update']);
+        Route::patch('property-offers/{propertyOffer}/toggle', [AdminPropertyOfferController::class, 'toggle'])->middleware(['module:property_management|builder_management', 'permission:property.update']);
+        Route::delete('property-offers/{propertyOffer}', [AdminPropertyOfferController::class, 'destroy'])->middleware(['module:property_management|builder_management', 'permission:property.delete']);
         Route::get('service-offers', [AdminServiceOfferController::class, 'index'])->middleware(['module:service_management', 'permission:service.view']);
         Route::post('service-offers', [AdminServiceOfferController::class, 'store'])->middleware(['module:service_management', 'permission:service.create']);
         Route::get('service-offers/{serviceOffer}', [AdminServiceOfferController::class, 'show'])->middleware(['module:service_management', 'permission:service.view']);
@@ -308,6 +322,9 @@ Route::prefix('super-admin')->group(function (): void {
         Route::post('organizations', [OrganizationController::class, 'store'])->middleware('permission:company.create');
         Route::get('organizations/{organization}', [OrganizationController::class, 'show'])->middleware('permission:company.view');
         Route::get('organizations/{organization}/properties', [SuperAdminPropertyController::class, 'forOrganization'])->middleware('permission:property.view');
+        Route::get('builder-projects', [SuperAdminBuilderProjectController::class, 'index'])->middleware('permission:property.view');
+        Route::patch('builder-projects/{builderProject}/approve', [SuperAdminBuilderProjectController::class, 'approve'])->middleware('permission:property.approve');
+        Route::patch('builder-projects/{builderProject}/reject', [SuperAdminBuilderProjectController::class, 'reject'])->middleware('permission:property.reject');
         Route::get('organizations/{organization}/staff', [StaffController::class, 'forOrganization'])->middleware('permission:user.view');
         Route::get('organizations/{organization}/services', [SuperAdminServiceController::class, 'forOrganization'])->middleware('permission:service.view');
         Route::put('organizations/{organization}', [OrganizationController::class, 'update'])->middleware('permission:company.update');
@@ -323,6 +340,7 @@ Route::prefix('super-admin')->group(function (): void {
 
         Route::get('properties', [SuperAdminPropertyController::class, 'index'])->middleware('permission:property.view');
         Route::get('property-features', [PropertyFeatureController::class, 'index'])->middleware('permission:property.view');
+        Route::get('property-types', [PropertyTypeController::class, 'index'])->middleware('permission:property.view');
         Route::get('properties/map', [SuperAdminPropertyController::class, 'map'])->middleware('permission:property.view');
         Route::post('properties', [SuperAdminPropertyController::class, 'store'])->middleware('permission:property.create');
         Route::get('properties/{propertyListing}', [SuperAdminPropertyController::class, 'show'])->middleware('permission:property.view');

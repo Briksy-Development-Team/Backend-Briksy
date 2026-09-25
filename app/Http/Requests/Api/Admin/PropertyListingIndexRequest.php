@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Admin;
 
 use App\Http\Requests\Api\ApiIndexRequest;
+use App\Support\Properties\CommercialTransactionStatus;
 
 class PropertyListingIndexRequest extends ApiIndexRequest
 {
@@ -40,6 +41,7 @@ class PropertyListingIndexRequest extends ApiIndexRequest
             'filter.organization_slug' => ['nullable', 'string', 'max:100'],
             'filter.verified_only' => ['nullable', 'boolean'],
             'filter.listing_purpose' => ['nullable', 'string', 'in:SELL,RENT,BOTH'],
+            'filter.transaction_status' => ['nullable', 'string', 'in:'.implode(',', CommercialTransactionStatus::VALUES)],
         ];
     }
 }

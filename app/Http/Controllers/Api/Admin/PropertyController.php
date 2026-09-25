@@ -125,6 +125,9 @@ class PropertyController extends Controller
             'creator_id' => $request->user()->id,
             'generated_id' => $this->idGenerator->generate('properties'),
             'property_type_id' => $request->input('property_type_id'),
+            'transaction_status' => $request->input('transaction_status'),
+            'listing_purpose' => $request->input('listing_purpose'),
+            'price' => $request->input('price'),
             'avg_prop_rating' => 0,
             'address_line_1' => $request->input('address_line_1') ?? $request->input('address'),
             'address_line_2' => $request->input('address_line_2'),
@@ -237,6 +240,14 @@ class PropertyController extends Controller
         $validated['rejection_reason'] = null;
         $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
 
+        $typeId = $validated['property_type_id'] ?? $propertyListing->property_type_id;
+        $typeCategory = \App\Models\PropertyType::query()->whereKey($typeId)->value('category');
+        if ($typeCategory === 'commercial') {
+            abort_if(blank($validated['transaction_status'] ?? $propertyListing->transaction_status), 422, 'A commercial transaction status is required.');
+        } else {
+            $validated['transaction_status'] = null;
+        }
+
         $this->assertMediaEntitlements($request, $propertyListing);
         $propertyListing->fill($validated);
         $propertyListing->save();
@@ -309,9 +320,10 @@ class PropertyController extends Controller
     private function assertPropertyCategory(Request $request): void
     {
         abort_unless(
-            $request->user()?->hasRole('super_admin') || $this->moduleResolver->category($request->user()) === 'real-estate',
+            $request->user()?->hasRole('super_admin')
+                || in_array($this->moduleResolver->category($request->user()), ['real-estate', 'builders'], true),
             403,
-            'Property management is only available to Real Estate organisations.'
+            'Property submissions are only available to Real Estate and Builder organisations.'
         );
     }
 
@@ -352,6 +364,9 @@ class PropertyController extends Controller
 
         if ($request->filled('filter.listing_purpose')) {
             $query->where('listing_purpose', $request->string('filter.listing_purpose')->toString());
+        }
+        if ($request->filled('filter.transaction_status')) {
+            $query->where('transaction_status', $request->string('filter.transaction_status')->toString());
         }
 
         if ($request->filled('filter.organization_id')) {

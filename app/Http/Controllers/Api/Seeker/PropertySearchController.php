@@ -38,6 +38,9 @@ class PropertySearchController extends Controller
         if ($request->filled('category')) {
             $query->whereHas('propertyType', fn ($typeQuery) => $typeQuery->where('category', $request->string('category')->toString()));
         }
+        if ($request->filled('transaction_status')) {
+            $query->where('transaction_status', strtoupper($request->string('transaction_status')->toString()));
+        }
         if ($request->filled('min_price')) {
             $query->where('price', '>=', $request->input('min_price'));
         }

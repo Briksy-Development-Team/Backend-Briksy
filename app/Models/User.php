@@ -278,6 +278,11 @@ class User extends Authenticatable
         return $this->hasMany(Favorite::class);
     }
 
+    public function collections(): HasMany
+    {
+        return $this->hasMany(Collection::class);
+    }
+
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);

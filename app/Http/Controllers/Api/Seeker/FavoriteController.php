@@ -10,6 +10,7 @@ use App\Models\Favorite;
 use App\Models\Organization;
 use App\Models\PropertyListing;
 use App\Models\Service;
+use App\Services\CollectionAssignmentService;
 use Illuminate\Http\JsonResponse;
 
 class FavoriteController extends Controller
@@ -44,7 +45,7 @@ class FavoriteController extends Controller
         );
     }
 
-    public function store(StoreFavoriteRequest $request): JsonResponse
+    public function store(StoreFavoriteRequest $request, CollectionAssignmentService $collectionAssignmentService): JsonResponse
     {
         $userId = $request->user()->id;
 
@@ -72,14 +73,15 @@ class FavoriteController extends Controller
         ]);
 
         $favorite->load('favoritable');
+        $collection = $collectionAssignmentService->assignAfterFavorite($request->user(), $target);
 
         return $this->created(
-            new FavoriteResource($favorite),
+            ['favorite' => (new FavoriteResource($favorite))->resolve($request), ...$collection],
             'Favorite added successfully.'
         );
     }
 
-    public function toggle(StoreFavoriteRequest $request): JsonResponse
+    public function toggle(StoreFavoriteRequest $request, CollectionAssignmentService $collectionAssignmentService): JsonResponse
     {
         $userId = $request->user()->id;
         $targetClass = match ($request->input('type')) {
@@ -99,10 +101,12 @@ class FavoriteController extends Controller
             if ($favorite->trashed()) {
                 $favorite->restore();
                 $favorite->load('favoritable');
+                $collection = $collectionAssignmentService->assignAfterFavorite($request->user(), $target);
 
                 return $this->created([
                     'favorite' => new FavoriteResource($favorite),
                     'action' => 'added',
+                    ...$collection,
                 ], 'Favorite added successfully.');
             }
 
@@ -121,10 +125,12 @@ class FavoriteController extends Controller
         ]);
 
         $favorite->load('favoritable');
+        $collection = $collectionAssignmentService->assignAfterFavorite($request->user(), $target);
 
         return $this->created([
             'favorite' => new FavoriteResource($favorite),
             'action' => 'added',
+            ...$collection,
         ], 'Favorite added successfully.');
     }
 

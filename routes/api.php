@@ -122,6 +122,8 @@ Route::prefix('seeker')->group(function (): void {
         Route::get('collections/{collection}/properties', [CollectionController::class, 'properties']);
         Route::post('collections/{collection}/properties', [CollectionController::class, 'add']);
         Route::delete('collections/{collection}/properties/{property}', [CollectionController::class, 'remove']);
+        Route::post('collections/{collection}/items', [CollectionController::class, 'addItem']);
+        Route::delete('collections/{collection}/items/{type}/{target}', [CollectionController::class, 'removeItem']);
 
         Route::get('reviews', [ReviewController::class, 'index']);
         Route::post('reviews', [ReviewController::class, 'store']);

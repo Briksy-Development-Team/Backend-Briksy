@@ -134,8 +134,7 @@ class PropertyListing extends Model
 
     public function collections(): BelongsToMany
     {
-        return $this->belongsToMany(Collection::class, 'collection_property', 'property_id', 'collection_id')
-            ->withPivot('id')
+        return $this->morphToMany(Collection::class, 'collectable', 'collection_items', 'collectable_id', 'collection_id')
             ->withTimestamps();
     }
 

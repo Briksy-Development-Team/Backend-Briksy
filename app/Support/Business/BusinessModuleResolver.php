@@ -90,7 +90,10 @@ class BusinessModuleResolver
             return false;
         }
 
-        return $this->category($user) === 'real-estate' && ($this->capabilities($user)['property_management'] ?? false);
+        $modules = $this->resolve($user);
+
+        return in_array(BusinessModules::PROPERTY_MANAGEMENT, $modules, true)
+            || in_array(BusinessModules::BUILDER_MANAGEMENT, $modules, true);
     }
 
     public function isServiceAllowed(User $user): bool

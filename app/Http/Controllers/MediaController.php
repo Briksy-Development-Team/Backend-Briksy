@@ -85,9 +85,11 @@ class MediaController extends Controller
         abort_unless($user, 401);
 
         $propertyListing = $media->propertyListing;
+        $builderProject = $media->builderProject;
         $canManageListing = $user->isSuperAdmin()
             || $user->isGlobalStaff()
-            || ($user->organization_id && $propertyListing?->org_id === $user->organization_id);
+            || ($user->organization_id && $propertyListing?->org_id === $user->organization_id)
+            || ($user->organization_id && $builderProject?->organization_id === $user->organization_id);
 
         abort_unless($canManageListing, 403);
 

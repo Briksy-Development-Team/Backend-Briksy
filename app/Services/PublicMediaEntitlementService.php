@@ -143,6 +143,10 @@ class PublicMediaEntitlementService
             $names[] = 'portfolio videos';
         }
 
+        if ($entity === 'project') {
+            $names[] = "project {$mediaType}s";
+        }
+
         return array_values(array_unique(array_map(fn (string $name): string => $this->normalise($name), $names)));
     }
 

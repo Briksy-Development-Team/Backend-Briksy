@@ -109,6 +109,14 @@ class PropertyListingResource extends JsonResource
                         && app(\App\Support\Business\PlanCapabilityResolver::class)->organizationFeatureEnabled($this->organization, 'verified_badge'),
                 ];
             }),
+            'creator' => $this->whenLoaded('creator', function (): ?array {
+                return $this->creator ? [
+                    'id' => $this->creator->id,
+                    'name' => $this->creator->display_name ?: $this->creator->name,
+                    'email' => $this->creator->email,
+                    'mobile_number' => $this->creator->mobile_number,
+                ] : null;
+            }),
             'media' => $this->whenLoaded('media', function () use ($request, $visibleMedia): array {
                 return $visibleMedia
                     ->map(fn ($media): array => [

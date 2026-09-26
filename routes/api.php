@@ -102,6 +102,7 @@ Route::prefix('seeker')->group(function (): void {
     Route::get('organizations', [OrganizationSearchController::class, 'index']);
     Route::get('organizations/{organization}', [OrganizationSearchController::class, 'show']);
     Route::get('organizations/{organization}/builder-projects', [OrganizationSearchController::class, 'builderProjects']);
+    Route::get('builder-projects/{builderProject}', [OrganizationSearchController::class, 'builderProject']);
 
     Route::post('inquiries', [InquiryController::class, 'store']);
 
@@ -240,8 +241,11 @@ Route::prefix('admin')->group(function (): void {
 
         Route::get('buyer-briefs', [BuyerBriefController::class, 'index'])->middleware('module:buyer_management');
         Route::post('buyer-briefs', [BuyerBriefController::class, 'store'])->middleware('module:buyer_management');
-        Route::get('builder-projects', [BuilderProjectController::class, 'index'])->middleware('module:builder_management');
-        Route::post('builder-projects', [BuilderProjectController::class, 'store'])->middleware('module:builder_management');
+        Route::get('builder-projects', [BuilderProjectController::class, 'index'])->middleware(['module:builder_management', 'permission:project.view']);
+        Route::post('builder-projects', [BuilderProjectController::class, 'store'])->middleware(['module:builder_management', 'permission:project.create']);
+        Route::get('builder-projects/{builderProject}', [BuilderProjectController::class, 'show'])->middleware(['module:builder_management', 'permission:project.view']);
+        Route::put('builder-projects/{builderProject}', [BuilderProjectController::class, 'update'])->middleware(['module:builder_management', 'permission:project.update']);
+        Route::delete('builder-projects/{builderProject}', [BuilderProjectController::class, 'destroy'])->middleware(['module:builder_management', 'permission:project.delete']);
 
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
@@ -326,6 +330,7 @@ Route::prefix('super-admin')->group(function (): void {
         Route::get('organizations/{organization}', [OrganizationController::class, 'show'])->middleware('permission:company.view');
         Route::get('organizations/{organization}/properties', [SuperAdminPropertyController::class, 'forOrganization'])->middleware('permission:property.view');
         Route::get('builder-projects', [SuperAdminBuilderProjectController::class, 'index'])->middleware('permission:property.view');
+        Route::get('builder-projects/{builderProject}', [SuperAdminBuilderProjectController::class, 'show'])->middleware('permission:property.view');
         Route::patch('builder-projects/{builderProject}/approve', [SuperAdminBuilderProjectController::class, 'approve'])->middleware('permission:property.approve');
         Route::patch('builder-projects/{builderProject}/reject', [SuperAdminBuilderProjectController::class, 'reject'])->middleware('permission:property.reject');
         Route::get('organizations/{organization}/staff', [StaffController::class, 'forOrganization'])->middleware('permission:user.view');

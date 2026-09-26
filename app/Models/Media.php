@@ -19,6 +19,7 @@ class Media extends Model
 
     protected $fillable = [
         'property_listing_id',
+        'builder_project_id',
         'file_url',
         'media_type',
         'is_primary',
@@ -28,5 +29,10 @@ class Media extends Model
     public function propertyListing(): BelongsTo
     {
         return $this->belongsTo(PropertyListing::class);
+    }
+
+    public function builderProject(): BelongsTo
+    {
+        return $this->belongsTo(BuilderProject::class);
     }
 }

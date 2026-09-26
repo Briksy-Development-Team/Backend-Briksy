@@ -16,7 +16,7 @@ class PropertySearchController extends Controller
     {
         $query = PropertyListing::query()
             ->visibleToSeekers()
-            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
+            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'creator', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
 
         if ($viewerId = $request->user('sanctum')?->id) {
             $query->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', $viewerId)]);
@@ -54,6 +54,10 @@ class PropertySearchController extends Controller
             $query->whereHas('organization', fn ($organizationQuery) => $organizationQuery->where('slug', $request->string('organization_slug')->toString()));
         }
 
+        if ($request->filled('organization_id')) {
+            $query->where('org_id', $request->string('organization_id')->toString());
+        }
+
         if ($request->filled('organization_type')) {
             $query->whereHas('organization.organizationType', fn ($typeQuery) => $typeQuery->where('slug', $request->string('organization_type')->toString()));
         }
@@ -81,7 +85,7 @@ class PropertySearchController extends Controller
     {
         $query = PropertyListing::query()
             ->visibleToSeekers()
-            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
+            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'creator', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
 
         if ($viewerId = request()->user('sanctum')?->id) {
             $query->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', $viewerId)]);

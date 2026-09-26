@@ -167,12 +167,13 @@ class PropertyListing extends Model
 
     public function scopePublished(Builder $query): Builder
     {
-        return $query
-            ->where('location_verified', true)
-            ->whereIn('status', [
-                PropertyWorkflow::STATUS_PUBLISHED,
-                PropertyWorkflow::STATUS_APPROVED,
-            ]);
+        // Super Admin approval is the publication decision for public listings.
+        // Location verification remains available for map-quality checks, but
+        // it should not hide an otherwise approved property from builder pages.
+        return $query->whereIn('status', [
+            PropertyWorkflow::STATUS_PUBLISHED,
+            PropertyWorkflow::STATUS_APPROVED,
+        ]);
     }
 
     public function scopeVisibleToSeekers(Builder $query): Builder

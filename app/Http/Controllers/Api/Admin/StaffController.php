@@ -339,6 +339,10 @@ class StaffController extends Controller
             $allowed = array_merge($allowed, ['property.view', 'property.map', 'property.create', 'property.update', 'property.delete']);
         }
 
+        if (in_array('builder_management', $this->moduleResolver->resolve($user), true)) {
+            $allowed = array_merge($allowed, ['project.view', 'project.create', 'project.update', 'project.delete']);
+        }
+
         if ($this->moduleResolver->isServiceAllowed($user)) {
             $allowed = array_merge($allowed, ['service.view', 'service.create', 'service.update', 'service.delete']);
         }

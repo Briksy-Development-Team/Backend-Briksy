@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\SuperAdmin;
 
 use App\Http\Controllers\Api\Controller;
+use App\Http\Resources\Admin\AdminBuilderProjectResource;
 use App\Models\BuilderProject;
 use App\Support\Properties\PropertyWorkflow;
 use Illuminate\Http\Request;
@@ -31,6 +32,13 @@ class BuilderProjectController extends Controller
         ])->save();
 
         return $this->success($builderProject, 'Builder project approved and published successfully.');
+    }
+
+    public function show(BuilderProject $builderProject)
+    {
+        $builderProject->load(['organization', 'creator', 'reviewer', 'media']);
+
+        return $this->success(new AdminBuilderProjectResource($builderProject), 'Builder project retrieved successfully.');
     }
 
     public function reject(Request $request, BuilderProject $builderProject)

@@ -35,6 +35,8 @@ class OrganizationController extends Controller
                 'users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff'])),
                 'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
                     ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
+                'builderProjects as pending_builder_projects_count' => fn ($projectQuery) => $projectQuery
+                    ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
             ]);
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
@@ -94,6 +96,24 @@ class OrganizationController extends Controller
             $query->where('business_verification_status', $request->string('filter.business_verification_status')->toString());
         }
 
+        if ($request->filled('filter.review_status')) {
+            $reviewStatus = $request->string('filter.review_status')->toString();
+            $query->where(function ($reviewQuery) use ($reviewStatus): void {
+                if (in_array($reviewStatus, ['pending_properties', 'pending_any'], true)) {
+                    $reviewQuery->whereHas('propertyListings', fn ($propertyQuery) => $propertyQuery
+                        ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW));
+                }
+
+                if ($reviewStatus === 'pending_any') {
+                    $reviewQuery->orWhereHas('builderProjects', fn ($projectQuery) => $projectQuery
+                        ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW));
+                } elseif ($reviewStatus === 'pending_projects') {
+                    $reviewQuery->whereHas('builderProjects', fn ($projectQuery) => $projectQuery
+                        ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW));
+                }
+            });
+        }
+
         ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
 
         ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
@@ -114,6 +134,9 @@ class OrganizationController extends Controller
                 'users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff'])),
                 'propertyListings as property_count',
                 'propertyListings as pending_properties_count' => fn ($propertyQuery) => $propertyQuery
+                    ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
+                'builderProjects as builder_project_count',
+                'builderProjects as pending_builder_projects_count' => fn ($projectQuery) => $projectQuery
                     ->where('status', PropertyWorkflow::STATUS_PENDING_REVIEW),
                 'ownedServices as service_count',
             ]);

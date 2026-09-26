@@ -16,6 +16,9 @@ class BuilderProjectController extends Controller
         if ($request->filled('filter.status')) {
             $query->where('status', $request->string('filter.status')->toString());
         }
+        if ($request->filled('filter.organization_id')) {
+            $query->where('organization_id', $request->string('filter.organization_id')->toString());
+        }
 
         $projects = $query->paginate($request->integer('items_per_page', 20));
         return $this->paginated($projects, $projects, 'Builder projects retrieved successfully.');

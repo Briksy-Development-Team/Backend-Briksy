@@ -54,6 +54,7 @@ class OrganizationIndexRequest extends ApiListRequest
             'filter.business_verification_status' => ['nullable', 'string', 'in:pending,verified,rejected'],
             'filter.is_verified' => ['nullable', 'boolean'],
             'filter.created_at' => ['nullable', 'string', 'max:25'],
+            'filter.review_status' => ['nullable', 'string', 'in:pending_properties,pending_projects,pending_any'],
         ];
     }
 }

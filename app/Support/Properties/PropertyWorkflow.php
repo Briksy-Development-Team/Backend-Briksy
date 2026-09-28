@@ -25,6 +25,7 @@ final class PropertyWorkflow
     public const ACTION_CREATED = 'property_created';
     public const ACTION_UPDATED = 'property_updated';
     public const ACTION_SUBMITTED = 'property_submitted_for_review';
+    public const ACTION_PROJECT_SUBMITTED = 'builder_project_submitted_for_review';
     public const ACTION_APPROVED = 'property_approved';
     public const ACTION_REJECTED = 'property_rejected';
     public const ACTION_PUBLISHED = 'property_published';

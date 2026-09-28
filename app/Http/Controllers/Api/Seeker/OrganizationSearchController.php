@@ -116,7 +116,7 @@ class OrganizationSearchController extends Controller
         ])->values()->all(), 'Builder projects retrieved successfully.');
     }
 
-    public function builderProject(BuilderProject $builderProject)
+    public function builderProject(Request $request, BuilderProject $builderProject)
     {
         abort_unless($builderProject->status === \App\Support\Properties\PropertyWorkflow::STATUS_PUBLISHED, 404);
 
@@ -149,7 +149,13 @@ class OrganizationSearchController extends Controller
                 'id' => $builderProject->organization->id,
                 'name' => $builderProject->organization->name,
                 'slug' => $builderProject->organization->slug,
-                'logo_url' => $builderProject->organization->logo_url,
+                'logo_url' => $this->organizationMediaUrl(
+                    $request,
+                    $builderProject->organization->logo_url,
+                    $builderProject->organization->id,
+                    'profile',
+                    $builderProject->organization->updated_at?->timestamp,
+                ),
             ] : null,
             'creator' => $builderProject->creator ? [
                 'id' => $builderProject->creator->id,
@@ -158,6 +164,30 @@ class OrganizationSearchController extends Controller
                 'mobile_number' => $builderProject->creator->mobile_number,
             ] : null,
         ], 'Builder project retrieved successfully.');
+    }
+
+    private function organizationMediaUrl(
+        Request $request,
+        ?string $url,
+        string $organizationId,
+        string $type,
+        ?int $version = null,
+    ): ?string {
+        if (!$url) {
+            return null;
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return rtrim($request->getSchemeAndHttpHost(), '/') . $url;
+        }
+
+        return rtrim($request->getSchemeAndHttpHost(), '/')
+            . "/api/organization-media/{$organizationId}/{$type}?v="
+            . rawurlencode((string) ($version ?? time()));
     }
 
     private function recordVisit(Organization $organization, Request $request): void

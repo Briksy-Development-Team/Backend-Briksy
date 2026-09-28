@@ -191,7 +191,7 @@ class PropertyController extends Controller
                 ),
                 PropertyListing::class,
                 $listing->id,
-                    "/super-admin/property-management?highlight={$listing->id}",
+                    "/super-admin/property-management/{$listing->generated_id}",
                     'high',
                     $request->user()?->id,
                     $organizationId
@@ -228,24 +228,26 @@ class PropertyController extends Controller
             $validated['country'] = 'Australia';
         }
 
-        // Keep the publication intent of an already-public listing while its
-        // edited data is pending review. A new/unpublished listing must still
-        // remain unpublished until it is explicitly published.
-        $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED;
+        $addressChanged = $this->hasAddressChanged($propertyListing, $validated);
+        $requiresReview = $addressChanged || $propertyListing->status === PropertyWorkflow::STATUS_PENDING_REVIEW;
 
-        $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
-        $validated['submitted_at'] = now();
-        $validated['reviewed_by'] = null;
-        $validated['reviewed_at'] = null;
-        $validated['rejection_reason'] = null;
-        $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
+        if ($requiresReview) {
+            $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
+            $validated['submitted_at'] = now();
+            $validated['reviewed_by'] = null;
+            $validated['reviewed_at'] = null;
+            $validated['rejection_reason'] = null;
+            $validated['published_at'] = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED
+                ? ($propertyListing->published_at ?? now())
+                : null;
+        } else {
+            unset($validated['status']);
+        }
 
         $typeId = $validated['property_type_id'] ?? $propertyListing->property_type_id;
         $typeCategory = \App\Models\PropertyType::query()->whereKey($typeId)->value('category');
         if ($typeCategory === 'commercial') {
             abort_if(blank($validated['transaction_status'] ?? $propertyListing->transaction_status), 422, 'A commercial transaction status is required.');
-        } else {
-            $validated['transaction_status'] = null;
         }
 
         $this->assertMediaEntitlements($request, $propertyListing);
@@ -260,44 +262,69 @@ class PropertyController extends Controller
             $request,
             $propertyListing,
             PropertyWorkflow::ACTION_UPDATED,
-            sprintf('Property "%s" updated and resubmitted for review.', $propertyListing->title),
+            sprintf(
+                'Property "%s" %s.',
+                $propertyListing->title,
+                $requiresReview ? 'updated and resubmitted for review' : 'updated'
+            ),
             $before,
             $propertyListing->fresh()->toArray(),
             ['title' => 'Property updated']
         );
-        $this->recordPropertyActivity(
-            $request,
-            $propertyListing,
-            PropertyWorkflow::ACTION_SUBMITTED,
-            sprintf('Property "%s" resubmitted for review.', $propertyListing->title),
-            null,
-            ['status' => PropertyWorkflow::STATUS_PENDING_REVIEW],
-            ['title' => 'Resubmitted for review']
-        );
+        if ($requiresReview) {
+            $this->recordPropertyActivity(
+                $request,
+                $propertyListing,
+                PropertyWorkflow::ACTION_SUBMITTED,
+                sprintf('Property "%s" resubmitted for review.', $propertyListing->title),
+                null,
+                ['status' => PropertyWorkflow::STATUS_PENDING_REVIEW],
+                ['title' => 'Resubmitted for review']
+            );
+        }
 
         $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features', 'reviewer', 'locationVerifier', 'activityLogs.user']);
         $propertyListing->loadMissing('offers.creator');
 
-        $this->notificationService->notifySuperAdminTeam(
+        if ($requiresReview) {
+            $this->notificationService->notifySuperAdminTeam(
                 $this->notificationService->buildPayload(
                     PropertyWorkflow::ACTION_SUBMITTED,
                     'Property resubmitted for review',
                     sprintf('Property "%s" was resubmitted by %s.', $propertyListing->title, $request->user()?->name ?? 'a user'),
                     PropertyListing::class,
                     $propertyListing->id,
-                    "/super-admin/property-management?highlight={$propertyListing->id}",
+                    "/super-admin/property-management/{$propertyListing->generated_id}",
                     'high',
                     $request->user()?->id,
                     $propertyListing->org_id
                 ),
             'Property resubmitted for review',
             'Review property'
-        );
+            );
+        }
 
         return $this->success(
             new AdminPropertyListingResource($propertyListing),
             'Property listing updated successfully.'
         );
+    }
+
+    private function hasAddressChanged(PropertyListing $propertyListing, array $validated): bool
+    {
+        foreach (['address', 'address_line_1', 'address_line_2', 'full_address', 'formatted_address', 'place_id', 'latitude', 'longitude', 'suburb', 'state', 'postcode', 'country'] as $field) {
+            if (!array_key_exists($field, $validated)) {
+                continue;
+            }
+
+            $incoming = $validated[$field];
+            $existing = $propertyListing->getAttribute($field);
+            if ((string) ($incoming ?? '') !== (string) ($existing ?? '')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function destroy(Request $request, PropertyListing $propertyListing): JsonResponse

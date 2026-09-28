@@ -147,6 +147,10 @@ class PublicMediaEntitlementService
             $names[] = "project {$mediaType}s";
         }
 
+        // Subscription plans may expose these limits using the platform-wide
+        // labels shown in the plan catalogue.
+        $names[] = $mediaType === 'image' ? 'images limit' : 'videos limit';
+
         return array_values(array_unique(array_map(fn (string $name): string => $this->normalise($name), $names)));
     }
 

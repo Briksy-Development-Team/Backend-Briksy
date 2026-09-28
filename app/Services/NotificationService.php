@@ -27,6 +27,7 @@ class NotificationService
         'organization_deleted' => 'company.view',
         'property_created' => 'property.view',
         'property_submitted_for_review' => 'property.view',
+        'builder_project_submitted_for_review' => 'property.view',
         'property_approved' => 'property.view',
         'property_rejected' => 'property.view',
         'property_published' => 'property.view',
@@ -193,6 +194,12 @@ class NotificationService
 
     private function canReceiveNotification(User $user, array $payload): bool
     {
+        // Superadmins are the platform reviewers and must receive review
+        // notifications even if a permission seed/update is incomplete.
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
         $requiredPermission = $payload['required_permission'] ?? null;
 
         $category = $this->planCapabilities->category($user);

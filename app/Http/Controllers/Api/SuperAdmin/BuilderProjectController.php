@@ -13,6 +13,15 @@ class BuilderProjectController extends Controller
     public function index(Request $request)
     {
         $query = BuilderProject::query()->with('organization')->latest();
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $query->where(function ($builder) use ($search): void {
+                $builder
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('project_type', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%");
+            });
+        }
         if ($request->filled('filter.status')) {
             $query->where('status', $request->string('filter.status')->toString());
         }
@@ -20,7 +29,19 @@ class BuilderProjectController extends Controller
             $query->where('organization_id', $request->string('filter.organization_id')->toString());
         }
 
-        $projects = $query->paginate($request->integer('items_per_page', 20));
+        $sort = $request->string('sort')->toString();
+        $sortColumn = [
+            'name' => 'name',
+            'project_type' => 'project_type',
+            'status' => 'status',
+            'location' => 'location',
+            'created_at' => 'created_at',
+        ][$sort] ?? 'created_at';
+        $direction = $request->string('direction')->toString() === 'asc' ? 'asc' : 'desc';
+        $query->reorder($sortColumn, $direction);
+
+        $perPage = max(1, min($request->integer('per_page', $request->integer('items_per_page', 20)), 100));
+        $projects = $query->paginate($perPage)->withQueryString();
         return $this->paginated($projects, $projects, 'Builder projects retrieved successfully.');
     }
 

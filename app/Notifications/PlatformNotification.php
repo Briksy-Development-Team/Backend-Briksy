@@ -3,12 +3,14 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
-class PlatformNotification extends Notification implements ShouldQueue
+// In-app notifications must be persisted during the request. The production
+// deployment uses a database queue without a continuously running worker, so
+// queueing this notification would leave the superadmin badge empty.
+class PlatformNotification extends Notification
 {
     use Queueable;
 
@@ -17,7 +19,6 @@ class PlatformNotification extends Notification implements ShouldQueue
         public readonly ?string $mailSubject = null,
         public readonly ?string $mailCtaLabel = null,
     ) {
-        $this->onQueue('notifications');
     }
 
     public function via(object $notifiable): array

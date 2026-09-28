@@ -85,10 +85,6 @@ final class PropertyListingRules
             return ['transaction_status' => ['A commercial transaction status is required.']];
         }
 
-        if ($category !== 'commercial' && filled($transactionStatus)) {
-            return ['transaction_status' => ['Transaction status is only valid for commercial properties.']];
-        }
-
         return [];
     }
 }

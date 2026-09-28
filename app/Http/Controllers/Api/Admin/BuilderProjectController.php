@@ -7,6 +7,7 @@ use App\Http\Resources\Admin\AdminBuilderProjectResource;
 use App\Models\BuilderProject;
 use App\Models\Media;
 use App\Services\PublicMediaEntitlementService;
+use App\Services\NotificationService;
 use App\Support\Business\PlanCapabilityResolver;
 use App\Support\Properties\PropertyWorkflow;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -17,6 +18,7 @@ class BuilderProjectController extends Controller
     public function __construct(
         private readonly PlanCapabilityResolver $planCapabilities,
         private readonly PublicMediaEntitlementService $mediaEntitlements,
+        private readonly NotificationService $notificationService,
     ) {}
     public function index(Request $request)
     {
@@ -55,6 +57,7 @@ class BuilderProjectController extends Controller
         $data['published_at'] = null;
         $project = BuilderProject::create($data);
         $this->storeProjectMedia($project, $request);
+        $this->notifyProjectSubmitted($request, $project->fresh(['organization']));
 
         return $this->created(new AdminBuilderProjectResource($project->load('media')), 'Builder project created successfully.');
     }
@@ -66,14 +69,25 @@ class BuilderProjectController extends Controller
         $data = $this->validatedProjectData($request);
         $this->assertMediaEntitlements($request, $builderProject);
 
-        $data['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
-        $data['submitted_at'] = now();
-        $data['reviewed_by'] = null;
-        $data['reviewed_at'] = null;
-        $data['rejection_reason'] = null;
-        $data['published_at'] = null;
+        $addressChanged = $this->hasAddressChanged($builderProject, $data);
+        $requiresReview = $addressChanged || $builderProject->status === PropertyWorkflow::STATUS_PENDING_REVIEW;
+        if ($requiresReview) {
+            $data['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
+            $data['submitted_at'] = now();
+            $data['reviewed_by'] = null;
+            $data['reviewed_at'] = null;
+            $data['rejection_reason'] = null;
+            $data['published_at'] = $builderProject->status === PropertyWorkflow::STATUS_PUBLISHED
+                ? ($builderProject->published_at ?? now())
+                : null;
+        } else {
+            unset($data['status']);
+        }
         $builderProject->update($data);
         $this->storeProjectMedia($builderProject, $request);
+        if ($requiresReview) {
+            $this->notifyProjectSubmitted($request, $builderProject->fresh(['organization']), true);
+        }
 
         return $this->success(new AdminBuilderProjectResource($builderProject->fresh()->load('media')), 'Builder project updated successfully.');
     }
@@ -151,5 +165,44 @@ class BuilderProjectController extends Controller
                 'sort_order' => ++$mediaOrder,
             ]);
         }
+    }
+
+    private function notifyProjectSubmitted(Request $request, BuilderProject $project, bool $resubmitted = false): void
+    {
+        $this->notificationService->notifySuperAdminTeam(
+            $this->notificationService->buildPayload(
+                PropertyWorkflow::ACTION_PROJECT_SUBMITTED,
+                $resubmitted ? 'Builder project resubmitted for review' : 'New builder project submitted for review',
+                sprintf(
+                    'Project "%s" from %s was submitted by %s.',
+                    $project->name,
+                    $project->organization?->name ?? 'an organisation',
+                    $request->user()?->name ?? 'a user'
+                ),
+                BuilderProject::class,
+                $project->id,
+                "/super-admin/builder-projects/{$project->id}",
+                'high',
+                $request->user()?->id,
+                $project->organization_id
+            ),
+            $resubmitted ? 'Builder project resubmitted for review' : 'New builder project submitted',
+            'Review project'
+        );
+    }
+
+    private function hasAddressChanged(BuilderProject $project, array $data): bool
+    {
+        foreach (['location', 'state', 'postcode', 'latitude', 'longitude'] as $field) {
+            if (!array_key_exists($field, $data)) {
+                continue;
+            }
+
+            if ((string) ($data[$field] ?? '') !== (string) ($project->getAttribute($field) ?? '')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

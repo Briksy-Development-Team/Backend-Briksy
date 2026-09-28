@@ -23,7 +23,9 @@ class SubscriptionPlanUpdateRequest extends FormRequest
                 'string',
                 'max:50',
                 Rule::unique('subscription_plans', 'name')
-                    ->where(fn ($query) => $query->where('plan_family', $this->input('plan_family', $plan?->plan_family)))
+                    ->where(fn ($query) => $query
+                        ->where('plan_family', $this->input('plan_family', $plan?->plan_family))
+                        ->whereNull('deleted_at'))
                     ->ignore($plan?->id),
             ],
             'description' => ['nullable', 'string', 'max:1000'],

@@ -20,7 +20,10 @@ class SubscriptionPlanStoreRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('subscription_plans', 'name')->where(fn ($query) => $query->where('plan_family', $this->input('plan_family'))),
+                Rule::unique('subscription_plans', 'name')
+                    ->where(fn ($query) => $query
+                        ->where('plan_family', $this->input('plan_family'))
+                        ->whereNull('deleted_at')),
             ],
             'description' => ['nullable', 'string', 'max:1000'],
             'price' => ['nullable', 'integer', 'min:0'],

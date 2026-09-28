@@ -95,7 +95,7 @@ class BuilderProjectController extends Controller
             'features' => ['nullable', 'array', 'max:30'],
             'features.*' => ['required', 'string', 'max:80'],
             'location' => ['nullable', 'string', 'max:150'],
-            'state' => ['nullable', 'string', 'max:10'],
+            'state' => ['nullable', 'string', 'max:50'],
             'postcode' => ['nullable', 'string', 'max:10'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],

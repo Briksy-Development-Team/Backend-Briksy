@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\PropertyListing;
+use App\Models\PropertyFeature;
 use App\Models\SubscriptionPlan;
+use App\Support\Properties\PropertyWorkflow;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -50,6 +52,36 @@ class PropertyMediaUploadTest extends TestCase
 
         $response->assertOk();
         $this->assertSame($existingVideoCount + 2, $property->fresh()->media()->where('media_type', 'video')->count());
+    }
+
+    public function test_admin_media_and_amenity_edits_preserve_location_verification(): void
+    {
+        $this->seed();
+        Storage::fake('public');
+
+        $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
+        $property = PropertyListing::query()->where('org_id', $admin->organization_id)->firstOrFail();
+        $property->forceFill([
+            'status' => PropertyWorkflow::STATUS_PUBLISHED,
+            'location_verified' => true,
+        ])->save();
+        $featureIds = PropertyFeature::query()->limit(2)->pluck('id')->all();
+
+        Sanctum::actingAs($admin, ['admin']);
+
+        $this->post('/api/admin/properties/'.$property->generated_id, [
+            '_method' => 'PUT',
+            'title' => $property->title,
+            'features' => $featureIds,
+            'images' => [UploadedFile::fake()->image('updated.jpg')],
+            'videos' => [UploadedFile::fake()->create('updated.mp4', 1024, 'video/mp4')],
+        ])->assertOk()
+            ->assertJsonPath('data.location_verified', true);
+
+        $property->refresh();
+        $this->assertTrue((bool) $property->location_verified);
+        $this->assertSame(PropertyWorkflow::STATUS_PUBLISHED, $property->status);
+        $this->assertCount(count($featureIds), $property->features);
     }
 
     public function test_real_estate_image_and_video_limits_are_independent_and_block_storage(): void

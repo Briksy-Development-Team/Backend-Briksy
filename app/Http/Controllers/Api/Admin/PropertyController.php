@@ -228,6 +228,14 @@ class PropertyController extends Controller
             $validated['country'] = 'Australia';
         }
 
+        // Location verification is managed by the dedicated verification
+        // action. Preserve it during normal property edits (including media
+        // and amenity changes) so an edit cannot make a verified listing look
+        // unverified.
+        $validated['location_verified'] = $propertyListing->location_verified;
+        $validated['location_verified_by'] = $propertyListing->location_verified_by;
+        $validated['location_verified_at'] = $propertyListing->location_verified_at;
+
         $addressChanged = $this->hasAddressChanged($propertyListing, $validated);
         $requiresReview = $addressChanged || $propertyListing->status === PropertyWorkflow::STATUS_PENDING_REVIEW;
 

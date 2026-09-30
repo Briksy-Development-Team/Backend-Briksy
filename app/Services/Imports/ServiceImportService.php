@@ -6,6 +6,7 @@ use App\Models\BulkImport;
 use App\Models\Organization;
 use App\Models\OrganizationType;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Services\DynamicIdGeneratorService;
 use App\Support\Services\ServiceListingRules;
 use Illuminate\Database\Eloquent\Builder;
@@ -309,7 +310,7 @@ final class ServiceImportService
 
     private function categories(): array
     {
-        return array_column(config('service_categories', []), 'slug');
+        return ServiceCategory::query()->where('is_active', true)->orderBy('sort_order')->pluck('slug')->all();
     }
 
     private function requiredFields(): array

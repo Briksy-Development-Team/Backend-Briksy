@@ -4,6 +4,7 @@ namespace App\Support\Business;
 
 use App\Models\SubscriptionPlan;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -298,7 +299,8 @@ final class PlanCapabilityResolver
         }
 
         $limit = array_key_exists('value', $feature) && $feature['value'] !== null ? max(0, (int) $feature['value']) : null;
-        $configuredSlugs = collect(config('service_categories', []))
+        $configuredSlugs = ServiceCategory::query()
+            ->where('is_active', true)
             ->pluck('slug')
             ->filter()
             ->values();

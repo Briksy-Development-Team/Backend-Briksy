@@ -55,6 +55,8 @@ class AdminOrganizationResource extends JsonResource
             'address' => $this->address,
             'state' => $this->state,
             'postcode' => $this->postcode,
+            'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
             'description' => $this->description,
             'website' => $this->website,
             'social_links' => $this->social_links ?? [],

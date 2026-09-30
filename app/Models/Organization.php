@@ -43,6 +43,8 @@ class Organization extends Model
         'address',
         'state',
         'postcode',
+        'latitude',
+        'longitude',
         'plan_id',
         'type_id',
         'ranking_priority',
@@ -78,6 +80,8 @@ class Organization extends Model
             'social_links' => 'array',
             'service_areas' => 'array',
             'reel_urls' => 'array',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 

@@ -23,6 +23,9 @@ class OrganizationIndexRequest extends ApiIndexRequest
             'service_slug' => ['nullable', 'string', 'max:100'],
             'service_group_slug' => ['nullable', 'string', 'max:100'],
             'verified_only' => ['nullable', 'boolean'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'radius' => ['nullable', 'numeric', 'min:0', 'max:5000'],
         ];
     }
 }

@@ -64,6 +64,9 @@ class OrganizationResource extends JsonResource
             'address' => $this->address,
             'state' => $this->state,
             'postcode' => $this->postcode,
+            'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
+            'distance_km' => $this->distance_km !== null ? round((float) $this->distance_km, 2) : null,
             'contact' => [
                 'email' => $this->contact_email,
                 'phone' => $this->contact_phone,

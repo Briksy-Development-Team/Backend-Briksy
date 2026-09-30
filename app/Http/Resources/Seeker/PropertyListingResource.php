@@ -96,6 +96,7 @@ class PropertyListingResource extends JsonResource
                 'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
                 'state' => $this->state,
             ],
+            'distance_km' => $this->distance_km !== null ? round((float) $this->distance_km, 2) : null,
             'organization' => $this->whenLoaded('organization', function () use ($request): array {
                 return [
                     'id' => $this->organization?->id,

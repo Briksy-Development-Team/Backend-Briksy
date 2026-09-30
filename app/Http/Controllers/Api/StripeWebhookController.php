@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Controller;
 use App\Models\Organization;
+use App\Models\CheckoutInvitation;
+use App\Models\Inquiry;
 use App\Models\Subscription;
 use App\Models\SubscriptionAddon;
 use App\Models\SubscriptionEvent;
@@ -69,6 +71,21 @@ class StripeWebhookController extends Controller
             }
 
             if ($eventType === 'checkout.session.completed') {
+                $invitationId = $metadata['checkout_invitation_id'] ?? null;
+                if ($invitationId) {
+                    $invitation = CheckoutInvitation::query()->whereKey($invitationId)->lockForUpdate()->first();
+                    if ($invitation && in_array($invitation->status, ['active', 'payment_pending', 'paid'], true)) {
+                        $invitation->update([
+                            'status' => 'paid',
+                            'paid_at' => $invitation->paid_at ?? now(),
+                            'stripe_checkout_session_id' => $object->id,
+                            'stripe_payment_intent_id' => $object->payment_intent ?? null,
+                        ]);
+                        if ($invitation->inquiry_id) {
+                            Inquiry::query()->whereKey($invitation->inquiry_id)->update(['status' => 'paid']);
+                        }
+                    }
+                }
                 $subscriptionId = $object->subscription ?? null;
                 if ($subscription && $subscriptionId) {
                     $stripe = new StripeClient(config('services.stripe.secret'));

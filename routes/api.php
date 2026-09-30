@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\SuperAdmin\CouponController;
 use App\Http\Controllers\Api\SuperAdmin\OrderController;
 use App\Http\Controllers\Api\SuperAdmin\EmailTemplateController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceController as SuperAdminServiceController;
+use App\Http\Controllers\Api\SuperAdmin\ServiceCategoryController;
 use App\Http\Controllers\Api\ServiceMediaController;
 use App\Http\Controllers\Api\OrganizationMediaController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceImportController as SuperAdminServiceImportController;
@@ -49,6 +50,8 @@ use App\Http\Controllers\Api\SuperAdmin\SubscriptionPlanController as SuperAdmin
 use App\Http\Controllers\Api\SuperAdmin\DynamicIdSettingController as SuperAdminDynamicIdSettingController;
 use App\Http\Controllers\Api\SuperAdmin\AddonController as SuperAdminAddonController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionController as SuperAdminSubscriptionController;
+use App\Http\Controllers\Api\CheckoutInvitationController;
+use App\Http\Controllers\Api\SuperAdmin\CheckoutInvitationController as SuperAdminCheckoutInvitationController;
 use App\Http\Controllers\Api\SuperAdmin\ActivityLogController as SuperAdminActivityLogController;
 use App\Http\Controllers\Api\SuperAdmin\ReferralController as SuperAdminReferralController;
 use App\Http\Controllers\Api\SuperAdmin\SeekerController as SuperAdminSeekerController;
@@ -82,6 +85,10 @@ Route::prefix('auth')->group(function (): void {
 
 Route::get('settings/public', [SettingController::class, 'publicSettings']);
 Route::get('plans/public', [SeekerSubscriptionPlanController::class, 'index']);
+Route::get('service-categories', [ServiceCategoryController::class, 'index']);
+Route::get('checkout/{token}', [CheckoutInvitationController::class, 'show']);
+Route::post('checkout/{token}/payment', [CheckoutInvitationController::class, 'payment']);
+Route::post('pricing-inquiries', [CheckoutInvitationController::class, 'inquiry']);
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle']);
 Route::get('media/{media}', [MediaController::class, 'show'])->name('media.show');
 Route::middleware('auth:sanctum')->delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
@@ -262,6 +269,10 @@ Route::prefix('admin')->group(function (): void {
         Route::get('referrals', [AdminReferralController::class, 'index'])->middleware('permission:referral.view');
 
         Route::get('services/categories', [SuperAdminServiceController::class, 'categories'])->middleware(['module:service_management', 'permission:service.view']);
+        Route::get('service-categories', [ServiceCategoryController::class, 'index'])->middleware(['module:service_management', 'permission:service.view']);
+        Route::post('service-categories', [ServiceCategoryController::class, 'store'])->middleware(['module:service_management', 'permission:service.create']);
+        Route::put('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'update'])->middleware(['module:service_management', 'permission:service.update']);
+        Route::delete('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'destroy'])->middleware(['module:service_management', 'permission:service.delete']);
         Route::get('services/map', [SuperAdminServiceController::class, 'map'])->middleware(['module:service_management', 'permission:service.view']);
         Route::get('services/import/meta', [SuperAdminServiceImportController::class, 'meta'])->middleware(['module:service_management', 'permission:service.create']);
         Route::get('services/import/template', [SuperAdminServiceImportController::class, 'template'])->middleware(['module:service_management', 'permission:service.create']);
@@ -377,6 +388,10 @@ Route::prefix('super-admin')->group(function (): void {
         Route::delete('service-offers/{serviceOffer}', [SuperAdminServiceOfferController::class, 'destroy'])->middleware('permission:service.delete');
 
         Route::get('services/categories', [SuperAdminServiceController::class, 'categories'])->middleware('permission:service.view');
+        Route::get('service-categories', [ServiceCategoryController::class, 'index'])->middleware('permission:service.view');
+        Route::post('service-categories', [ServiceCategoryController::class, 'store'])->middleware('permission:service.create');
+        Route::put('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'update'])->middleware('permission:service.update');
+        Route::delete('service-categories/{serviceCategory}', [ServiceCategoryController::class, 'destroy'])->middleware('permission:service.delete');
         Route::get('services/map', [SuperAdminServiceController::class, 'map'])->middleware('permission:service.view');
         Route::get('services/import/meta', [SuperAdminServiceImportController::class, 'meta'])->middleware('permission:service.create');
         Route::get('services/import/template', [SuperAdminServiceImportController::class, 'template'])->middleware('permission:service.create');
@@ -411,6 +426,13 @@ Route::prefix('super-admin')->group(function (): void {
 
         Route::get('inquiries', [AdminInquiryController::class, 'index']);
         Route::get('inquiries/{inquiry}', [AdminInquiryController::class, 'show']);
+        Route::get('pricing-inquiries', [AdminInquiryController::class, 'index']);
+        Route::get('pricing-inquiries/{inquiry}', [AdminInquiryController::class, 'show']);
+        Route::patch('inquiries/{inquiry}/status', [AdminInquiryController::class, 'updateStatus'])->middleware('permission:plan.update');
+        Route::post('inquiries/{inquiry}/checkout-link', [SuperAdminCheckoutInvitationController::class, 'store'])->middleware('permission:plan.update');
+        Route::get('checkout-invitations/{checkoutInvitation}', [SuperAdminCheckoutInvitationController::class, 'show'])->middleware('permission:plan.view');
+        Route::post('checkout-invitations/{checkoutInvitation}/cancel', [SuperAdminCheckoutInvitationController::class, 'cancel'])->middleware('permission:plan.update');
+        Route::post('checkout-invitations/{checkoutInvitation}/new-link', [SuperAdminCheckoutInvitationController::class, 'newLink'])->middleware('permission:plan.update');
 
         Route::get('coupons', [CouponController::class, 'index'])->middleware('permission:coupon.view');
         Route::post('coupons', [CouponController::class, 'store'])->middleware('permission:coupon.create');

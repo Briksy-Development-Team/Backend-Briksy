@@ -49,6 +49,7 @@ class PropertySearchController extends Controller
         }
 
         $this->applyPropertyAttributeFilters($query, $request);
+        $this->applyNearbyOrdering($query, $request);
 
         if ($request->filled('organization_slug')) {
             $query->whereHas('organization', fn ($organizationQuery) => $organizationQuery->where('slug', $request->string('organization_slug')->toString()));
@@ -79,6 +80,23 @@ class PropertySearchController extends Controller
             $properties,
             'Property listings retrieved successfully.'
         );
+    }
+
+    private function applyNearbyOrdering(\Illuminate\Database\Eloquent\Builder $query, PropertyListingIndexRequest $request): void
+    {
+        if (!$request->filled('latitude') || !$request->filled('longitude')) return;
+
+        $latitude = (float) $request->input('latitude');
+        $longitude = (float) $request->input('longitude');
+        $distanceSql = '(6371 * acos(least(1, greatest(-1, cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))))';
+        $query->selectRaw("property_listings.*, {$distanceSql} as distance_km", [$latitude, $longitude, $latitude]);
+
+        if ($request->filled('radius')) {
+            $query->whereNotNull('latitude')->whereNotNull('longitude')
+                ->whereRaw("{$distanceSql} <= ?", [$latitude, $longitude, $latitude, (float) $request->input('radius')]);
+        }
+
+        $query->orderBy('distance_km');
     }
 
     public function show(PropertyListing $propertyListing)

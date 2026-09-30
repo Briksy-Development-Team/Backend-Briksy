@@ -48,6 +48,9 @@ class PropertyListingIndexRequest extends ApiIndexRequest
             'max_land_size' => ['nullable', 'numeric', 'gte:min_land_size'],
             'features' => ['nullable', 'array'],
             'features.*' => ['string', 'distinct', 'exists:property_features,slug'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'radius' => ['nullable', 'numeric', 'min:0', 'max:5000'],
         ];
     }
 }

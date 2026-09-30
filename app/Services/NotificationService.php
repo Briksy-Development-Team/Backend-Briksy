@@ -45,6 +45,7 @@ class NotificationService
         'plan_request_created' => 'plan_request.view',
         'plan_request_approved' => 'plan_request.view',
         'plan_request_rejected' => 'plan_request.view',
+        'pricing_inquiry_created' => 'plan.view',
         'coupon_created' => 'coupon.view',
         'coupon_updated' => 'coupon.view',
         'coupon_activated' => 'coupon.view',

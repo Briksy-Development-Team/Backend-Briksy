@@ -50,7 +50,7 @@ class ServiceSeeder extends Seeder
                 ['name' => 'Handover Packs', 'slug' => 'handover-packs', 'description' => 'Completion documents, handover notes, and close-out packs.'],
             ],
             'trades-professionals' => [
-                ['name' => 'Landscappers', 'slug' => 'landscapers', 'category' => 'Landscappers', 'description' => 'Outdoor maintenance, garden care, and site presentation.'],
+                ['name' => 'Landscapers', 'slug' => 'landscapers', 'category' => 'Landscapers', 'description' => 'Outdoor maintenance, garden care, and site presentation.'],
                 ['name' => 'Concreter', 'slug' => 'concreter', 'category' => 'Concreter', 'description' => 'Concrete pours, driveways, slabs, and pathways.'],
                 ['name' => 'Fencing', 'slug' => 'fencing', 'category' => 'Fencing', 'description' => 'Fence installation and repairs.'],
                 ['name' => 'Mortgage Brokers', 'slug' => 'mortgage-brokers', 'category' => 'Mortgage Brokers', 'description' => 'Mortgage, finance, and deal facilitation services.'],

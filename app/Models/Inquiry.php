@@ -22,6 +22,8 @@ class Inquiry extends Model
         'message',
         'subject',
         'organization_id',
+        'plan_id',
+        'company_name',
         'staff_id',
         'lead_source',
         'seeker_name',
@@ -74,5 +76,15 @@ class Inquiry extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'plan_id');
+    }
+
+    public function checkoutInvitations()
+    {
+        return $this->hasMany(CheckoutInvitation::class);
     }
 }

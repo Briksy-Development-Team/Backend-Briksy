@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Seeker\OrganizationIndexRequest;
 use App\Http\Resources\Seeker\OrganizationResource;
 use App\Models\Organization;
 use App\Models\BuilderProject;
+use App\Models\ServiceCategory;
 use App\Models\VisitorLog;
 use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\Request;
@@ -31,10 +32,13 @@ class OrganizationSearchController extends Controller
 
         if ($request->filled('service_slug')) {
             $serviceSlug = $request->string('service_slug')->toString();
-            $serviceCategory = collect(config('service_categories', []))->firstWhere('slug', $serviceSlug);
+            $serviceCategory = ServiceCategory::query()
+                ->where('slug', $serviceSlug)
+                ->where('is_active', true)
+                ->first();
             $categoryValues = collect([
                 $serviceSlug,
-                $serviceCategory['label'] ?? null,
+                $serviceCategory?->name,
                 // Keep existing records created with the previous typo/value format visible.
                 $serviceSlug === 'landscapers' ? 'Landscappers' : null,
                 $serviceSlug === 'landscapers' ? 'Landscaping' : null,
@@ -61,6 +65,8 @@ class OrganizationSearchController extends Controller
             $query->where('is_verified', true);
         }
 
+        $this->applyNearbyOrdering($query, $request);
+
         if ($request->filled('sort')) {
             ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'priority');
         } else {
@@ -74,6 +80,23 @@ class OrganizationSearchController extends Controller
             $organizations,
             'Organizations retrieved successfully.'
         );
+    }
+
+    private function applyNearbyOrdering(\Illuminate\Database\Eloquent\Builder $query, OrganizationIndexRequest $request): void
+    {
+        if (!$request->filled('latitude') || !$request->filled('longitude')) return;
+
+        $latitude = (float) $request->input('latitude');
+        $longitude = (float) $request->input('longitude');
+        $distanceSql = '(6371 * acos(least(1, greatest(-1, cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))))';
+        $query->selectRaw("organizations.*, {$distanceSql} as distance_km", [$latitude, $longitude, $latitude]);
+
+        if ($request->filled('radius')) {
+            $query->whereNotNull('latitude')->whereNotNull('longitude')
+                ->whereRaw("{$distanceSql} <= ?", [$latitude, $longitude, $latitude, (float) $request->input('radius')]);
+        }
+
+        $query->orderBy('distance_km');
     }
 
     public function show(Organization $organization)

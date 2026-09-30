@@ -31,6 +31,8 @@ class OrganizationUpdateRequest extends FormRequest
             'address' => ['nullable', 'string'],
             'state' => ['nullable', 'string', 'max:50'],
             'postcode' => ['nullable', 'string', 'max:10'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'ranking_priority' => ['nullable', 'integer', 'min:1'],
             'avg_org_rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
             'stripe_customer_id' => ['nullable', 'string', 'max:120'],

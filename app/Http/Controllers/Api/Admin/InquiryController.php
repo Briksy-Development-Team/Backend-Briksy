@@ -15,9 +15,12 @@ class InquiryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Inquiry::query()
-            ->with(['propertyListing.organization.organizationType', 'organization.organizationType']);
+            ->with(['propertyListing.organization.organizationType', 'organization.organizationType', 'plan']);
 
         $this->scopeToAdminOrganization($query, $request);
+        if ($request->boolean('pricing_only') || str_contains($request->path(), 'pricing-inquiries')) {
+            $query->where('lead_source', 'pricing');
+        }
         $this->applySearch($query, (string) $request->query('search', ''));
         $this->applyFilters($query, $request);
 
@@ -47,7 +50,7 @@ class InquiryController extends Controller
 
     public function show(Request $request, Inquiry $inquiry): JsonResponse
     {
-        $inquiry->load(['propertyListing.organization.organizationType', 'organization.organizationType']);
+        $inquiry->load(['propertyListing.organization.organizationType', 'organization.organizationType', 'plan']);
 
         abort_unless($this->canAccessInquiry($request, $inquiry), 403);
 
@@ -55,6 +58,14 @@ class InquiryController extends Controller
             new AdminInquiryResource($inquiry),
             'Inquiry retrieved successfully.'
         );
+    }
+
+    public function updateStatus(Request $request, Inquiry $inquiry): JsonResponse
+    {
+        abort_unless($this->isSuperAdminRoute($request), 403);
+        $data = $request->validate(['status' => ['required', 'in:new,contacted,in_discussion,checkout_sent,payment_pending,paid,closed,expired']]);
+        $inquiry->update(['status' => $data['status']]);
+        return $this->success(new AdminInquiryResource($inquiry->fresh()->load('plan')), 'Inquiry status updated successfully.');
     }
 
     private function scopeToAdminOrganization(Builder $query, Request $request): void

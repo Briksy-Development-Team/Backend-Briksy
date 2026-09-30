@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Seeker;
 use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\Seeker\ServiceResource;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Support\Query\ApiQueryBuilder;
 use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\Request;
@@ -23,8 +24,11 @@ class ServiceSearchController extends Controller
         foreach (['category', 'organization_id'] as $field) {
             if ($request->filled($field)) {
                 if ($field === 'category') {
-                    $category = collect(config('service_categories', []))->firstWhere('slug', $request->input($field));
-                    $query->whereRaw('LOWER(category) = ?', [strtolower($category['label'] ?? $request->input($field))]);
+                    $category = ServiceCategory::query()
+                        ->where('slug', $request->input($field))
+                        ->where('is_active', true)
+                        ->first();
+                    $query->whereRaw('LOWER(category) = ?', [strtolower($category?->name ?? $request->input($field))]);
                 } else {
                     $query->where($field, $request->input($field));
                 }

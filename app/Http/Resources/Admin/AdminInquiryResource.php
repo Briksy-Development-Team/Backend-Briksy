@@ -28,6 +28,9 @@ class AdminInquiryResource extends JsonResource
             'property_address' => $property?->full_address ?: $property?->address,
             'organization_id' => $this->organization_id,
             'organization_name' => $organization?->name,
+            'plan_id' => $this->plan_id,
+            'plan_name' => $this->whenLoaded('plan', fn () => $this->plan?->name),
+            'company_name' => $this->company_name,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

@@ -207,7 +207,7 @@ Route::prefix('admin')->group(function (): void {
         Route::get('businesses', [AdminOrganizationController::class, 'index'])->middleware('permission:company.view');
         Route::get('businesses/current', [AdminOrganizationController::class, 'current'])->middleware('permission:settings.view|company.view');
         Route::get('businesses/{organization}', [AdminOrganizationController::class, 'show'])->middleware('permission:company.view');
-        Route::put('businesses/{organization}', [AdminOrganizationController::class, 'update'])->middleware('permission:company.update');
+        Route::put('businesses/{organization}', [AdminOrganizationController::class, 'update'])->middleware('permission:settings.update|company.update');
         Route::post('businesses/{organization}/media', [AdminOrganizationController::class, 'uploadMedia'])->middleware('permission:settings.update|company.update');
 
         Route::get('properties', [AdminPropertyController::class, 'index'])->middleware(['module:property_management|builder_management', 'permission:property.view']);
@@ -241,6 +241,9 @@ Route::prefix('admin')->group(function (): void {
 
         Route::get('buyer-briefs', [BuyerBriefController::class, 'index'])->middleware('module:buyer_management');
         Route::post('buyer-briefs', [BuyerBriefController::class, 'store'])->middleware('module:buyer_management');
+        Route::get('buyer-briefs/{id}', [BuyerBriefController::class, 'show'])->middleware('module:buyer_management');
+        Route::put('buyer-briefs/{id}', [BuyerBriefController::class, 'update'])->middleware('module:buyer_management');
+        Route::delete('buyer-briefs/{id}', [BuyerBriefController::class, 'destroy'])->middleware('module:buyer_management');
         Route::get('builder-projects', [BuilderProjectController::class, 'index'])->middleware(['module:builder_management', 'permission:project.view']);
         Route::post('builder-projects', [BuilderProjectController::class, 'store'])->middleware(['module:builder_management', 'permission:project.create']);
         Route::get('builder-projects/{builderProject}', [BuilderProjectController::class, 'show'])->middleware(['module:builder_management', 'permission:project.view']);

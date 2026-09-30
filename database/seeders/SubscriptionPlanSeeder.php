@@ -287,58 +287,7 @@ class SubscriptionPlanSeeder extends Seeder
                     $this->feature('AI Lead Recommendations', true),
                 ],
             ],
-            [
-                'plan_family' => 'buyers_agent',
-                'name' => 'Buyer Assist',
-                'description' => 'For buyers agents who manage a small number of client briefs and want a clean, simple workflow.',
-                'monthly_price' => 89.00,
-                'yearly_price' => 890.00,
-                'trial_days' => 10,
-                'price' => 8900,
-                'property_limit' => 20,
-                'popular' => false,
-                'staff_seat_limit' => 2,
-                'has_visitor_analytics' => false,
-                'ranking_priority' => 1,
-                'features' => [
-                    $this->feature('Buyer Briefs', true, 20),
-                    $this->feature('Saved Searches', true),
-                    $this->feature('Property Shortlists', true),
-                    $this->feature('Lead Inbox', true),
-                    $this->feature('Client Updates', true),
-                    $this->feature('Private Notes', true),
-                    $this->feature('Team Members', true, 2),
-                    $this->feature('CRM Sync', false),
-                    $this->feature('Analytics Dashboard', false),
-                    $this->feature('Priority Support', false),
-                ],
-            ],
-            [
-                'plan_family' => 'buyers_agent',
-                'name' => 'Buyer Network',
-                'description' => 'For established buyers agents that need more briefs, stronger collaboration, and reporting.',
-                'monthly_price' => 149.00,
-                'yearly_price' => 1490.00,
-                'trial_days' => 14,
-                'price' => 14900,
-                'property_limit' => 60,
-                'popular' => true,
-                'staff_seat_limit' => 5,
-                'has_visitor_analytics' => true,
-                'ranking_priority' => 2,
-                'features' => [
-                    $this->feature('Buyer Briefs', true, 60),
-                    $this->feature('Saved Searches', true),
-                    $this->feature('Property Shortlists', true),
-                    $this->feature('Lead Inbox', true),
-                    $this->feature('Client Updates', true),
-                    $this->feature('Private Notes', true),
-                    $this->feature('Team Members', true, 5),
-                    $this->feature('CRM Sync', true),
-                    $this->feature('Analytics Dashboard', true),
-                    $this->feature('Priority Support', true),
-                ],
-            ],
+            ...$this->buyerAgentPlans(),
             [
                 'plan_family' => 'builders',
                 'name' => 'Builder Growth',
@@ -394,13 +343,62 @@ class SubscriptionPlanSeeder extends Seeder
         ];
     }
 
+    private function buyerAgentPlans(): array
+    {
+        $plans = [
+            ['Starter', 149.00, 1490.00, 1, 5, 1, 5, 0, 0, false, false],
+            ['Professional', 249.00, 2490.00, 2, 10, 2, 10, 1, 2, true, false],
+            ['Elite', 399.00, 3990.00, 3, 25, 3, 15, 1, 5, true, true],
+            ['Enterprise', 699.00, 6990.00, 4, 50, 5, 20, 1, 10, true, true],
+        ];
+
+        return array_map(function (array $plan, int $index): array {
+            [$name, $monthly, $yearly, $rank, $suburbs, $staff, $purchases, $introVideo, $reels, $mobile, $featured] = $plan;
+
+            return [
+                'plan_family' => 'buyers_agent',
+                'name' => $name,
+                'description' => "Buyers Agent {$name} profile plan with agency media, coverage, lead history, and performance analytics.",
+                'monthly_price' => $monthly,
+                'yearly_price' => $yearly,
+                'trial_days' => 14,
+                'price' => (int) ($monthly * 100),
+                'property_limit' => 0,
+                'popular' => $name === 'Professional',
+                'staff_seat_limit' => $staff,
+                'has_visitor_analytics' => $index >= 2,
+                'ranking_priority' => $rank,
+                'features' => [
+                    $this->feature('Business Profile', true),
+                    $this->feature('Professional Agency Profile', true),
+                    $this->feature('Verified Badge', true),
+                    $this->feature('Service Areas', true, $suburbs),
+                    $this->feature('Map and List Views', true),
+                    $this->feature('Portfolio Photos', true, $purchases),
+                    $this->feature('Portfolio Videos', $introVideo > 0, $introVideo),
+                    $this->feature('Reels', $reels > 0, $reels),
+                    $this->feature('Team Members', true, $staff),
+                    $this->feature('Lead History', true),
+                    $this->feature('Performance Analytics', true),
+                    $this->feature('Get in Touch Enquiry Form', true),
+                    $this->feature('Email Notifications', true),
+                    $this->feature('Mobile App Notifications', $mobile),
+                    $this->feature('Export Leads', true),
+                    $this->feature('Promo Offers', $name !== 'Starter', $name === 'Starter' ? 0 : 1),
+                    $this->feature('Featured Search Placement', $featured),
+                    $this->feature('Homepage Featured Buyers Agent', $name === 'Elite' || $name === 'Enterprise'),
+                ],
+            ];
+        }, $plans, array_keys($plans));
+    }
+
     private function seedOrganizationPlans(array $planModels): void
     {
         // plan_family is the pricing bucket; it is intentionally separate from business_type
         // and organization type so the demo can show mixed business categories on different tiers.
         $planCycles = [
             'real-estate' => ['property_owner', ['Gold', 'Silver', 'Bronze', 'Platinum']],
-            'buyers-agent' => ['buyers_agent', ['Buyer Network', 'Buyer Assist']],
+            'buyers-agent' => ['buyers_agent', ['Enterprise', 'Elite', 'Professional', 'Starter']],
             'builders' => ['builders', ['Builder Enterprise', 'Builder Growth']],
             'trades-professionals' => ['trades_professional', ['Enterprise', 'Growth', 'Elite', 'Starter']],
         ];

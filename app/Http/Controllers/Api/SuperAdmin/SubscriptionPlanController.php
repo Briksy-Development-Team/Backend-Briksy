@@ -53,6 +53,9 @@ class SubscriptionPlanController extends Controller
             'yearly_price' => $validated['yearly_price'] ?? null,
             'currency' => $validated['currency'] ?? 'AUD',
             'billing_enabled' => $validated['billing_enabled'] ?? true,
+            'show_price' => array_key_exists('show_price', $validated)
+                ? (bool) $validated['show_price']
+                : true,
             'trial_days' => $validated['trial_days'] ?? null,
             'property_limit' => $validated['propertyLimit'],
             'popular' => $validated['popular'],
@@ -120,6 +123,9 @@ class SubscriptionPlanController extends Controller
             'yearly_price' => $validated['yearly_price'] ?? $subscriptionPlan->yearly_price,
             'currency' => $validated['currency'] ?? $subscriptionPlan->currency ?? 'AUD',
             'billing_enabled' => $validated['billing_enabled'] ?? $subscriptionPlan->billing_enabled ?? true,
+            'show_price' => array_key_exists('show_price', $validated)
+                ? (bool) $validated['show_price']
+                : (bool) ($subscriptionPlan->show_price ?? true),
             'trial_days' => $validated['trial_days'] ?? $subscriptionPlan->trial_days,
             'property_limit' => $validated['property_limit'] ?? $subscriptionPlan->property_limit,
             'staff_seat_limit' => $validated['staff_seat_limit'] ?? $subscriptionPlan->staff_seat_limit,

@@ -17,6 +17,7 @@ final class PlanCapabilityResolver
     private const FEATURE_ALIASES = [
         'verified_badge' => ['Verified Badge'],
         'business_profile' => ['Business Profile'],
+        'buyer_profile' => ['Business Profile', 'Professional Agency Profile'],
         'service_management' => ['Business Profile', 'Service Management'],
         'service_enquiry' => ['Lead History', 'Service Enquiry', 'Buyer Enquiry Forms'],
         'service_areas' => ['Service Areas'],
@@ -27,6 +28,7 @@ final class PlanCapabilityResolver
         'maximum_images' => ['Portfolio Photos', 'Service Images', 'Property Images', 'Project Images', 'Images Limit'],
         'maximum_videos' => ['Portfolio Videos', 'Service Videos', 'Property Videos', 'Project Videos', 'Videos Limit'],
         'video_upload' => ['Portfolio Videos', 'Video Upload', 'Project Videos', 'Videos Limit'],
+        'reels' => ['Reels'],
         'projects' => ['Projects'],
         'project_listings' => ['Project Listings'],
         'buyer_briefs' => ['Buyer Briefs'],
@@ -152,6 +154,14 @@ final class PlanCapabilityResolver
             ];
         }
 
+        // Every Buyers Agent tier includes the agency profile and its logo/banner
+        // media, including legacy buyer-agent plans created before this feature
+        // was named consistently.
+        if ($this->category($user) === 'buyers-agent') {
+            $features['business_profile']['enabled'] = $active;
+            $features['buyer_profile']['enabled'] = $active;
+        }
+
         $features['service_management']['enabled'] = $active && ($this->capabilities($user)['business_profile'] ?? false);
         $features['service_enquiry']['enabled'] = $active && ($this->capabilities($user)['service_enquiry'] ?? false);
 
@@ -188,6 +198,7 @@ final class PlanCapabilityResolver
                 'active_services' => $features['active_services']['value'],
                 'images' => $features['maximum_images']['value'],
                 'videos' => $features['maximum_videos']['value'],
+                'reels' => $features['reels']['value'],
                 'service_areas' => $features['service_areas']['value'],
                 'service_categories' => $features['service_categories']['value'],
                 'projects' => $features['projects']['value'],
@@ -228,6 +239,9 @@ final class PlanCapabilityResolver
                 'analytics' => isset($features['Analytics Dashboard']),
             ],
             'buyers-agent' => [
+                'business_profile' => isset($features['Business Profile']) || isset($features['Professional Agency Profile']),
+                'buyer_profile' => isset($features['Business Profile']) || isset($features['Professional Agency Profile']),
+                'service_areas' => isset($features['Service Areas']) || isset($features['Suburb Coverage']),
                 'buyer_briefs' => isset($features['Buyer Briefs']),
                 'saved_searches' => isset($features['Saved Searches']),
                 'property_shortlists' => isset($features['Property Shortlists']),

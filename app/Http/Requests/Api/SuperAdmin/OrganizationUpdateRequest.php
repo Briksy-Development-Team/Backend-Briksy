@@ -40,6 +40,15 @@ class OrganizationUpdateRequest extends FormRequest
             'brand_primary_color' => ['nullable', 'string', 'max:20'],
             'brand_secondary_color' => ['nullable', 'string', 'max:20'],
             'licensed_staff_seats' => ['nullable', 'integer', 'min:0'],
+            'description' => ['nullable', 'string', 'max:1500'],
+            'website' => ['nullable', 'url', 'max:500'],
+            'social_links' => ['nullable', 'array'],
+            'social_links.*' => ['nullable', 'url', 'max:500'],
+            'service_areas' => ['nullable', 'array', 'max:50'],
+            'service_areas.*' => ['string', 'max:100'],
+            'intro_video_url' => ['nullable', 'url', 'max:1000'],
+            'reel_urls' => ['nullable', 'array', 'max:10'],
+            'reel_urls.*' => ['url', 'max:1000'],
         ];
     }
 }

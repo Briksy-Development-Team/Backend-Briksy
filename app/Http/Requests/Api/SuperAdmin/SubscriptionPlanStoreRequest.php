@@ -31,6 +31,7 @@ class SubscriptionPlanStoreRequest extends FormRequest
             'yearly_price' => ['nullable', 'numeric', 'min:0'],
             'currency' => ['nullable', 'string', 'size:3'],
             'billing_enabled' => ['sometimes', 'boolean'],
+            'show_price' => ['sometimes', 'boolean'],
             'trial_days' => ['nullable', 'integer', 'min:0'],
             'propertyLimit' => ['required', 'integer', 'min:0'],
             'staff_seat_limit' => ['sometimes', 'integer', 'min:0'],

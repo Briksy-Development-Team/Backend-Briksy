@@ -43,7 +43,7 @@ class BusinessModuleResolver
             }
         }
 
-        if ($category === 'buyers-agent' && ($capabilities['buyer_briefs'] ?? false)) {
+        if ($category === 'buyers-agent' && (($capabilities['buyer_profile'] ?? false) || ($capabilities['business_profile'] ?? false) || ($capabilities['buyer_briefs'] ?? false))) {
             $modules[] = BusinessModules::BUYER_MANAGEMENT;
             if ($capabilities['buyer_enquiries'] ?? false) {
                 $modules[] = BusinessModules::INQUIRY_MANAGEMENT;

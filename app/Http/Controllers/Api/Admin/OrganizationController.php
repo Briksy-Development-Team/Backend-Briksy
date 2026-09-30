@@ -132,6 +132,36 @@ class OrganizationController extends Controller
 
         $validated = $request->validated();
 
+        $organization->loadMissing('organizationType');
+        if ($organization->organizationType?->slug === 'buyers-agent') {
+            $entitlements = $this->planCapabilities->resolved($request->user());
+            $areas = $validated['service_areas'] ?? null;
+            $reels = $validated['reel_urls'] ?? null;
+            $areaLimit = $entitlements['limits']['service_areas'] ?? null;
+            $reelLimit = $entitlements['limits']['reels'] ?? 0;
+
+            if (is_array($areas) && $areaLimit !== null && count($areas) > (int) $areaLimit) {
+                throw new HttpResponseException(response()->json([
+                    'success' => false,
+                    'message' => sprintf('Your plan allows up to %d service areas.', $areaLimit),
+                ], 422));
+            }
+
+            if (is_array($reels) && count($reels) > (int) $reelLimit) {
+                throw new HttpResponseException(response()->json([
+                    'success' => false,
+                    'message' => sprintf('Your plan allows up to %d reels.', $reelLimit),
+                ], 422));
+            }
+
+            if (!empty($validated['intro_video_url']) && (int) ($entitlements['limits']['videos'] ?? 0) < 1) {
+                throw new HttpResponseException(response()->json([
+                    'success' => false,
+                    'message' => 'Intro video media is not included in your current plan.',
+                ], 422));
+            }
+        }
+
         if (array_key_exists('abn', $validated)) {
             $validated['abn'] = preg_replace('/\s+/', '', (string) $validated['abn']);
         }

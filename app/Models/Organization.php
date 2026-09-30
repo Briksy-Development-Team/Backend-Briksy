@@ -56,6 +56,12 @@ class Organization extends Model
         'trial_ends_at',
         'subscription_status',
         'subscription_activated_at',
+        'description',
+        'website',
+        'social_links',
+        'service_areas',
+        'intro_video_url',
+        'reel_urls',
     ];
 
     protected function casts(): array
@@ -69,6 +75,9 @@ class Organization extends Model
             'trial_started_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'subscription_activated_at' => 'datetime',
+            'social_links' => 'array',
+            'service_areas' => 'array',
+            'reel_urls' => 'array',
         ];
     }
 

@@ -36,7 +36,7 @@ class DashboardController extends Controller
         $category = $organization->organizationType?->slug;
         $propertyWorkflow = $category === 'real-estate';
         $serviceWorkflow = $category === 'trades-professionals';
-        $buyerWorkflow = $category === 'buyers-agent';
+        $buyerWorkflow = in_array($category, ['buyers-agent', 'real-estate-agent'], true);
         $builderWorkflow = $category === 'builders';
         $currentSubscription = $organization->currentSubscription?->loadMissing(['plan', 'addons.addon']);
 
@@ -263,6 +263,7 @@ class DashboardController extends Controller
         return match ($category) {
             'real-estate' => ['title' => 'Real Estate Dashboard', 'primary_metric' => 'Published Properties', 'primary_metric_key' => 'published_properties', 'recent_title' => 'Recent Properties'],
             'buyers-agent' => ['title' => 'Buyers Agent Dashboard', 'primary_metric' => 'Buyer Briefs', 'primary_metric_key' => 'buyer_briefs', 'recent_title' => 'Recent Buyer Activity'],
+            'real-estate-agent' => ['title' => 'Real Estate Agent Dashboard', 'primary_metric' => 'Agent Briefs', 'primary_metric_key' => 'buyer_briefs', 'recent_title' => 'Recent Agent Activity'],
             'builders' => ['title' => 'Builders Dashboard', 'primary_metric' => 'Builder Projects', 'primary_metric_key' => 'builder_projects', 'recent_title' => 'Recent Builder Activity'],
             'trades-professionals' => ['title' => 'Trades & Professionals Dashboard', 'primary_metric' => 'Service Regions', 'primary_metric_key' => 'service_regions', 'recent_title' => 'Recent Service Activity'],
             default => ['title' => 'Business Dashboard', 'primary_metric' => 'New Enquiries', 'primary_metric_key' => 'new_inquiries', 'recent_title' => 'Recent Activity'],

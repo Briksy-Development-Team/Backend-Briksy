@@ -17,8 +17,15 @@ class OrganizationTypeController extends Controller
     {
         $query = OrganizationType::query();
 
+        if ($request->filled('filter.module')) {
+            $query->where('module', $request->string('filter.module')->toString());
+        }
+        if ($request->has('filter.is_active')) {
+            $query->where('is_active', $request->boolean('filter.is_active'));
+        }
+
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order');
 
         $organizationTypes = $query->paginate($request->perPage())->withQueryString();
 

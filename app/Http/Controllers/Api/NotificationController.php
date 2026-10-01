@@ -114,7 +114,7 @@ class NotificationController extends Controller
                 $builder->whereNull('data->required_permission')
                     ->orWhere('data->required_permission', 'not like', 'property.%');
             });
-        } elseif (in_array($category, ['real-estate', 'buyers-agent', 'builders'], true)) {
+        } elseif ($this->moduleResolver->isAgent($user) || $category === 'builders') {
             $query->where(function (Builder $builder): void {
                 $builder->whereNull('data->required_permission')
                     ->orWhere('data->required_permission', 'not like', 'service.%');

@@ -45,11 +45,16 @@ final class PlanCapabilityResolver
         };
     }
 
+    public function isAgent(User $user): bool
+    {
+        return (bool) $user->organization?->organizationType?->isAgentType();
+    }
+
     public function planFamily(User $user): ?string
     {
         return match ($this->category($user)) {
             'real-estate' => 'property_owner',
-            'buyers-agent' => 'buyers_agent',
+            'buyers-agent', 'real-estate-agent' => 'buyers_agent',
             'builders' => 'builders',
             'trades-professionals' => 'trades_professional',
             default => null,
@@ -158,7 +163,7 @@ final class PlanCapabilityResolver
         // Every Buyers Agent tier includes the agency profile and its logo/banner
         // media, including legacy buyer-agent plans created before this feature
         // was named consistently.
-        if ($this->category($user) === 'buyers-agent') {
+        if (in_array($this->category($user), ['buyers-agent', 'real-estate-agent'], true)) {
             $features['business_profile']['enabled'] = $active;
             $features['buyer_profile']['enabled'] = $active;
         }
@@ -239,7 +244,7 @@ final class PlanCapabilityResolver
                 'property_enquiries' => $legacyTrial || isset($features['Buyer Enquiry Forms']),
                 'analytics' => isset($features['Analytics Dashboard']),
             ],
-            'buyers-agent' => [
+            'buyers-agent', 'real-estate-agent' => [
                 'business_profile' => isset($features['Business Profile']) || isset($features['Professional Agency Profile']),
                 'buyer_profile' => isset($features['Business Profile']) || isset($features['Professional Agency Profile']),
                 'service_areas' => isset($features['Service Areas']) || isset($features['Suburb Coverage']),

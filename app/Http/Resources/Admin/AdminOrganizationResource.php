@@ -67,6 +67,15 @@ class AdminOrganizationResource extends JsonResource
             'staff_count' => (int) ($this->staff_count ?? 0),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
+            'type' => $this->whenLoaded('organizationType', fn (): ?array => $this->organizationType ? [
+                'id' => $this->organizationType->id,
+                'name' => $this->organizationType->name,
+                'label' => $this->organizationType->label,
+                'slug' => $this->organizationType->slug,
+                'module' => $this->organizationType->module,
+                'capability_profile' => $this->organizationType->capability_profile,
+                'is_active' => (bool) ($this->organizationType->is_active ?? true),
+            ] : null),
         ];
     }
 }

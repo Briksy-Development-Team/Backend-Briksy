@@ -90,7 +90,7 @@ class BillingController extends Controller
         $addons = Addon::query()
             ->where('is_active', true)
             ->when($category === 'trades-professionals', fn ($query) => $query->where('feature_key', '!=', 'property_management'))
-            ->when(in_array($category, ['real-estate', 'buyers-agent', 'builders'], true), fn ($query) => $query->where('feature_key', '!=', 'service_management'))
+            ->when($this->planCapabilities->isAgent($request->user()) || $category === 'builders', fn ($query) => $query->where('feature_key', '!=', 'service_management'))
             ->orderBy('sort_order')
             ->get();
 

@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\Seeker\SeekerProfileController;
 use App\Http\Controllers\Api\Seeker\SeekerSavedSearchController;
 use App\Http\Controllers\Api\SuperAdmin\OrganizationController;
 use App\Http\Controllers\Api\SuperAdmin\OrganizationTypeController;
+use App\Http\Controllers\Api\AgentTypeController;
 use App\Http\Controllers\Api\SuperAdmin\DashboardController;
 use App\Http\Controllers\Api\SuperAdmin\PlanRequestController;
 use App\Http\Controllers\Api\SuperAdmin\CouponController;
@@ -86,6 +87,7 @@ Route::prefix('auth')->group(function (): void {
 Route::get('settings/public', [SettingController::class, 'publicSettings']);
 Route::get('plans/public', [SeekerSubscriptionPlanController::class, 'index']);
 Route::get('service-categories', [ServiceCategoryController::class, 'index']);
+Route::get('agent-types', [AgentTypeController::class, 'index']);
 Route::get('checkout/{token}', [CheckoutInvitationController::class, 'show']);
 Route::post('checkout/{token}/payment', [CheckoutInvitationController::class, 'payment']);
 Route::post('pricing-inquiries', [CheckoutInvitationController::class, 'inquiry']);

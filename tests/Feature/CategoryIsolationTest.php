@@ -23,6 +23,10 @@ class CategoryIsolationTest extends TestCase
         $builder = User::where('email', 'builder@demo.briksy.com')->firstOrFail();
         $trades = User::where('email', 'trades@demo.briksy.com')->firstOrFail();
 
+        $this->assertSame('real-estate', $realEstate->organization->organizationType->slug);
+        $this->assertSame('Real Estate', $realEstate->organization->organizationType->module);
+        $this->assertSame('real-estate-agency', $realEstate->organization->organizationType->capability_profile);
+
         $this->assertContains('property_management', $resolver->resolve($realEstate));
         $this->assertNotContains('service_management', $resolver->resolve($realEstate));
         $this->assertNotContains('property_management', $resolver->resolve($buyersAgent));

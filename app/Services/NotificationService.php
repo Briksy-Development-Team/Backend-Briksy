@@ -207,7 +207,7 @@ class NotificationService
         if ($category === 'trades-professionals' && is_string($requiredPermission) && str_starts_with($requiredPermission, 'property.')) {
             return false;
         }
-        if (in_array($category, ['real-estate', 'buyers-agent', 'builders'], true) && is_string($requiredPermission) && str_starts_with($requiredPermission, 'service.')) {
+        if (($this->planCapabilities->isAgent($user) || $category === 'builders') && is_string($requiredPermission) && str_starts_with($requiredPermission, 'service.')) {
             return false;
         }
 

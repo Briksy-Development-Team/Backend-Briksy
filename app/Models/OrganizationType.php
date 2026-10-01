@@ -18,7 +18,35 @@ class OrganizationType extends Model
     protected $fillable = [
         'name',
         'slug',
+        'module',
+        'display_name',
+        'capability_profile',
+        'is_active',
+        'sort_order',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'sort_order' => 'integer',
+        ];
+    }
+
+    public function getLabelAttribute(): string
+    {
+        return $this->display_name ?: $this->name;
+    }
+
+    public function isAgentType(): bool
+    {
+        return $this->module === 'Agents';
+    }
+
+    public function hasCapability(string $profile): bool
+    {
+        return $this->capability_profile === $profile;
+    }
 
     public function organizations(): HasMany
     {

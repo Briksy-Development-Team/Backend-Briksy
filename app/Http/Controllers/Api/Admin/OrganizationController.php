@@ -133,7 +133,7 @@ class OrganizationController extends Controller
         $validated = $request->validated();
 
         $organization->loadMissing('organizationType');
-        if ($organization->organizationType?->slug === 'buyers-agent') {
+        if ($organization->organizationType?->isAgentType()) {
             $entitlements = $this->planCapabilities->resolved($request->user());
             $areas = $validated['service_areas'] ?? null;
             $reels = $validated['reel_urls'] ?? null;

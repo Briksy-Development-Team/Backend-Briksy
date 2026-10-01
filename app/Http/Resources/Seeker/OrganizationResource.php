@@ -75,6 +75,10 @@ class OrganizationResource extends JsonResource
                 'id' => $this->organizationType->id,
                 'name' => $this->organizationType->name,
                 'slug' => $this->organizationType->slug,
+                'module' => $this->organizationType->module,
+                'label' => $this->organizationType->label,
+                'capability_profile' => $this->organizationType->capability_profile,
+                'is_active' => (bool) ($this->organizationType->is_active ?? true),
             ] : null),
             'services' => $this->when(
                 $this->relationLoaded('services') || $this->relationLoaded('ownedServices'),

@@ -19,6 +19,11 @@ class OrganizationTypeUpdateRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:100'],
             'slug' => ['sometimes', 'string', 'max:100', Rule::unique('organization_types', 'slug')->ignore($organizationType?->id)],
+            'module' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'display_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'capability_profile' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'is_active' => ['sometimes', 'boolean'],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
     }
 }

@@ -43,7 +43,8 @@ class BusinessModuleResolver
             }
         }
 
-        if ($category === 'buyers-agent' && (($capabilities['buyer_profile'] ?? false) || ($capabilities['business_profile'] ?? false) || ($capabilities['buyer_briefs'] ?? false))) {
+        if (in_array($category, ['buyers-agent', 'real-estate-agent'], true)
+            && (($capabilities['buyer_profile'] ?? false) || ($capabilities['business_profile'] ?? false) || ($capabilities['buyer_briefs'] ?? false))) {
             $modules[] = BusinessModules::BUYER_MANAGEMENT;
             if ($capabilities['buyer_enquiries'] ?? false) {
                 $modules[] = BusinessModules::INQUIRY_MANAGEMENT;
@@ -68,6 +69,11 @@ class BusinessModuleResolver
     public function category(User $user): ?string
     {
         return $this->capabilities->category($user);
+    }
+
+    public function isAgent(User $user): bool
+    {
+        return $this->capabilities->isAgent($user);
     }
 
     public function capabilities(User $user): array

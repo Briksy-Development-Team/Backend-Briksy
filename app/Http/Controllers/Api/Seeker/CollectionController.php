@@ -13,15 +13,17 @@ use App\Models\Collection;
 use App\Models\Organization;
 use App\Models\PropertyListing;
 use App\Models\Service;
+use App\Services\CollectionAssignmentService;
 use App\Http\Requests\Api\Seeker\CollectionItemRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 
 class CollectionController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(CollectionAssignmentService $collectionAssignmentService): JsonResponse
     {
         $userId = request()->user()->id;
+        $collectionAssignmentService->ensureDefault(request()->user());
         $propertyId = request()->query('property_id');
         $targetType = request()->query('target_type');
         $targetId = request()->query('target_id');
@@ -56,6 +58,7 @@ class CollectionController extends Controller
     public function update(UpdateCollectionRequest $request, Collection $collection): JsonResponse
     {
         $this->owned($collection);
+        abort_if($collection->is_default && $request->validated('name') !== 'Liked', 422, 'The default Liked collection cannot be renamed.');
         $collection->update(['name' => $request->validated('name')]);
 
         return $this->success(new CollectionResource($collection->loadCount('properties')), 'Collection renamed successfully.');
@@ -64,6 +67,7 @@ class CollectionController extends Controller
     public function destroy(Collection $collection): JsonResponse
     {
         $this->owned($collection);
+        abort_if($collection->is_default, 422, 'The default Liked collection cannot be deleted.');
         $collection->delete();
 
         return $this->success(null, 'Collection deleted successfully.');

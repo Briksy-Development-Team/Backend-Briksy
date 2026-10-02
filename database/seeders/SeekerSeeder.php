@@ -26,8 +26,8 @@ class SeekerSeeder extends Seeder
             ->orderBy('name')
             ->get()
             ->values()
-            ->each(function (Organization $organization, int $index) use ($role): void {
-                foreach ($this->organizationSeekers($organization, $index) as $data) {
+            ->each(function (Organization $organization) use ($role): void {
+                foreach ($this->organizationSeekers($organization) as $data) {
                     $data['organization_id'] = $organization->id;
                     $this->upsertSeeker($role, $data);
                 }
@@ -116,7 +116,7 @@ class SeekerSeeder extends Seeder
         ];
     }
 
-    private function organizationSeekers(Organization $organization, int $organizationIndex): array
+    private function organizationSeekers(Organization $organization): array
     {
         $slug = $organization->slug;
 
@@ -125,7 +125,7 @@ class SeekerSeeder extends Seeder
                 'name' => ucfirst(str_replace('-', ' ', $slug)) . ' Client One',
                 'display_name' => ucfirst(str_replace('-', ' ', $slug)) . ' Client One',
                 'email' => 'seeker1+' . $slug . '@example.com',
-                'mobile_number' => $this->mobileNumberFor($organizationIndex, 1),
+                'mobile_number' => $this->mobileNumberFor($slug, 1),
                 'postcode' => (string) $this->postcodeFromSlug($slug, 2000),
                 'preferred_budget_min' => $this->budgetFromSlug($slug, 350000),
                 'preferred_budget_max' => $this->budgetFromSlug($slug, 700000),
@@ -135,7 +135,7 @@ class SeekerSeeder extends Seeder
                 'name' => ucfirst(str_replace('-', ' ', $slug)) . ' Client Two',
                 'display_name' => ucfirst(str_replace('-', ' ', $slug)) . ' Client Two',
                 'email' => 'seeker2+' . $slug . '@example.com',
-                'mobile_number' => $this->mobileNumberFor($organizationIndex, 2),
+                'mobile_number' => $this->mobileNumberFor($slug, 2),
                 'postcode' => (string) $this->postcodeFromSlug($slug, 2500),
                 'preferred_budget_min' => $this->budgetFromSlug($slug, 450000),
                 'preferred_budget_max' => $this->budgetFromSlug($slug, 900000),
@@ -144,10 +144,14 @@ class SeekerSeeder extends Seeder
         ];
     }
 
-    private function mobileNumberFor(int $organizationIndex, int $clientIndex): string
+    private function mobileNumberFor(string $organizationSlug, int $clientIndex): string
     {
-        $middle = str_pad((string) (200 + ($organizationIndex * 2) + $clientIndex), 3, '0', STR_PAD_LEFT);
-        $tail = str_pad((string) (10 + $organizationIndex + $clientIndex), 2, '0', STR_PAD_LEFT);
+        // Derive fixture numbers from the organization identity rather than
+        // the current organization ordering, so adding/reordering organizations
+        // cannot move an existing number onto another seeded user.
+        $seed = sprintf('%u', crc32($organizationSlug . ':' . $clientIndex));
+        $middle = str_pad((string) (200 + ((int) $seed % 700)), 3, '0', STR_PAD_LEFT);
+        $tail = str_pad((string) (10 + ((int) ($seed / 700) % 90)), 2, '0', STR_PAD_LEFT);
 
         return "+61 400 {$middle} {$tail}";
     }

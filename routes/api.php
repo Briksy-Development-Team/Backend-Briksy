@@ -90,6 +90,7 @@ Route::get('service-categories', [ServiceCategoryController::class, 'index']);
 Route::get('agent-types', [AgentTypeController::class, 'index']);
 Route::get('checkout/{token}', [CheckoutInvitationController::class, 'show']);
 Route::post('checkout/{token}/payment', [CheckoutInvitationController::class, 'payment']);
+Route::post('checkout', [CheckoutInvitationController::class, 'direct']);
 Route::post('pricing-inquiries', [CheckoutInvitationController::class, 'inquiry']);
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle']);
 Route::get('media/{media}', [MediaController::class, 'show'])->name('media.show');

@@ -190,6 +190,26 @@ class OrganizationSeeder extends Seeder
                 ['verified', 'verified', 'pending', 'verified', 'verified', 'pending', 'verified', 'verified', 'pending', 'verified']
             ),
             $this->buildCategoryOrganizations(
+                'real-estate-agent',
+                'organisation',
+                55,
+                ['Starter', 'Professional', 'Elite', 'Enterprise'],
+                [
+                    'Luxe Property Advisors',
+                    'Urban Nest Realty',
+                    'Horizon Estate Agents',
+                    'Oakline Property Partners',
+                    'Summit Residential Group',
+                    'Brightstone Realty',
+                ],
+                ['Sydney', 'Melbourne', 'Brisbane', 'Adelaide', 'Perth', 'Canberra'],
+                ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'ACT'],
+                ['2000', '3000', '4000', '5000', '6000', '2600'],
+                ['#3D405B', '#264653', '#2A9D8F', '#457B9D', '#5E548E', '#355070'],
+                ['#F2CC8F', '#E9C46A', '#F4A261', '#A8DADC', '#B8B8FF', '#BDE0FE'],
+                ['verified', 'verified', 'pending', 'verified', 'verified', 'verified']
+            ),
+            $this->buildCategoryOrganizations(
                 'builders',
                 'company',
                 33,

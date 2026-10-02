@@ -19,6 +19,7 @@ class OrganizationTypeStoreRequest extends FormRequest
             'module' => ['nullable', 'string', 'max:100'],
             'display_name' => ['nullable', 'string', 'max:100'],
             'capability_profile' => ['nullable', 'string', 'max:100'],
+            'plan_family' => ['nullable', 'string', 'in:property_owner,trades_professional,buyers_agent,builders'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];

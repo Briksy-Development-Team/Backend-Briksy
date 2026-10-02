@@ -187,6 +187,20 @@ class OrganizationController extends Controller
     {
         $validated = $request->validated();
 
+        if (array_key_exists('type_id', $validated) || array_key_exists('plan_id', $validated)) {
+            $organization->loadMissing(['organizationType', 'plan']);
+            $type = array_key_exists('type_id', $validated)
+                ? \App\Models\OrganizationType::query()->find($validated['type_id'])
+                : $organization->organizationType;
+            $plan = array_key_exists('plan_id', $validated)
+                ? (isset($validated['plan_id']) ? \App\Models\SubscriptionPlan::query()->find($validated['plan_id']) : null)
+                : $organization->plan;
+
+            if ($type?->plan_family && $plan && $type->plan_family !== $plan->plan_family) {
+                return response()->json(['success' => false, 'message' => 'The selected plan is not available for this organization type.'], 422);
+            }
+        }
+
         if (array_key_exists('abn', $validated)) {
             $validated['abn'] = preg_replace('/\s+/', '', (string) $validated['abn']);
         }
@@ -228,6 +242,15 @@ class OrganizationController extends Controller
         $validated = $request->validate([
             'plan_id' => ['nullable', 'uuid', 'exists:subscription_plans,id'],
         ]);
+
+        if ($validated['plan_id'] ?? null) {
+            $organization->loadMissing('organizationType');
+            $planFamily = $organization->organizationType?->plan_family;
+            $plan = \App\Models\SubscriptionPlan::query()->findOrFail($validated['plan_id']);
+            if ($planFamily && $plan->plan_family !== $planFamily) {
+                return response()->json(['success' => false, 'message' => 'The selected plan is not available for this organization type.'], 422);
+            }
+        }
 
         $organization->update([
             'plan_id' => $validated['plan_id'] ?? null,

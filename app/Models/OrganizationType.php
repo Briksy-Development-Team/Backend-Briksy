@@ -21,6 +21,7 @@ class OrganizationType extends Model
         'module',
         'display_name',
         'capability_profile',
+        'plan_family',
         'is_active',
         'sort_order',
     ];

@@ -39,6 +39,7 @@ class SubscriptionPlanResource extends JsonResource
             'addons' => $this->whenLoaded('addons', fn (): array => $this->addons->map(fn ($addon): array => [
                 'id' => $addon->id,
                 'name' => $addon->name,
+                'description' => $addon->description,
                 'slug' => $addon->slug,
                 'feature_key' => $addon->feature_key,
                 'pricing_type' => $addon->pricing_type,

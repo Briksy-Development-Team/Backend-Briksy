@@ -17,6 +17,7 @@ class OrganizationTypeResource extends JsonResource
             'module' => $this->module,
             'display_name' => $this->display_name,
             'capability_profile' => $this->capability_profile,
+            'plan_family' => $this->plan_family,
             'is_active' => (bool) ($this->is_active ?? true),
             'sort_order' => (int) ($this->sort_order ?? 0),
             'created_at' => $this->created_at?->toISOString(),

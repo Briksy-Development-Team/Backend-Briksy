@@ -399,6 +399,7 @@ class SubscriptionPlanSeeder extends Seeder
         $planCycles = [
             'real-estate' => ['property_owner', ['Gold', 'Silver', 'Bronze', 'Platinum']],
             'buyers-agent' => ['buyers_agent', ['Enterprise', 'Elite', 'Professional', 'Starter']],
+            'real-estate-agent' => ['buyers_agent', ['Enterprise', 'Elite', 'Professional', 'Starter']],
             'builders' => ['builders', ['Builder Enterprise', 'Builder Growth']],
             'trades-professionals' => ['trades_professional', ['Enterprise', 'Growth', 'Elite', 'Starter']],
         ];

@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\CheckoutInvitation;
+use App\Models\Addon;
 use App\Models\Inquiry;
 use App\Models\Organization;
 use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Models\Subscription;
+use App\Models\SubscriptionAddon;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\DynamicIdGeneratorService;
@@ -22,6 +24,64 @@ use Stripe\StripeClient;
 
 class CheckoutInvitationController extends Controller
 {
+    public function direct(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'plan_id' => ['required', 'uuid', 'exists:subscription_plans,id'],
+            'billing_cycle' => ['required', 'in:monthly,yearly,annual'],
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:150'],
+            'phone' => ['required', 'string', 'max:30'],
+            'company_name' => ['required', 'string', 'max:200'],
+            'business_type' => ['required', 'in:organisation,company,solo_trader'],
+            'abn_number' => ['required', 'string', 'max:20'],
+            'address' => ['required', 'string', 'max:255'],
+            'state' => ['required', 'string', 'max:50'],
+            'postcode' => ['required', 'string', 'max:10'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'addons' => ['nullable', 'array'],
+            'addons.*.addon_id' => ['required', 'uuid', 'exists:addons,id'],
+            'addons.*.quantity' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $plan = SubscriptionPlan::query()->findOrFail($data['plan_id']);
+        abort_unless($plan->is_active && $plan->billing_enabled !== false, 422, 'The selected plan is not available for online checkout.');
+
+        $selectedAddons = collect($data['addons'] ?? [])->map(fn (array $addon): array => [
+            'addon_id' => $addon['addon_id'],
+            'quantity' => max(1, (int) ($addon['quantity'] ?? 1)),
+        ])->values();
+        $availableAddonIds = Addon::query()->where('is_active', true)->pluck('id');
+        if ($selectedAddons->pluck('addon_id')->diff($availableAddonIds)->isNotEmpty()) {
+            return response()->json(['success' => false, 'message' => 'One or more selected add-ons are not available for this plan.'], 422);
+        }
+
+        $inquiry = Inquiry::query()->create([
+            'reference_no' => app(DynamicIdGeneratorService::class)->generate('inquiries'),
+            'subject' => 'Online checkout — ' . $plan->name,
+            'message' => 'Checkout started from the public pricing page.',
+            'seeker_name' => $data['name'],
+            'seeker_email' => $data['email'],
+            'seeker_phone' => $data['phone'],
+            'company_name' => $data['company_name'],
+            'plan_id' => $plan->id,
+            'lead_source' => 'pricing',
+            'status' => 'payment_pending',
+        ]);
+
+        $invitation = CheckoutInvitation::query()->create([
+            'inquiry_id' => $inquiry->id,
+            'plan_id' => $plan->id,
+            'token' => Str::random(96),
+            'status' => 'active',
+            'billing_cycle' => $data['billing_cycle'] === 'annual' ? 'yearly' : $data['billing_cycle'],
+            'addons' => $selectedAddons->all(),
+            'expires_at' => now()->addHours(2),
+        ]);
+
+        return $this->payment($request, $invitation->token);
+    }
+
     public function inquiry(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -151,13 +211,24 @@ class CheckoutInvitationController extends Controller
             }
 
             $organization = $user->organization;
+            if ($organization) {
+                $organization->loadMissing('organizationType');
+                if ($plan->plan_family && $organization->organizationType?->plan_family && $organization->organizationType->plan_family !== $plan->plan_family) {
+                    throw ValidationException::withMessages(['plan_id' => 'This plan is not available for your organization type.']);
+                }
+            }
             if (!$organization) {
                 if (blank($data['business_type']) || blank($data['abn_number'])) {
                     throw ValidationException::withMessages(['business_type' => 'Business type and ABN are required to create a business account.', 'abn_number' => 'ABN is required to create a business account.']);
                 }
                 $abn = preg_replace('/\s+/', '', $data['abn_number']);
                 $verification = app(AbnLookupService::class)->verify($abn, $data['business_type']);
-                $typeSlug = $data['business_type'] === 'solo_trader' ? 'trades-professionals' : ($data['business_type'] === 'company' ? 'builders' : 'real-estate');
+                $typeSlug = match ($plan->plan_family) {
+                    'buyers_agent' => 'real-estate-agent',
+                    'builders' => 'builders',
+                    'trades_professional' => 'trades-professionals',
+                    default => $data['business_type'] === 'company' ? 'builders' : ($data['business_type'] === 'solo_trader' ? 'trades-professionals' : 'real-estate'),
+                };
                 $type = OrganizationType::query()->where('slug', $typeSlug)->first() ?? OrganizationType::query()->firstOrFail();
                 $slug = Str::slug($data['company_name']);
                 $base = $slug; $suffix = 1;
@@ -177,6 +248,15 @@ class CheckoutInvitationController extends Controller
             $user->roles()->syncWithoutDetaching([$adminRole->id => ['id' => (string) Str::uuid(), 'organization_id' => $organization->id]]);
             $invitation->update(['user_id' => $user->id, 'organization_id' => $organization->id]);
 
+            $selectedAddons = collect($invitation->addons ?? [])->map(fn (array $addon): array => [
+                'addon_id' => $addon['addon_id'],
+                'quantity' => max(1, (int) ($addon['quantity'] ?? 1)),
+            ])->values();
+            $addons = Addon::query()->where('is_active', true)->get()->keyBy('id');
+            if ($selectedAddons->pluck('addon_id')->diff($addons->keys())->isNotEmpty()) {
+                throw ValidationException::withMessages(['addons' => 'One or more selected add-ons are no longer available.']);
+            }
+
             $stripe = new StripeClient($stripeKey);
             $customerId = $organization->stripe_customer_id;
             if (!$customerId) {
@@ -186,16 +266,37 @@ class CheckoutInvitationController extends Controller
             $cycle = $invitation->billing_cycle === 'yearly' ? 'year' : 'month';
             $amount = $invitation->billing_cycle === 'yearly' ? (float) ($plan->discountedYearlyPrice() ?? $plan->yearly_price ?? 0) : (float) ($plan->monthly_price ?? $plan->price ?? 0);
             $frontend = rtrim((string) env('FRONTEND_APP_URL', env('FRONTEND_URL', config('app.url'))), '/');
+            $planAmount = $invitation->billing_cycle === 'yearly' ? (float) ($plan->discountedYearlyPrice() ?? $plan->yearly_price ?? 0) : (float) ($plan->monthly_price ?? $plan->price ?? 0);
+            $addonAmount = 0.0;
+            $lineItems = [[ 'price_data' => ['currency' => strtolower($plan->currency ?? 'AUD'), 'unit_amount' => (int) round($planAmount * 100), 'product_data' => ['name' => $plan->name], 'recurring' => ['interval' => $invitation->billing_cycle === 'yearly' ? 'year' : 'month']], 'quantity' => 1 ]];
+            foreach ($selectedAddons as $selection) {
+                $addon = $addons->get($selection['addon_id']);
+                $quantity = $selection['quantity'];
+                $price = $this->addonAmount($addon, $invitation->billing_cycle);
+                $addonAmount += $price * $quantity;
+                $addonItem = ['price_data' => ['currency' => strtolower($plan->currency ?? 'AUD'), 'unit_amount' => (int) round($price * 100), 'product_data' => ['name' => $addon->name]], 'quantity' => $quantity];
+                if (in_array($addon->pricing_type, ['monthly', 'yearly'], true)) {
+                    $addonItem['price_data']['recurring'] = ['interval' => $invitation->billing_cycle === 'yearly' ? 'year' : 'month'];
+                }
+                $lineItems[] = $addonItem;
+            }
+            $amount = $planAmount + $addonAmount;
             $session = $stripe->checkout->sessions->create([
                 'mode' => 'subscription', 'customer' => $customerId,
-                'line_items' => [[ 'price_data' => ['currency' => strtolower($plan->currency ?? 'AUD'), 'unit_amount' => (int) round($amount * 100), 'product_data' => ['name' => $plan->name], 'recurring' => ['interval' => $cycle]], 'quantity' => 1 ]],
+                'line_items' => $lineItems,
                 'success_url' => $frontend . '/checkout/invite/' . $invitation->token . '?session_id={CHECKOUT_SESSION_ID}',
                 'cancel_url' => $frontend . '/checkout/invite/' . $invitation->token . '?cancelled=1',
-                'metadata' => ['organization_id' => $organization->id, 'company_id' => $organization->id, 'plan_id' => $plan->id, 'billing_cycle' => $invitation->billing_cycle, 'checkout_invitation_id' => $invitation->id, 'inquiry_id' => $invitation->inquiry_id, 'amount' => number_format($amount, 2, '.', ''), 'currency' => strtoupper($plan->currency ?? 'AUD')],
+                'metadata' => ['organization_id' => $organization->id, 'company_id' => $organization->id, 'plan_id' => $plan->id, 'billing_cycle' => $invitation->billing_cycle, 'checkout_invitation_id' => $invitation->id, 'inquiry_id' => $invitation->inquiry_id, 'addons' => $selectedAddons->toJson(), 'amount' => number_format($amount, 2, '.', ''), 'currency' => strtoupper($plan->currency ?? 'AUD')],
                 'subscription_data' => ['metadata' => ['organization_id' => $organization->id, 'company_id' => $organization->id, 'plan_id' => $plan->id, 'billing_cycle' => $invitation->billing_cycle, 'checkout_invitation_id' => $invitation->id, 'inquiry_id' => $invitation->inquiry_id]],
             ]);
             $invitation->update(['stripe_checkout_session_id' => $session->id]);
-            Subscription::query()->updateOrCreate(['organization_id' => $organization->id], ['subscription_plan_id' => $plan->id, 'billing_cycle' => $invitation->billing_cycle, 'currency' => $plan->currency ?? 'AUD', 'amount' => $amount, 'stripe_customer_id' => $customerId, 'stripe_checkout_session_id' => $session->id, 'status' => 'incomplete', 'payment_status' => 'pending']);
+            $subscription = Subscription::query()->updateOrCreate(['organization_id' => $organization->id], ['subscription_plan_id' => $plan->id, 'billing_cycle' => $invitation->billing_cycle, 'currency' => $plan->currency ?? 'AUD', 'amount' => $amount, 'stripe_customer_id' => $customerId, 'stripe_checkout_session_id' => $session->id, 'status' => 'incomplete', 'payment_status' => 'pending']);
+            $subscription->addons()->delete();
+            foreach ($selectedAddons as $selection) {
+                $addon = $addons->get($selection['addon_id']);
+                $quantity = $selection['quantity'];
+                SubscriptionAddon::query()->create(['subscription_id' => $subscription->id, 'addon_id' => $addon->id, 'quantity' => $quantity, 'amount' => $this->addonAmount($addon, $invitation->billing_cycle) * $quantity, 'billing_cycle' => $invitation->billing_cycle]);
+            }
             return ['checkout_url' => $session->url, 'session_id' => $session->id];
             });
         } catch (\Throwable $exception) {
@@ -204,5 +305,17 @@ class CheckoutInvitationController extends Controller
         }
 
         return $this->success($result, 'Checkout session created successfully.');
+    }
+
+    private function addonAmount(Addon $addon, string $billingCycle): float
+    {
+        return (float) match ($addon->pricing_type) {
+            'yearly' => $addon->yearly_price ?? $addon->monthly_price ?? $addon->one_time_price ?? 0,
+            'monthly' => $addon->monthly_price ?? $addon->one_time_price ?? 0,
+            'one_time' => $addon->one_time_price ?? 0,
+            default => $billingCycle === 'yearly'
+                ? ($addon->yearly_price ?? $addon->monthly_price ?? $addon->one_time_price ?? 0)
+                : ($addon->monthly_price ?? $addon->one_time_price ?? 0),
+        };
     }
 }

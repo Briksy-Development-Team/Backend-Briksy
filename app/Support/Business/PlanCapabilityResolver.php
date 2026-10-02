@@ -52,6 +52,11 @@ final class PlanCapabilityResolver
 
     public function planFamily(User $user): ?string
     {
+        $configuredFamily = $user->organization?->organizationType?->plan_family;
+        if ($configuredFamily) {
+            return $configuredFamily;
+        }
+
         return match ($this->category($user)) {
             'real-estate' => 'property_owner',
             'buyers-agent', 'real-estate-agent' => 'buyers_agent',

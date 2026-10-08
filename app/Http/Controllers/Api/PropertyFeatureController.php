@@ -10,7 +10,8 @@ class PropertyFeatureController extends Controller
     public function index(): JsonResponse
     {
         $groups = PropertyFeatureGroup::query()
-            ->with(['features' => fn ($query) => $query->orderBy('sort_order')->orderBy('name')])
+            ->where('is_active', true)
+            ->with(['features' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order')->orderBy('name')])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()

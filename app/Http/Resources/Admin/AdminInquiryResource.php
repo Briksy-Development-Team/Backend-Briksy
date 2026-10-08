@@ -7,6 +7,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class AdminInquiryResource extends JsonResource
 {
+    private const INTEREST_LABELS = [
+        'inspection' => 'Booking an inspection',
+        'property_information' => 'Property information',
+        'price_sale_information' => 'Price / sale information',
+        'contract_section_32' => 'Contract / Section 32',
+        'making_an_offer' => 'Making an offer',
+        'other' => 'Other',
+    ];
+
     public function toArray(Request $request): array
     {
         $property = $this->whenLoaded('propertyListing', fn () => $this->propertyListing);
@@ -19,6 +28,7 @@ class AdminInquiryResource extends JsonResource
             'lead_source' => $this->lead_source,
             'status' => $this->status,
             'subject' => $this->subject,
+            'interested_in' => collect($this->interested_in ?? [])->map(fn (string $value): string => self::INTEREST_LABELS[$value] ?? $value)->values()->all(),
             'message' => $this->message,
             'seeker_name' => $this->seeker_name,
             'seeker_email' => $this->seeker_email,

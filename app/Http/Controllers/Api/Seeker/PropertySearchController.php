@@ -16,7 +16,7 @@ class PropertySearchController extends Controller
     {
         $query = PropertyListing::query()
             ->visibleToSeekers()
-            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'creator', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
+            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'creator', 'propertyType', 'media', 'features.group', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
 
         if ($viewerId = $request->user('sanctum')?->id) {
             $query->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', $viewerId)]);
@@ -103,7 +103,7 @@ class PropertySearchController extends Controller
     {
         $query = PropertyListing::query()
             ->visibleToSeekers()
-            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'creator', 'propertyType', 'media', 'features', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
+            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'creator', 'propertyType', 'media', 'features.group', 'offers' => fn ($offerQuery) => $offerQuery->where('is_active', true)->orderBy('sort_order')]);
 
         if ($viewerId = request()->user('sanctum')?->id) {
             $query->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', $viewerId)]);

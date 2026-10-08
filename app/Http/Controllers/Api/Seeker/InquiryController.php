@@ -63,6 +63,7 @@ class InquiryController extends Controller
             'staff_id' => $request->input('staff_id'),
             'user_id' => $authUser?->id ?? $request->input('user_id'),
             'subject' => $request->input('subject'),
+            'interested_in' => array_values(array_unique($request->input('interested_in', []))),
             'message' => $request->input('message'),
             'seeker_name' => $request->input('seeker_name') ?? $authUser?->name,
             'seeker_email' => $request->input('seeker_email') ?? $authUser?->email,
@@ -142,7 +143,8 @@ class InquiryController extends Controller
         }
 
         try {
-            Mail::html(nl2br(e("{$inquiry->seeker_name} ({$inquiry->seeker_email}) sent an enquiry.\n\n{$inquiry->message}")), function ($message) use ($recipient, $inquiry): void {
+            $interest = implode(', ', $inquiry->interested_in ?? []);
+            Mail::html(nl2br(e("{$inquiry->seeker_name} ({$inquiry->seeker_email}) sent an enquiry.\n\nInterested in: {$interest}\n\n{$inquiry->message}")), function ($message) use ($recipient, $inquiry): void {
                 $message->to($recipient)->subject($inquiry->subject);
             });
 

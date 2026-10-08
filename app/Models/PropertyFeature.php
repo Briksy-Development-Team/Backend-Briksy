@@ -16,7 +16,12 @@ class PropertyFeature extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['group_id', 'name', 'slug', 'sort_order'];
+    protected $fillable = ['group_id', 'name', 'slug', 'sort_order', 'is_active'];
+
+    protected function casts(): array
+    {
+        return ['is_active' => 'boolean'];
+    }
 
     public function group(): BelongsTo
     {

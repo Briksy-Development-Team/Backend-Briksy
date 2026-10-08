@@ -83,7 +83,7 @@ class PropertyController extends Controller
             'creator',
             'media',
             'propertyType',
-            'features',
+            'features.group',
             'reviewer',
             'locationVerifier',
             'offers.creator',
@@ -126,8 +126,18 @@ class PropertyController extends Controller
             'generated_id' => $this->idGenerator->generate('properties'),
             'property_type_id' => $request->input('property_type_id'),
             'transaction_status' => $request->input('transaction_status'),
-            'listing_purpose' => $request->input('listing_purpose'),
+            'is_auction' => $request->boolean('is_auction'),
+            'auction_date' => $request->input('auction_date'),
+            'auction_time' => $request->input('auction_time'),
+            'auction_venue' => $request->input('auction_venue'),
+            'auctioneer' => $request->input('auctioneer'),
+            'auction_contact' => $request->input('auction_contact'),
+            'auction_description' => $request->input('auction_description'),
+            'listing_purpose' => $request->input('listing_purpose') ?: 'SELL',
             'price' => $request->input('price'),
+            'pricing_type' => $request->input('pricing_type') ?: 'fixed',
+            'price_min' => $request->input('pricing_type') === 'estimated' ? $request->input('price_min') : null,
+            'price_max' => $request->input('pricing_type') === 'estimated' ? $request->input('price_max') : null,
             'avg_prop_rating' => 0,
             'address_line_1' => $request->input('address_line_1') ?? $request->input('address'),
             'address_line_2' => $request->input('address_line_2'),
@@ -176,7 +186,7 @@ class PropertyController extends Controller
             ['title' => 'Submitted for review']
         );
 
-        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features.group', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
         $this->notificationService->notifySuperAdminTeam(
                 $this->notificationService->buildPayload(
@@ -226,6 +236,23 @@ class PropertyController extends Controller
         }
         if (array_key_exists('country', $validated) && blank($validated['country'])) {
             $validated['country'] = 'Australia';
+        }
+        if (array_key_exists('is_auction', $validated) && ! $validated['is_auction']) {
+            $validated = array_merge($validated, [
+                'auction_date' => null,
+                'auction_time' => null,
+                'auction_venue' => null,
+                'auctioneer' => null,
+                'auction_contact' => null,
+                'auction_description' => null,
+            ]);
+        }
+        if (($validated['pricing_type'] ?? $propertyListing->pricing_type ?? 'fixed') === 'estimated') {
+            $validated['price'] = null;
+        } else {
+            $validated['pricing_type'] = 'fixed';
+            $validated['price_min'] = null;
+            $validated['price_max'] = null;
         }
 
         // Location verification is managed by the dedicated verification
@@ -291,7 +318,7 @@ class PropertyController extends Controller
             );
         }
 
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features.group', 'reviewer', 'locationVerifier', 'activityLogs.user']);
         $propertyListing->loadMissing('offers.creator');
 
         if ($requiresReview) {
@@ -421,6 +448,7 @@ class PropertyController extends Controller
     {
         $uploadedImages = $request->file('images', []);
         $uploadedVideos = $request->file('videos', []);
+        $floorplan = $request->file('floorplan');
 
         $mediaOrder = (int) Media::query()
             ->where('property_listing_id', $listing->id)
@@ -449,6 +477,22 @@ class PropertyController extends Controller
                 'sort_order' => ++$mediaOrder,
             ]);
         }
+
+        if ($floorplan) {
+            $existing = $listing->media()->where('media_type', 'floorplan')->first();
+            if ($existing) {
+                $this->deleteMediaFile($existing);
+                $existing->delete();
+            }
+            $path = $floorplan->storePublicly("property-listings/{$listing->id}/floorplans", 'public');
+            Media::query()->create([
+                'property_listing_id' => $listing->id,
+                'file_url' => $this->storageUrl($request, $path),
+                'media_type' => 'floorplan',
+                'is_primary' => false,
+                'sort_order' => 0,
+            ]);
+        }
     }
 
     private function assertMediaEntitlements(Request $request, ?PropertyListing $listing = null): void
@@ -471,6 +515,14 @@ class PropertyController extends Controller
         // Keep persisted media deployment-neutral; resources expose absolute
         // URLs at response time and MediaController serves this relative path.
         return 'storage/'.ltrim($path, '/');
+    }
+
+    private function deleteMediaFile(Media $media): void
+    {
+        $path = preg_replace('#^storage/#', '', ltrim((string) $media->file_url, '/')) ?? (string) $media->file_url;
+        if ($path !== '' && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     private function recordPropertyActivity(

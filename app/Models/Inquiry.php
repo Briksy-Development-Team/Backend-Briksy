@@ -21,6 +21,7 @@ class Inquiry extends Model
         'property_listing_id',
         'message',
         'subject',
+        'interested_in',
         'organization_id',
         'plan_id',
         'company_name',
@@ -38,7 +39,7 @@ class Inquiry extends Model
 
     protected function casts(): array
     {
-        return ['email_sent_at' => 'datetime'];
+        return ['email_sent_at' => 'datetime', 'interested_in' => 'array'];
     }
 
     public function getDisplayIdAttribute(): string

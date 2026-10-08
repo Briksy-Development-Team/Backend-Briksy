@@ -94,7 +94,7 @@ class PropertyController extends Controller
             'creator',
             'media',
             'propertyType',
-            'features',
+            'features.group',
             'reviewer',
             'locationVerifier',
             'offers.creator',
@@ -133,9 +133,19 @@ class PropertyController extends Controller
             'place_id' => $validated['place_id'] ?? null,
             'latitude' => $validated['latitude'] ?? null,
             'longitude' => $validated['longitude'] ?? null,
-            'listing_purpose' => $validated['listing_purpose'] ?? null,
+            'listing_purpose' => $validated['listing_purpose'] ?? 'SELL',
             'transaction_status' => $validated['transaction_status'] ?? null,
+            'is_auction' => (bool) ($validated['is_auction'] ?? false),
+            'auction_date' => $validated['auction_date'] ?? null,
+            'auction_time' => $validated['auction_time'] ?? null,
+            'auction_venue' => $validated['auction_venue'] ?? null,
+            'auctioneer' => $validated['auctioneer'] ?? null,
+            'auction_contact' => $validated['auction_contact'] ?? null,
+            'auction_description' => $validated['auction_description'] ?? null,
             'price' => $validated['price'] ?? null,
+            'pricing_type' => $validated['pricing_type'] ?? 'fixed',
+            'price_min' => ($validated['pricing_type'] ?? 'fixed') === 'estimated' ? ($validated['price_min'] ?? null) : null,
+            'price_max' => ($validated['pricing_type'] ?? 'fixed') === 'estimated' ? ($validated['price_max'] ?? null) : null,
             'suburb' => $validated['suburb'] ?? null,
             'state' => $validated['state'] ?? null,
             'postcode' => $validated['postcode'] ?? null,
@@ -146,7 +156,7 @@ class PropertyController extends Controller
 
         $this->featureSync->sync($listing, $request->input('features', []));
         $this->storeListingMedia($listing, $request);
-        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features']);
+        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features.group']);
 
         return $this->created(new AdminPropertyListingResource($listing), 'Property listing created successfully.');
     }
@@ -191,13 +201,30 @@ class PropertyController extends Controller
         if ($request->filled('organization_id')) {
             $validated['org_id'] = $request->input('organization_id');
         }
+        if (array_key_exists('is_auction', $validated) && ! $validated['is_auction']) {
+            $validated = array_merge($validated, [
+                'auction_date' => null,
+                'auction_time' => null,
+                'auction_venue' => null,
+                'auctioneer' => null,
+                'auction_contact' => null,
+                'auction_description' => null,
+            ]);
+        }
+        if (($validated['pricing_type'] ?? $propertyListing->pricing_type ?? 'fixed') === 'estimated') {
+            $validated['price'] = null;
+        } else {
+            $validated['pricing_type'] = 'fixed';
+            $validated['price_min'] = null;
+            $validated['price_max'] = null;
+        }
 
         $propertyListing->fill($validated)->save();
         if ($features !== null) {
             $this->featureSync->sync($propertyListing, $features);
         }
         $this->storeListingMedia($propertyListing, $request);
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features.group']);
 
         return $this->success(new AdminPropertyListingResource($propertyListing), 'Property listing updated successfully.');
     }
@@ -374,6 +401,17 @@ class PropertyController extends Controller
                 'media_type' => 'video',
                 'sort_order' => ++$order,
             ]);
+        }
+
+        if ($floorplan = $request->file('floorplan')) {
+            $existing = $listing->media()->where('media_type', 'floorplan')->first();
+            if ($existing) {
+                $path = preg_replace('#^storage/#', '', ltrim((string) $existing->file_url, '/')) ?? (string) $existing->file_url;
+                if ($path !== '' && Storage::disk('public')->exists($path)) Storage::disk('public')->delete($path);
+                $existing->delete();
+            }
+            $path = $floorplan->storePublicly("property-listings/{$listing->id}/floorplans", 'public');
+            Media::query()->create(['property_listing_id' => $listing->id, 'file_url' => 'storage/'.ltrim($path, '/'), 'media_type' => 'floorplan', 'is_primary' => false, 'sort_order' => 0]);
         }
     }
 

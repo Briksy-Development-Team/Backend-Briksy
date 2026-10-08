@@ -46,8 +46,18 @@ class AdminPropertyListingResource extends JsonResource
             'status' => $this->status,
             'listing_purpose' => $this->listing_purpose,
             'transaction_status' => $this->transaction_status,
+            'is_auction' => (bool) $this->is_auction,
+            'auction_date' => $this->is_auction ? $this->auction_date?->format('Y-m-d') : null,
+            'auction_time' => $this->is_auction ? $this->auction_time : null,
+            'auction_venue' => $this->is_auction ? $this->auction_venue : null,
+            'auctioneer' => $this->is_auction ? $this->auctioneer : null,
+            'auction_contact' => $this->is_auction ? $this->auction_contact : null,
+            'auction_description' => $this->is_auction ? $this->auction_description : null,
             'property_category' => $this->propertyType?->category,
             'price' => $this->price !== null ? (float) $this->price : null,
+            'pricing_type' => $this->pricing_type ?: 'fixed',
+            'price_min' => $this->price_min !== null ? (float) $this->price_min : null,
+            'price_max' => $this->price_max !== null ? (float) $this->price_max : null,
             'description' => $this->description,
             'address' => $this->address,
             'address_line_1' => $this->address_line_1,
@@ -99,6 +109,8 @@ class AdminPropertyListingResource extends JsonResource
                 'name' => $feature->name,
                 'slug' => $feature->slug,
                 'group_id' => $feature->group_id,
+                'category' => $feature->group?->name,
+                'category_slug' => $feature->group?->slug,
             ])->values()->all()),
             'images' => $this->whenLoaded('media', function () use ($request): array {
                 return $this->media
@@ -152,6 +164,10 @@ class AdminPropertyListingResource extends JsonResource
                     'slug' => $this->organization?->slug,
                     'is_verified' => (bool) $this->organization?->is_verified,
                 ];
+            }),
+            'floorplan' => $this->whenLoaded('media', function () use ($request): ?array {
+                $floorplan = $this->media->firstWhere('media_type', 'floorplan');
+                return $floorplan ? ['id' => $floorplan->id, 'url' => $this->normalizeMediaUrl($request, $floorplan->file_url, (string) $floorplan->id)] : null;
             }),
             'creator' => $this->whenLoaded('creator', function (): array {
                 return [

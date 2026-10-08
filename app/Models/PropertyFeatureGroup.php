@@ -15,7 +15,12 @@ class PropertyFeatureGroup extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['name', 'slug', 'sort_order'];
+    protected $fillable = ['name', 'slug', 'sort_order', 'is_active'];
+
+    protected function casts(): array
+    {
+        return ['is_active' => 'boolean'];
+    }
 
     public function features(): HasMany
     {

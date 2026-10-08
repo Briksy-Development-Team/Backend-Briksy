@@ -43,6 +43,7 @@ use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyController as SuperAdminPropertyController;
 use App\Http\Controllers\Api\PropertyFeatureController;
+use App\Http\Controllers\Api\SuperAdmin\PropertyAmenityController;
 use App\Http\Controllers\Api\PropertyTypeController;
 use App\Http\Controllers\Api\SuperAdmin\PropertyOfferController as SuperAdminPropertyOfferController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceOfferController as SuperAdminServiceOfferController;
@@ -365,6 +366,10 @@ Route::prefix('super-admin')->group(function (): void {
 
         Route::get('properties', [SuperAdminPropertyController::class, 'index'])->middleware('permission:property.view');
         Route::get('property-features', [PropertyFeatureController::class, 'index'])->middleware('permission:property.view');
+        Route::get('property-amenities', [PropertyAmenityController::class, 'index'])->middleware('permission:property.view');
+        Route::post('property-amenities', [PropertyAmenityController::class, 'store'])->middleware('permission:property.create');
+        Route::put('property-amenities/{propertyFeature}', [PropertyAmenityController::class, 'update'])->middleware('permission:property.update');
+        Route::delete('property-amenities/{propertyFeature}', [PropertyAmenityController::class, 'destroy'])->middleware('permission:property.delete');
         Route::get('property-types', [PropertyTypeController::class, 'index'])->middleware('permission:property.view');
         Route::get('properties/map', [SuperAdminPropertyController::class, 'map'])->middleware('permission:property.view');
         Route::post('properties', [SuperAdminPropertyController::class, 'store'])->middleware('permission:property.create');

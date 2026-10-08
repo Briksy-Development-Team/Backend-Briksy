@@ -42,7 +42,17 @@ class PropertyListing extends Model
         'status',
         'listing_purpose',
         'transaction_status',
+        'is_auction',
+        'auction_date',
+        'auction_time',
+        'auction_venue',
+        'auctioneer',
+        'auction_contact',
+        'auction_description',
         'price',
+        'pricing_type',
+        'price_min',
+        'price_max',
         'suburb',
         'state',
         'postcode',
@@ -67,6 +77,10 @@ class PropertyListing extends Model
             'location_verified_at' => 'datetime',
             'location_verified' => 'boolean',
             'price' => 'decimal:2',
+            'price_min' => 'decimal:2',
+            'price_max' => 'decimal:2',
+            'is_auction' => 'boolean',
+            'auction_date' => 'date:Y-m-d',
         ];
     }
 

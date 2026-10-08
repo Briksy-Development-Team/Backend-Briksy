@@ -51,6 +51,7 @@ class InquiryResource extends JsonResource
                 'sent_at' => $this->email_sent_at?->toISOString(),
             ],
             'subject' => $this->subject,
+            'interested_in' => $this->interested_in ?? [],
             'message' => $this->message,
             'seeker' => [
                 'name' => $this->seeker_name,

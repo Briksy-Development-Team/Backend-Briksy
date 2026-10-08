@@ -20,9 +20,11 @@ class StoreInquiryRequest extends FormRequest
             'lead_source' => ['nullable', 'string', 'max:80'],
             'user_id' => ['nullable', 'uuid', 'exists:users,id'],
             'subject' => ['required', 'string', 'max:150'],
-            'message' => ['required', 'string', 'max:5000'],
-            'seeker_name' => ['required_without:user_id', 'nullable', 'string', 'max:120'],
-            'seeker_email' => ['required_without:user_id', 'nullable', 'email', 'max:150'],
+            'interested_in' => ['required', 'array', 'min:1'],
+            'interested_in.*' => ['string', 'in:inspection,property_information,price_sale_information,contract_section_32,making_an_offer,other'],
+            'message' => ['nullable', 'string', 'max:5000'],
+            'seeker_name' => ['required', 'string', 'max:120'],
+            'seeker_email' => ['required', 'email', 'max:150'],
             'seeker_phone' => ['required', 'string', 'max:30'],
         ];
     }

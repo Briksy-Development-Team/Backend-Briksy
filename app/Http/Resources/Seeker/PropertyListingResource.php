@@ -62,6 +62,7 @@ class PropertyListingResource extends JsonResource
         $entitlements = app(PublicMediaEntitlementService::class);
         $images = $media instanceof \Illuminate\Support\Collection ? $media->where('media_type', 'image')->values() : collect();
         $videos = $media instanceof \Illuminate\Support\Collection ? $media->where('media_type', 'video')->values() : collect();
+        $floorplan = $media instanceof \Illuminate\Support\Collection ? $media->firstWhere('media_type', 'floorplan') : null;
         $images = $entitlements->take($images, $entitlements->limitFor($this->organization, 'property', 'image'));
         $videos = $entitlements->take($videos, $entitlements->limitFor($this->organization, 'property', 'video'));
         $visibleMedia = $images->concat($videos);
@@ -78,15 +79,29 @@ class PropertyListingResource extends JsonResource
             'is_favourite' => (bool) ($this->is_favourite ?? false),
             'listing_purpose' => $this->listing_purpose,
             'transaction_status' => $this->transaction_status,
+            'is_auction' => (bool) $this->is_auction,
+            'auction_details' => $this->when((bool) $this->is_auction, function (): array {
+                return array_filter([
+                    'date' => $this->auction_date?->format('Y-m-d'),
+                    'time' => $this->auction_time,
+                    'venue' => $this->auction_venue,
+                    'auctioneer' => $this->auctioneer,
+                    'contact' => $this->auction_contact,
+                    'description' => $this->auction_description,
+                ], static fn ($value): bool => filled($value));
+            }),
             'property_category' => $this->propertyType?->category,
             'price' => $this->price !== null ? (float) $this->price : null,
+            'pricing_type' => $this->pricing_type ?: 'fixed',
+            'price_min' => $this->price_min !== null ? (float) $this->price_min : null,
+            'price_max' => $this->price_max !== null ? (float) $this->price_max : null,
             'property_type' => $this->whenLoaded('propertyType', fn (): ?array => $this->propertyType ? ['name' => $this->propertyType->name, 'slug' => $this->propertyType->slug, 'category' => $this->propertyType->category] : null),
             'bedroom_option' => $this->bedroom_option,
             'bathroom_option' => $this->bathroom_option,
             'floor_area_sqm' => $this->floor_area_sqm !== null ? (float) $this->floor_area_sqm : null,
             'land_area_sqm' => $this->land_area_sqm !== null ? (float) $this->land_area_sqm : null,
             'car_space_option' => $this->car_space_option,
-            'features' => $this->whenLoaded('features', fn (): array => $this->features->map(fn ($feature): array => ['name' => $feature->name, 'slug' => $feature->slug])->values()->all()),
+            'features' => $this->whenLoaded('features', fn (): array => $this->features->map(fn ($feature): array => ['name' => $feature->name, 'slug' => $feature->slug, 'category' => $feature->group?->name, 'category_slug' => $feature->group?->slug])->values()->all()),
             'rating' => (float) $this->avg_prop_rating,
             'location_verified' => (bool) $this->location_verified,
             'location' => [
@@ -143,6 +158,10 @@ class PropertyListingResource extends JsonResource
                     'url' => $this->normalizeMediaUrl($request, $media->file_url, (string) $media->id),
                     'is_primary' => (bool) $media->is_primary,
                 ])->values()->all()),
+            'floorplan' => $this->whenLoaded('media', fn (): ?array => $floorplan ? [
+                'id' => $floorplan->id,
+                'url' => $this->normalizeMediaUrl($request, $floorplan->file_url, (string) $floorplan->id),
+            ] : null),
             'has_briksy_exclusive_offer' => $this->whenLoaded('offers', fn (): bool => $this->offers->contains(fn ($offer): bool => (bool) $offer->is_active), false),
             'briksy_exclusive_offers' => $this->whenLoaded('offers', fn (): array => $this->offers
                 ->where('is_active', true)

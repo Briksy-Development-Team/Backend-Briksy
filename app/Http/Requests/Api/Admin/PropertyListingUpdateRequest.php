@@ -30,6 +30,7 @@ class PropertyListingUpdateRequest extends FormRequest
         }
 
         $errors = PropertyListingRules::categoryErrors($data);
+        $errors = array_merge($errors, PropertyListingRules::pricingErrors($data, $property?->pricing_type));
         if ($errors !== []) {
             throw \Illuminate\Validation\ValidationException::withMessages($errors);
         }

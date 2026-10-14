@@ -36,6 +36,7 @@ class PropertyListingIndexRequest extends ApiIndexRequest
             'organization_type' => ['nullable', 'string', 'max:100'],
             'service_slug' => ['nullable', 'string', 'max:100'],
             'verified_only' => ['nullable', 'boolean'],
+            'auction_only' => ['nullable', 'boolean'],
             'purpose' => ['nullable', 'string', 'in:sell,rent,both,SELL,RENT,BOTH'],
             'transaction_status' => ['nullable', 'string', 'in:'.implode(',', CommercialTransactionStatus::VALUES)],
             'category' => ['nullable', 'string', 'max:100'],

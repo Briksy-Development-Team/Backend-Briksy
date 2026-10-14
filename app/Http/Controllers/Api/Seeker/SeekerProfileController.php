@@ -29,6 +29,12 @@ class SeekerProfileController extends Controller
 
     public function update(UpdateSeekerProfileRequest $request): JsonResponse
     {
+        if ($request->has('mobile_number')) {
+            $request->user()->forceFill([
+                'mobile_number' => $request->input('mobile_number') ?: null,
+            ])->save();
+        }
+
         $profile = SeekerProfile::query()->firstOrCreate(['user_id' => $request->user()->id]);
 
         $profile->fill($request->validated());

@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
             CommerceModuleSeeder::class,
             PropertyListingSeeder::class,
             CommercialPropertySeeder::class,
+            AuctionPropertySeeder::class,
         ]);
     }
 }

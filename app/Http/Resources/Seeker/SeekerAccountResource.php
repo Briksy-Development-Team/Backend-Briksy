@@ -15,6 +15,7 @@ class SeekerAccountResource extends JsonResource
             'display_id' => $this->display_id,
             'name' => $this->name,
             'email' => $this->email,
+            'mobile_number' => $this->mobile_number,
             'organization_id' => $this->organization_id,
             'id_verified' => (bool) $this->id_verified,
             'email_verified_at' => $this->email_verified_at?->toISOString(),

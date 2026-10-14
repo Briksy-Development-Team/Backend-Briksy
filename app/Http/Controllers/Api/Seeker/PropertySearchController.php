@@ -28,6 +28,11 @@ class PropertySearchController extends Controller
             'postcode' => $request->input('postcode'),
         ]);
 
+        if ($request->boolean('auction_only')) {
+            $query->where('is_auction', true)
+                ->whereDate('auction_date', '>=', now()->toDateString());
+        }
+
         $purpose = strtoupper((string) $request->input('purpose'));
         if (in_array($purpose, ['SELL', 'RENT'], true)) {
             $query->whereIn('listing_purpose', [$purpose, 'BOTH']);

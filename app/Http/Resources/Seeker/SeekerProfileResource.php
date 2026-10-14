@@ -12,6 +12,7 @@ class SeekerProfileResource extends JsonResource
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
+            'mobile_number' => $this->user?->mobile_number,
             'current_postcode' => $this->current_postcode,
             'preferred_budget_min' => $this->preferred_budget_min !== null ? (float) $this->preferred_budget_min : null,
             'preferred_budget_max' => $this->preferred_budget_max !== null ? (float) $this->preferred_budget_max : null,

@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\Seeker\RegistrationController;
 use App\Http\Controllers\Api\Seeker\ReviewController;
 use App\Http\Controllers\Api\Seeker\SeekerProfileController;
 use App\Http\Controllers\Api\Seeker\SeekerSavedSearchController;
+use App\Http\Controllers\Api\Seeker\AuctionCalendarController;
 use App\Http\Controllers\Api\SuperAdmin\OrganizationController;
 use App\Http\Controllers\Api\SuperAdmin\OrganizationTypeController;
 use App\Http\Controllers\Api\AgentTypeController;
@@ -146,6 +147,10 @@ Route::prefix('seeker')->group(function (): void {
 
         Route::get('profile', [SeekerProfileController::class, 'show']);
         Route::put('profile', [SeekerProfileController::class, 'update']);
+
+        Route::get('calendar/auction-events', [AuctionCalendarController::class, 'index']);
+        Route::post('calendar/auction-events', [AuctionCalendarController::class, 'store']);
+        Route::delete('calendar/auction-events/{event}', [AuctionCalendarController::class, 'destroy']);
 
         Route::get('saved-searches', [SeekerSavedSearchController::class, 'index']);
         Route::post('saved-searches', [SeekerSavedSearchController::class, 'store']);

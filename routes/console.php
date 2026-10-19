@@ -61,26 +61,35 @@ Artisan::command('briksy:sync-admin-role {email=admin@example.com} {--strip-supe
 })->purpose('Normalize a user to the admin role and optionally remove super_admin.');
 
 Artisan::command('briksy:send-auction-reminders', function (NotificationService $notifications) {
-    $reminders = ['P-7D' => 7, 'P-3D' => 3, 'P-1D' => 1, 'PT0S' => 0];
+    $reminders = ['P-7D' => 7 * 24 * 60, 'P-3D' => 3 * 24 * 60, 'P-1D' => 24 * 60, 'PT1H' => 60, 'PT0S' => 0];
     $sent = 0;
 
     AuctionCalendarEvent::query()->with(['propertyListing', 'propertyListing.organization'])
         ->whereBetween('starts_at', [now(), now()->addDays(8)])
         ->chunkById(100, function ($events) use ($reminders, $notifications, &$sent): void {
             foreach ($events as $event) {
-                foreach ($reminders as $code => $days) {
-                    $target = $event->starts_at->copy()->subDays($days);
+                foreach ($reminders as $code => $minutes) {
+                    $target = $event->starts_at->copy()->subMinutes($minutes);
                     if ($target->between(now()->subMinute(), now())) {
+                        $user = User::query()->find($event->user_id);
+                        if (!$user) {
+                            continue;
+                        }
+                        $label = $minutes === 0
+                            ? 'Auction starts today'
+                            : ($minutes === 60 ? 'Auction starts in 1 hour' : 'Auction reminder: ' . intdiv($minutes, 1440) . ' days to go');
+                        $payload = $notifications->buildPayload(
+                            'auction_reminder',
+                            $label,
+                            "{$event->title} is scheduled for {$event->starts_at->timezone(config('app.timezone'))->format('j M Y, g:i A')}.",
+                            'auction_calendar_event',
+                            $event->id,
+                            '/property/' . $event->property_listing_id,
+                        );
+                        $payload['dedupe_key'] = $event->id . ':' . $code;
                         $notifications->notifyUser(
-                            User::query()->findOrFail($event->user_id),
-                            $notifications->buildPayload(
-                                'auction_reminder',
-                                $days === 0 ? 'Auction starts today' : "Auction reminder: {$days} day" . ($days === 1 ? '' : 's') . ' to go',
-                                "{$event->title} is scheduled for {$event->starts_at->timezone(config('app.timezone'))->format('j M Y, g:i A')}.",
-                                'auction_calendar_event',
-                                $event->id,
-                                '/property/' . $event->property_listing_id,
-                            ),
+                            $user,
+                            $payload,
                             'Auction reminder: ' . $event->title,
                             'View auction'
                         );

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\Admin\AdminInquiryResource;
 use App\Models\Inquiry;
 use App\Support\Query\ApiQueryBuilder;
+use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -64,7 +65,27 @@ class InquiryController extends Controller
     {
         abort_unless($this->isSuperAdminRoute($request), 403);
         $data = $request->validate(['status' => ['required', 'in:new,contacted,in_discussion,checkout_sent,payment_pending,paid,closed,expired']]);
+        $previousStatus = $inquiry->status;
         $inquiry->update(['status' => $data['status']]);
+        if ($inquiry->user && $previousStatus !== $inquiry->status) {
+            $notifications = app(NotificationService::class);
+            $notifications->notifyUser(
+                $inquiry->user,
+                $notifications->buildPayload(
+                    'inquiry_activity',
+                    'Your enquiry was updated',
+                    sprintf('The status of “%s” changed to %s.', $inquiry->subject, str_replace('_', ' ', $inquiry->status)),
+                    Inquiry::class,
+                    $inquiry->id,
+                    '/profile/enquiries',
+                    'normal',
+                    $request->user()?->id,
+                    $inquiry->organization_id,
+                ),
+                'Your Briksy enquiry was updated',
+                'View enquiry'
+            );
+        }
         return $this->success(new AdminInquiryResource($inquiry->fresh()->load('plan')), 'Inquiry status updated successfully.');
     }
 

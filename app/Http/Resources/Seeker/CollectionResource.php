@@ -17,6 +17,10 @@ class CollectionResource extends JsonResource
             'properties_count' => (int) ($this->properties_count ?? ($this->relationLoaded('properties') ? $this->properties->count() : 0)),
             'contains_property' => (bool) ($this->contains_property ?? false),
             'contains_item' => (bool) ($this->contains_item ?? false),
+            // Additive field used by the profile collection collage. Older
+            // callers can safely ignore it, while collections without image
+            // previews receive an empty list.
+            'preview_images' => $this->preview_images ?? [],
             'properties' => $this->whenLoaded('properties', fn (): array => PropertyListingResource::collection($this->properties)->resolve($request)),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

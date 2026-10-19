@@ -41,7 +41,53 @@ class CollectionController extends Controller
             ]))
             ->orderByDesc('updated_at');
 
-        return $this->success(CollectionResource::collection($query->get()), 'Collections retrieved successfully.');
+        $collections = $query->get();
+
+        // Collection cards use the newest saved property/service images as their
+        // preview. Keep this optional so the existing collection API remains
+        // lightweight for callers that do not request previews.
+        if (str_contains((string) request()->query('include'), 'preview_images')) {
+            $collections->each(function (Collection $collection): void {
+                $collection->preview_images = $collection->items()
+                    ->whereIn('collectable_type', [PropertyListing::class, Service::class])
+                    ->with(['collectable' => function ($morphQuery): void {
+                        $morphQuery->morphWith([
+                            PropertyListing::class => ['media'],
+                            Service::class => ['media'],
+                        ]);
+                    }])
+                    ->latest()
+                    ->limit(4)
+                    ->get()
+                    ->map(function ($item): ?string {
+                        $target = $item->collectable;
+                        if (! $target) {
+                            return null;
+                        }
+
+                        if ($target instanceof PropertyListing && ! $target->visibleToSeekers()->whereKey($target->getKey())->exists()) {
+                            return null;
+                        }
+
+                        if ($target instanceof Service && ! $target->is_active) {
+                            return null;
+                        }
+
+                        $media = $target->media->first(fn ($media) => $media->media_type === 'image' && filled($media->file_url));
+                        if (! $media) {
+                            return null;
+                        }
+
+                        $mediaPath = $target instanceof Service ? 'api/service-media' : 'api/media';
+                        return rtrim(request()->getSchemeAndHttpHost(), '/').'/'.$mediaPath.'/'.$media->id;
+                    })
+                    ->filter()
+                    ->values()
+                    ->all();
+            });
+        }
+
+        return $this->success(CollectionResource::collection($collections), 'Collections retrieved successfully.');
     }
 
     public function store(StoreCollectionRequest $request): JsonResponse

@@ -145,6 +145,17 @@ Route::prefix('seeker')->group(function (): void {
         Route::get('inquiries', [InquiryController::class, 'index']);
         Route::get('inquiries/{inquiry}', [InquiryController::class, 'show']);
 
+        // Seeker-owned notifications. NotificationController scopes every
+        // query to the authenticated notifiable, so these routes cannot
+        // expose another user's notifications.
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markRead']);
+        Route::patch('notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::delete('notifications/{notification}', [NotificationController::class, 'destroy']);
+        Route::get('notification-preferences', [NotificationPreferenceController::class, 'show']);
+        Route::patch('notification-preferences', [NotificationPreferenceController::class, 'update']);
+
         Route::get('profile', [SeekerProfileController::class, 'show']);
         Route::put('profile', [SeekerProfileController::class, 'update']);
 

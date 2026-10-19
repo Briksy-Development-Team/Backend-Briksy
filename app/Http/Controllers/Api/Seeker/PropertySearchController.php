@@ -29,13 +29,18 @@ class PropertySearchController extends Controller
         ]);
 
         if ($request->boolean('auction_only')) {
-            $query->where('is_auction', true)
-                ->whereDate('auction_date', '>=', now()->toDateString());
+            // Keep auction listings discoverable after the auction date so
+            // the listing/detail page can show auction history and details.
+            // Upcoming-only filtering can be added separately when needed.
+            $query->where('is_auction', true);
         }
 
         $purpose = strtoupper((string) $request->input('purpose'));
         if (in_array($purpose, ['SELL', 'RENT'], true)) {
-            $query->whereIn('listing_purpose', [$purpose, 'BOTH']);
+            // Rent must not include sale-only or dual-purpose records in the
+            // rent tab. Buy remains compatible with BOTH listings because
+            // those listings are explicitly available for sale as well.
+            $query->whereIn('listing_purpose', $purpose === 'RENT' ? ['RENT'] : ['SELL', 'BOTH']);
         } elseif ($purpose === 'BOTH') {
             $query->where('listing_purpose', 'BOTH');
         }

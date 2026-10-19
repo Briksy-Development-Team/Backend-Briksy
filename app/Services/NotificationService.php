@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\PropertyListing;
+use App\Models\SeekerSavedSearch;
 use App\Notifications\PlatformNotification;
 use App\Services\Webhooks\WebhookDispatcherService;
 use App\Support\Business\PlanCapabilityResolver;
@@ -92,6 +94,57 @@ class NotificationService
         $this->notifyUsers(collect([$user]), $payload, $mailSubject, $mailCtaLabel);
     }
 
+    public function notifySavedSearchMatches(PropertyListing $property): void
+    {
+        if ($property->status !== \App\Support\Properties\PropertyWorkflow::STATUS_PUBLISHED) {
+            return;
+        }
+
+        $property->loadMissing('propertyType');
+        SeekerSavedSearch::query()->with('user')->chunkById(100, function ($searches) use ($property): void {
+            foreach ($searches as $search) {
+                if (!$search->user || !$this->savedSearchMatches($search, $property)) {
+                    continue;
+                }
+                $payload = $this->buildPayload(
+                    'new_property_alert',
+                    'A new property matches your saved search',
+                    sprintf('%s is now available.', $property->title),
+                    PropertyListing::class,
+                    $property->id,
+                    '/property/' . $property->id,
+                    'normal',
+                    null,
+                    $property->org_id,
+                );
+                $payload['dedupe_key'] = 'saved-search:' . $search->id . ':' . $property->id;
+                $this->notifyUser($search->user, $payload, 'New property matching your saved search', 'View property');
+            }
+        });
+    }
+
+    private function savedSearchMatches(SeekerSavedSearch $search, PropertyListing $property): bool
+    {
+        $min = $property->pricing_type === 'estimated' ? $property->price_min : $property->price;
+        $max = $property->pricing_type === 'estimated' ? $property->price_max : $property->price;
+        if ($search->budget_min !== null && $max !== null && (float) $max < (float) $search->budget_min) return false;
+        if ($search->budget_max !== null && $min !== null && (float) $min > (float) $search->budget_max) return false;
+
+        $types = array_filter((array) $search->property_types_json);
+        if ($types !== []) {
+            $propertyTypeValues = [(string) $property->property_type_id, (string) $property->propertyType?->name, (string) $property->propertyType?->slug];
+            if (array_intersect(array_map('strval', $types), $propertyTypeValues) === []) return false;
+        }
+
+        $locations = array_filter((array) $search->location_json);
+        if ($locations !== []) {
+            $haystack = strtolower(implode(' ', array_filter([$property->suburb, $property->state, $property->postcode, $property->address])));
+            $locationMatch = collect($locations)->flatten()->filter()->contains(fn ($value): bool => str_contains($haystack, strtolower((string) $value)));
+            if (!$locationMatch) return false;
+        }
+        return true;
+    }
+
     /**
      * @param Collection<int, User> $users
      */
@@ -141,16 +194,21 @@ class NotificationService
 
     private function isDuplicate(User $user, array $payload): bool
     {
-        $notification = $user->notifications()
+        $query = $user->notifications()
             ->where('type', PlatformNotification::class)
-            ->where('data->type', $payload['type'] ?? null)
-            ->where('data->entity_type', $payload['entity_type'] ?? null)
-            ->where('data->entity_id', $payload['entity_id'] ?? null)
-            ->where('data->action_url', $payload['action_url'] ?? null)
-            ->latest()
-            ->first();
+            ->where('data->type', $payload['type'] ?? null);
 
-        return (bool) $notification && $notification->created_at?->diffInSeconds(now()) < 60;
+        if (isset($payload['dedupe_key'])) {
+            $query->where('data->dedupe_key', $payload['dedupe_key']);
+        } else {
+            $query->where('data->entity_type', $payload['entity_type'] ?? null)
+                ->where('data->entity_id', $payload['entity_id'] ?? null)
+                ->where('data->action_url', $payload['action_url'] ?? null);
+        }
+
+        $notification = $query->latest()->first();
+
+        return (bool) $notification && (isset($payload['dedupe_key']) || $notification->created_at?->diffInSeconds(now()) < 60);
     }
 
     public function buildPayload(

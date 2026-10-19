@@ -473,6 +473,10 @@ class PropertyController extends Controller
         $propertyListing->fill($updates);
         $propertyListing->save();
 
+        if ($status === PropertyWorkflow::STATUS_PUBLISHED) {
+            $this->notificationService->notifySavedSearchMatches($propertyListing);
+        }
+
         $this->recordActivity($request, $propertyListing, $action, $description, $before, $propertyListing->fresh()->toArray(), ['title' => $title]);
 
         if ($status === PropertyWorkflow::STATUS_REJECTED) {

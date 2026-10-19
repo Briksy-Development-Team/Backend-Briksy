@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Models\PropertyListing;
 use App\Models\User;
 use App\Services\DynamicIdGeneratorService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -61,7 +62,7 @@ class InquiryController extends Controller
             'organization_id' => $request->input('organization_id'),
             'property_listing_id' => $request->input('property_listing_id'),
             'staff_id' => $request->input('staff_id'),
-            'user_id' => $authUser?->id ?? $request->input('user_id'),
+            'user_id' => $authUser?->id,
             'subject' => $request->input('subject'),
             'interested_in' => array_values(array_unique($request->input('interested_in', []))),
             'message' => $request->input('message'),
@@ -117,6 +118,45 @@ class InquiryController extends Controller
                     'email_delivery_status' => $inquiry->email_delivery_status,
                 ],
             ]);
+        }
+
+        if ($authUser && !$existing) {
+            app(NotificationService::class)->notifyUser(
+                $authUser,
+                app(NotificationService::class)->buildPayload(
+                    'inquiry_activity',
+                    'Your enquiry was sent',
+                    sprintf('Your enquiry “%s” was sent successfully.', $inquiry->subject),
+                    Inquiry::class,
+                    $inquiry->id,
+                    '/profile/enquiries',
+                    'normal',
+                    null,
+                    $inquiry->organization_id,
+                ),
+                'Your Briksy enquiry was sent',
+                'View enquiries'
+            );
+        }
+
+        if (!$existing) {
+            $notifications = app(NotificationService::class);
+            $notifications->notifyAdminsForOrganisation(
+                $inquiry->organization_id,
+                $notifications->buildPayload(
+                    'property_interest',
+                    'New property enquiry received',
+                    sprintf('%s submitted an enquiry: %s.', $inquiry->seeker_name, $inquiry->subject),
+                    Inquiry::class,
+                    $inquiry->id,
+                    '/admin/inquiries/' . $inquiry->id,
+                    'normal',
+                    $authUser?->id,
+                    $inquiry->organization_id,
+                ),
+                'New property enquiry received',
+                'View enquiry'
+            );
         }
 
         $message = $inquiry->email_delivery_status === 'sent'

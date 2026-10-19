@@ -18,7 +18,6 @@ class StoreInquiryRequest extends FormRequest
             'property_listing_id' => ['nullable', 'uuid', 'exists:property_listings,id'],
             'staff_id' => ['nullable', 'uuid', 'exists:users,id'],
             'lead_source' => ['nullable', 'string', 'max:80'],
-            'user_id' => ['nullable', 'uuid', 'exists:users,id'],
             'subject' => ['required', 'string', 'max:150'],
             'interested_in' => ['required', 'array', 'min:1'],
             'interested_in.*' => ['string', 'in:inspection,property_information,price_sale_information,contract_section_32,making_an_offer,other'],

@@ -22,6 +22,8 @@ class NotificationResource extends JsonResource
             'priority' => $data['priority'] ?? 'normal',
             'actor_id' => $data['actor_id'] ?? null,
             'organisation_id' => $data['organisation_id'] ?? null,
+            'image_url' => $data['image_url'] ?? null,
+            'metadata' => $data['metadata'] ?? [],
             'created_at' => $this->created_at?->toISOString(),
             'read_at' => $this->read_at?->toISOString(),
         ];

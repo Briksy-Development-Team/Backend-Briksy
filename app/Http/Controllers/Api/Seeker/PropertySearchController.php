@@ -57,6 +57,19 @@ class PropertySearchController extends Controller
         if ($request->filled('max_price')) {
             $query->where('price', '<=', $request->input('max_price'));
         }
+        if ($request->boolean('has_price')) {
+            $query->whereNotNull('price');
+        }
+        if ($request->filled('property_types')) {
+            $propertyTypeSlugs = collect($request->input('property_types', []))
+                ->map(fn (string $slug): string => match ($slug) {
+                    'apartment' => 'apartment-unit',
+                    default => $slug,
+                })
+                ->values()
+                ->all();
+            $query->whereHas('propertyType', fn ($typeQuery) => $typeQuery->whereIn('slug', $propertyTypeSlugs));
+        }
 
         $this->applyPropertyAttributeFilters($query, $request);
         $this->applyNearbyOrdering($query, $request);

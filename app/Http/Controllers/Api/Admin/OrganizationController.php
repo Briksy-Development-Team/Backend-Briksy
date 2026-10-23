@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\SuperAdmin\OrganizationUpdateRequest;
 use App\Http\Resources\Admin\AdminOrganizationResource; 
 use App\Models\Organization; 
+use App\Models\MarketingReel;
 use App\Support\Query\ApiQueryBuilder;
 use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\Exceptions\HttpResponseException; 
@@ -36,7 +37,7 @@ class OrganizationController extends Controller
 
         $query = Organization::query()
             ->whereKey($organizationId)
-            ->with('organizationType')
+            ->with(['organizationType', 'marketingReels'])
             ->withCount(['users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff']))]);
  
         ApiQueryBuilder::applySearch( 
@@ -99,7 +100,7 @@ class OrganizationController extends Controller
         }
 
         $organization = Organization::query()
-            ->with('organizationType')
+            ->with(['organizationType', 'marketingReels'])
             ->withCount(['users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff']))])
             ->findOrFail($organizationId);
 
@@ -115,7 +116,7 @@ class OrganizationController extends Controller
 
         abort_unless($organizationId && $organization->id === $organizationId, 403);
 
-        $organization->loadMissing('organizationType');
+        $organization->loadMissing(['organizationType', 'marketingReels']);
         $organization->loadCount(['users as staff_count' => fn ($userQuery) => $userQuery->whereHas('roles', fn ($roleQuery) => $roleQuery->whereIn('name', ['admin', 'admin_staff']))]);
  
         return $this->success( 
@@ -132,7 +133,7 @@ class OrganizationController extends Controller
 
         $validated = $request->validated();
 
-        $organization->loadMissing('organizationType');
+        $organization->loadMissing(['organizationType', 'marketingReels']);
         if ($organization->organizationType?->isAgentType()) {
             $entitlements = $this->planCapabilities->resolved($request->user());
             $areas = $validated['service_areas'] ?? null;
@@ -147,7 +148,8 @@ class OrganizationController extends Controller
                 ], 422));
             }
 
-            if (is_array($reels) && count($reels) > (int) $reelLimit) {
+            $uploadedReels = MarketingReel::query()->where('organization_id', $organization->id)->where('model_type', Organization::class)->where('model_id', $organization->id)->count();
+            if (is_array($reels) && $reelLimit !== null && $uploadedReels + count($reels) > (int) $reelLimit) {
                 throw new HttpResponseException(response()->json([
                     'success' => false,
                     'message' => sprintf('Your plan allows up to %d reels.', $reelLimit),
@@ -168,7 +170,7 @@ class OrganizationController extends Controller
 
         $organization->fill($validated);
         $organization->save();
-        $organization->loadMissing('organizationType');
+        $organization->loadMissing(['organizationType', 'marketingReels']);
 
         $this->webhookDispatcher->dispatch(
             'company.updated',
@@ -217,7 +219,7 @@ class OrganizationController extends Controller
         }
 
         $organization->save();
-        $organization->loadMissing('organizationType');
+        $organization->loadMissing(['organizationType', 'marketingReels']);
 
         return $this->success(new AdminOrganizationResource($organization), 'Organization images updated successfully.');
     }

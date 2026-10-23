@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\HasImmutableGeneratedId;
 use App\Services\DynamicIdGeneratorService;
@@ -108,5 +109,10 @@ class Service extends Model
     public function media(): HasMany
     {
         return $this->hasMany(ServiceMedia::class)->orderBy('sort_order');
+    }
+
+    public function marketingReels(): MorphMany
+    {
+        return $this->morphMany(MarketingReel::class, 'model')->orderBy('sort_order');
     }
 }

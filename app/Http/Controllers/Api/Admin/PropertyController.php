@@ -186,7 +186,7 @@ class PropertyController extends Controller
             ['title' => 'Submitted for review']
         );
 
-        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features.group', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $listing->load(['organization.organizationType', 'creator', 'media', 'marketingReels', 'propertyType', 'features.group', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
         $this->notificationService->notifySuperAdminTeam(
                 $this->notificationService->buildPayload(
@@ -318,7 +318,7 @@ class PropertyController extends Controller
             );
         }
 
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features.group', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'marketingReels', 'propertyType', 'features.group', 'reviewer', 'locationVerifier', 'activityLogs.user']);
         $propertyListing->loadMissing('offers.creator');
 
         if ($requiresReview) {
@@ -399,7 +399,7 @@ class PropertyController extends Controller
 
         return PropertyListing::query()
             ->where('org_id', $organizationId)
-            ->with(['organization.organizationType', 'creator', 'propertyType', 'media', 'features', 'offers.creator']);
+            ->with(['organization.organizationType', 'creator', 'propertyType', 'media', 'marketingReels', 'features', 'offers.creator']);
     }
 
     private function applyFilters(Builder $query, PropertyListingIndexRequest $request): void

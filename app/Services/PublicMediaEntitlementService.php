@@ -147,9 +147,15 @@ class PublicMediaEntitlementService
             $names[] = "project {$mediaType}s";
         }
 
+        if (in_array($mediaType, ['reel', 'short', 'shorts', 'reels'], true)) {
+            $names[] = 'reels';
+            $names[] = 'marketing content';
+            $names[] = 'marketing content (shorts/reels)';
+        }
+
         // Subscription plans may expose these limits using the platform-wide
         // labels shown in the plan catalogue.
-        $names[] = $mediaType === 'image' ? 'images limit' : 'videos limit';
+        $names[] = $mediaType === 'image' ? 'images limit' : ($mediaType === 'video' ? 'videos limit' : 'reels');
 
         return array_values(array_unique(array_map(fn (string $name): string => $this->normalise($name), $names)));
     }

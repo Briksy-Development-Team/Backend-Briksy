@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Seeker;
 
+use App\Http\Resources\MarketingReelResource;
 use App\Services\PublicMediaEntitlementService;
 use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\Request;
@@ -49,6 +50,7 @@ class ServiceResource extends JsonResource
             ] : null),
             'images' => $this->mediaPayload($request, $images),
             'videos' => $this->mediaPayload($request, $videos),
+            'shorts' => $this->whenLoaded('marketingReels', fn (): array => MarketingReelResource::collection($this->marketingReels)->resolve()),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

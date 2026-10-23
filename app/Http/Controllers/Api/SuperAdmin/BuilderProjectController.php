@@ -60,7 +60,7 @@ class BuilderProjectController extends Controller
 
     public function show(BuilderProject $builderProject)
     {
-        $builderProject->load(['organization', 'creator', 'reviewer', 'media']);
+        $builderProject->load(['organization', 'creator', 'reviewer', 'media', 'marketingReels']);
 
         return $this->success(new AdminBuilderProjectResource($builderProject), 'Builder project retrieved successfully.');
     }

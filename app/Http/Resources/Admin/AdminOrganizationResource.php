@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Http\Resources\MarketingReelResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -63,6 +64,7 @@ class AdminOrganizationResource extends JsonResource
             'service_areas' => $this->service_areas ?? [],
             'intro_video_url' => $this->intro_video_url,
             'reel_urls' => $this->reel_urls ?? [],
+            'shorts' => $this->whenLoaded('marketingReels', fn (): array => MarketingReelResource::collection($this->marketingReels)->resolve()),
             'licensed_staff_seats' => $this->licensed_staff_seats,
             'staff_count' => (int) ($this->staff_count ?? 0),
             'created_at' => $this->created_at?->toISOString(),

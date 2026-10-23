@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Http\Resources\MarketingReelResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -62,6 +63,7 @@ class AdminBuilderProjectResource extends JsonResource
                     'is_primary' => (bool) $media->is_primary,
                     'sort_order' => (int) $media->sort_order,
                 ])->values()->all()),
+            'shorts' => $this->whenLoaded('marketingReels', fn (): array => MarketingReelResource::collection($this->marketingReels)->resolve()),
             'organization' => $this->whenLoaded('organization', fn (): ?array => $this->organization ? [
                 'id' => $this->organization->id,
                 'name' => $this->organization->name,

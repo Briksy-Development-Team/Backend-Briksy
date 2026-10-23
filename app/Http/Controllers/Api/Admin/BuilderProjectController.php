@@ -29,7 +29,7 @@ class BuilderProjectController extends Controller
     public function show(Request $request, BuilderProject $builderProject)
     {
         abort_unless($builderProject->organization_id === $request->user()->organization_id, 404);
-        $builderProject->load(['organization', 'creator', 'reviewer', 'media']);
+        $builderProject->load(['organization', 'creator', 'reviewer', 'media', 'marketingReels']);
 
         return $this->success(new AdminBuilderProjectResource($builderProject), 'Builder project retrieved successfully.');
     }

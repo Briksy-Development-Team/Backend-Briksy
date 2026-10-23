@@ -40,7 +40,7 @@ class ServiceController extends Controller
     public function index(ServiceIndexRequest $request): JsonResponse
     {
         $query = Service::query()
-            ->with(['organizationType', 'organization', 'media'])
+            ->with(['organizationType', 'organization', 'media', 'marketingReels'])
             ->withCount(['organizations', 'serviceGroups']);
 
         if (!$request->user()?->isSuperAdmin() && !$request->user()?->isGlobalStaff()) {
@@ -98,7 +98,7 @@ class ServiceController extends Controller
                     ->where('organization_id', $organization->id)
                     ->orWhereHas('organizations', fn ($organizationQuery) => $organizationQuery->whereKey($organization->id));
             })
-            ->with(['organizationType', 'organization', 'media'])
+            ->with(['organizationType', 'organization', 'media', 'marketingReels'])
             ->withCount(['organizations', 'serviceGroups']);
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
@@ -157,7 +157,7 @@ class ServiceController extends Controller
     {
         abort_unless($this->canAccessService($request, $service), 403);
 
-        $service->load(['organizationType', 'organization', 'media', 'activityLogs'])
+        $service->load(['organizationType', 'organization', 'media', 'marketingReels', 'activityLogs'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         return $this->success(
@@ -181,7 +181,7 @@ class ServiceController extends Controller
 
         $this->storeMedia($service, $request);
 
-        $service->load(['organizationType', 'organization', 'media', 'activityLogs'])
+        $service->load(['organizationType', 'organization', 'media', 'marketingReels', 'activityLogs'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         if ($service->organization_id) {
@@ -240,7 +240,7 @@ class ServiceController extends Controller
         });
         $this->recordActivity($request, $service, 'updated', 'Service details were updated.');
         $this->storeMedia($service, $request);
-        $service->load(['organizationType', 'organization', 'media', 'activityLogs'])
+        $service->load(['organizationType', 'organization', 'media', 'marketingReels', 'activityLogs'])
             ->loadCount(['organizations', 'serviceGroups']);
 
         if ($service->organization_id) {

@@ -156,7 +156,7 @@ class PropertyController extends Controller
 
         $this->featureSync->sync($listing, $request->input('features', []));
         $this->storeListingMedia($listing, $request);
-        $listing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features.group']);
+        $listing->load(['organization.organizationType', 'creator', 'media', 'marketingReels', 'propertyType', 'features.group']);
 
         return $this->created(new AdminPropertyListingResource($listing), 'Property listing created successfully.');
     }
@@ -224,7 +224,7 @@ class PropertyController extends Controller
             $this->featureSync->sync($propertyListing, $features);
         }
         $this->storeListingMedia($propertyListing, $request);
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'features.group']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'marketingReels', 'propertyType', 'features.group']);
 
         return $this->success(new AdminPropertyListingResource($propertyListing), 'Property listing updated successfully.');
     }
@@ -515,7 +515,7 @@ class PropertyController extends Controller
             );
         }
 
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'marketingReels', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
         return $this->success(new AdminPropertyListingResource($propertyListing), $title . ' successfully.');
     }
@@ -566,7 +566,7 @@ class PropertyController extends Controller
             $this->notificationService->notifyAdminsForOrganisation($propertyListing->org_id, $payload, $mailSubject, $mailCtaLabel);
         }
 
-        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
+        $propertyListing->load(['organization.organizationType', 'creator', 'media', 'marketingReels', 'propertyType', 'reviewer', 'locationVerifier', 'activityLogs.user']);
 
         return $this->success(new AdminPropertyListingResource($propertyListing), $title . ' successfully.');
     }

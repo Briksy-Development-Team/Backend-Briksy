@@ -34,7 +34,7 @@ class SubscriptionPlanSeeder extends Seeder
                     'price' => $plan['price'],
                     'property_limit' => $plan['property_limit'],
                     'popular' => $plan['popular'],
-                    'features' => $plan['features'],
+                    'features' => $this->ensureReelsFeature($plan['features']),
                     'permissions' => [],
                     'is_active' => true,
                     'staff_seat_limit' => $plan['staff_seat_limit'],
@@ -341,6 +341,15 @@ class SubscriptionPlanSeeder extends Seeder
                 ],
             ],
         ];
+    }
+
+    private function ensureReelsFeature(array $features): array
+    {
+        if (!collect($features)->contains(fn (array $feature): bool => strcasecmp((string) ($feature['name'] ?? ''), 'Reels') === 0)) {
+            $features[] = $this->feature('Reels', false, 0);
+        }
+
+        return $features;
     }
 
     private function buyerAgentPlans(): array

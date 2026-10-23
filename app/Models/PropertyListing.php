@@ -135,6 +135,11 @@ class PropertyListing extends Model
         return $this->hasMany(Media::class, 'property_listing_id')->orderBy('sort_order');
     }
 
+    public function marketingReels(): MorphMany
+    {
+        return $this->morphMany(MarketingReel::class, 'model')->orderBy('sort_order');
+    }
+
     public function features(): BelongsToMany
     {
         return $this->belongsToMany(PropertyFeature::class, 'property_listing_features', 'property_listing_id', 'feature_id')

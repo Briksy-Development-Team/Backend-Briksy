@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\SuperAdmin\ServiceController as SuperAdminServiceCo
 use App\Http\Controllers\Api\SuperAdmin\ServiceCategoryController;
 use App\Http\Controllers\Api\ServiceMediaController;
 use App\Http\Controllers\Api\OrganizationMediaController;
+use App\Http\Controllers\Api\MarketingReelController;
 use App\Http\Controllers\Api\SuperAdmin\ServiceImportController as SuperAdminServiceImportController;
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
@@ -99,6 +100,7 @@ Route::get('media/{media}', [MediaController::class, 'show'])->name('media.show'
 Route::middleware('auth:sanctum')->delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
 Route::get('service-media/{serviceMedia}', [ServiceMediaController::class, 'show'])->name('service-media.show');
 Route::get('organization-media/{organization}/{type}', [OrganizationMediaController::class, 'show'])->name('organization-media.show');
+Route::get('marketing-reels/{marketingReel}', [MarketingReelController::class, 'show'])->name('marketing-reels.show');
 Route::middleware('auth:sanctum')->delete('service-media/{serviceMedia}', [ServiceMediaController::class, 'destroy'])->name('service-media.destroy');
 
 Route::prefix('seeker')->group(function (): void {
@@ -315,6 +317,9 @@ Route::prefix('admin')->group(function (): void {
     });
 
     Route::middleware(['auth:sanctum', 'role:admin,admin_staff'])->group(function (): void {
+        Route::get('marketing-reels/{entityType}/{entityId}', [MarketingReelController::class, 'index']);
+        Route::post('marketing-reels/{entityType}/{entityId}', [MarketingReelController::class, 'store']);
+        Route::delete('marketing-reels/{marketingReel}', [MarketingReelController::class, 'destroy']);
         Route::get('staff/defaults', [AdminStaffController::class, 'defaults'])->middleware(['module:user_management', 'permission:user.view']);
         Route::get('staff', [AdminStaffController::class, 'index'])->middleware(['module:user_management', 'permission:user.view']);
         Route::post('staff', [AdminStaffController::class, 'store'])->middleware(['module:user_management', 'permission:user.create']);
@@ -363,6 +368,9 @@ Route::prefix('super-admin')->group(function (): void {
         Route::post('organizations', [OrganizationController::class, 'store'])->middleware('permission:company.create');
         Route::get('organizations/{organization}', [OrganizationController::class, 'show'])->middleware('permission:company.view');
         Route::get('organizations/{organization}/properties', [SuperAdminPropertyController::class, 'forOrganization'])->middleware('permission:property.view');
+        Route::get('marketing-reels/{entityType}/{entityId}', [MarketingReelController::class, 'index']);
+        Route::post('marketing-reels/{entityType}/{entityId}', [MarketingReelController::class, 'store']);
+        Route::delete('marketing-reels/{marketingReel}', [MarketingReelController::class, 'destroy']);
         Route::get('builder-projects', [SuperAdminBuilderProjectController::class, 'index'])->middleware('permission:property.view');
         Route::get('builder-projects/{builderProject}', [SuperAdminBuilderProjectController::class, 'show'])->middleware('permission:property.view');
         Route::patch('builder-projects/{builderProject}/approve', [SuperAdminBuilderProjectController::class, 'approve'])->middleware('permission:property.approve');

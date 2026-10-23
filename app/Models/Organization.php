@@ -168,6 +168,11 @@ class Organization extends Model
         return $this->hasMany(PropertyListing::class, 'org_id');
     }
 
+    public function marketingReels(): MorphMany
+    {
+        return $this->morphMany(MarketingReel::class, 'model')->orderBy('sort_order');
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'organization_id');

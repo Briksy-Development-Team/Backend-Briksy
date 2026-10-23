@@ -17,7 +17,7 @@ class ServiceSearchController extends Controller
         $query = Service::query()
             ->where('is_active', true)
             ->whereHas('organization', fn ($organizationQuery) => $organizationQuery->where('is_verified', true))
-            ->with(['organization.currentSubscription.plan', 'media']);
+            ->with(['organization.currentSubscription.plan', 'media', 'marketingReels']);
 
         ApiQueryBuilder::applySearch($query, $request->string('search')->toString(), ['name', 'title', 'category', 'description']);
 
@@ -53,7 +53,7 @@ class ServiceSearchController extends Controller
     {
         abort_unless($service->is_active && $service->organization?->is_verified, 404);
         abort_unless(app(PlanCapabilityResolver::class)->serviceCategoryAllowedForOrganization($service->organization, $service->slug ?: $service->category), 404);
-        $service->load(['organization.currentSubscription.plan', 'media']);
+        $service->load(['organization.currentSubscription.plan', 'media', 'marketingReels']);
 
         return $this->success(new ServiceResource($service), 'Service retrieved successfully.');
     }

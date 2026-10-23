@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Http\Resources\MarketingReelResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -157,6 +158,7 @@ class AdminPropertyListingResource extends JsonResource
                     ->values()
                     ->all();
             }),
+            'shorts' => $this->whenLoaded('marketingReels', fn (): array => MarketingReelResource::collection($this->marketingReels)->resolve()),
             'organization' => $this->whenLoaded('organization', function (): array {
                 return [
                     'id' => $this->organization?->id,

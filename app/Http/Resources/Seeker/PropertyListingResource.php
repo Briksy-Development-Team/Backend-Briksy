@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Seeker;
 
+use App\Http\Resources\MarketingReelResource;
 use App\Services\PublicMediaEntitlementService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -158,6 +159,7 @@ class PropertyListingResource extends JsonResource
                     'url' => $this->normalizeMediaUrl($request, $media->file_url, (string) $media->id),
                     'is_primary' => (bool) $media->is_primary,
                 ])->values()->all()),
+            'shorts' => $this->whenLoaded('marketingReels', fn (): array => MarketingReelResource::collection($this->marketingReels)->resolve()),
             'floorplan' => $this->whenLoaded('media', fn (): ?array => $floorplan ? [
                 'id' => $floorplan->id,
                 'url' => $this->normalizeMediaUrl($request, $floorplan->file_url, (string) $floorplan->id),

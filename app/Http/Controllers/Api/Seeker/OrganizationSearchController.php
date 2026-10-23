@@ -101,7 +101,7 @@ class OrganizationSearchController extends Controller
 
     public function show(Organization $organization)
     {
-        $organization->load(['organizationType', 'currentSubscription.plan', 'services.media', 'ownedServices.media', 'serviceGroups']);
+        $organization->load(['organizationType', 'currentSubscription.plan', 'services.media', 'ownedServices.media', 'serviceGroups', 'marketingReels']);
         $this->recordVisit($organization, request());
 
         return $this->success(
@@ -115,7 +115,7 @@ class OrganizationSearchController extends Controller
         $projects = BuilderProject::query()
             ->where('organization_id', $organization->id)
             ->where('status', \App\Support\Properties\PropertyWorkflow::STATUS_PUBLISHED)
-            ->with('media')
+            ->with(['media', 'marketingReels'])
             ->latest()
             ->get(['id', 'name', 'project_type', 'status', 'description', 'features', 'location', 'state', 'postcode']);
 
@@ -136,6 +136,7 @@ class OrganizationSearchController extends Controller
                     'url' => $request->getSchemeAndHttpHost() . '/api/media/' . $media->id,
                     'is_primary' => (bool) $media->is_primary,
                 ])->values()->all(),
+            'shorts' => $project->marketingReels->map(fn ($reel): array => ['id' => $reel->id, 'url' => $request->getSchemeAndHttpHost() . '/api/marketing-reels/' . $reel->id])->values()->all(),
         ])->values()->all(), 'Builder projects retrieved successfully.');
     }
 
@@ -143,7 +144,7 @@ class OrganizationSearchController extends Controller
     {
         abort_unless($builderProject->status === \App\Support\Properties\PropertyWorkflow::STATUS_PUBLISHED, 404);
 
-        $builderProject->load(['organization', 'creator', 'media']);
+        $builderProject->load(['organization', 'creator', 'media', 'marketingReels']);
 
         return $this->success([
             'id' => $builderProject->id,
@@ -168,6 +169,7 @@ class OrganizationSearchController extends Controller
                     'id' => $media->id,
                     'url' => request()->getSchemeAndHttpHost() . '/api/media/' . $media->id,
                 ])->values()->all(),
+            'shorts' => $builderProject->marketingReels->map(fn ($reel): array => ['id' => $reel->id, 'url' => $request->getSchemeAndHttpHost() . '/api/marketing-reels/' . $reel->id])->values()->all(),
             'organization' => $builderProject->organization ? [
                 'id' => $builderProject->organization->id,
                 'name' => $builderProject->organization->name,

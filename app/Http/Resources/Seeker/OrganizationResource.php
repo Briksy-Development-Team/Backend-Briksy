@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Seeker;
 
+use App\Http\Resources\MarketingReelResource;
 use App\Services\PublicMediaEntitlementService;
 use App\Support\Business\PlanCapabilityResolver;
 use Illuminate\Http\Request;
@@ -60,6 +61,7 @@ class OrganizationResource extends JsonResource
             'service_areas' => $this->service_areas ?? [],
             'intro_video_url' => $this->intro_video_url,
             'reel_urls' => $this->reel_urls ?? [],
+            'shorts' => $this->whenLoaded('marketingReels', fn (): array => MarketingReelResource::collection($this->marketingReels)->resolve()),
             'is_favourite' => (bool) ($this->is_favourite ?? false),
             'address' => $this->address,
             'state' => $this->state,

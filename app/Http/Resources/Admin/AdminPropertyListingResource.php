@@ -49,7 +49,9 @@ class AdminPropertyListingResource extends JsonResource
             'transaction_status' => $this->transaction_status,
             'is_auction' => (bool) $this->is_auction,
             'auction_date' => $this->is_auction ? $this->auction_date?->format('Y-m-d') : null,
-            'auction_time' => $this->is_auction ? $this->auction_time : null,
+            'auction_time' => $this->is_auction && $this->auction_time
+                ? substr((string) $this->auction_time, 0, 5)
+                : null,
             'auction_venue' => $this->is_auction ? $this->auction_venue : null,
             'auctioneer' => $this->is_auction ? $this->auctioneer : null,
             'auction_contact' => $this->is_auction ? $this->auction_contact : null,

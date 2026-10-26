@@ -84,7 +84,7 @@ class PropertyListingResource extends JsonResource
             'auction_details' => $this->when((bool) $this->is_auction, function (): array {
                 return array_filter([
                     'date' => $this->auction_date?->format('Y-m-d'),
-                    'time' => $this->auction_time,
+                    'time' => $this->auction_time ? substr((string) $this->auction_time, 0, 5) : null,
                     'venue' => $this->auction_venue,
                     'auctioneer' => $this->auctioneer,
                     'contact' => $this->auction_contact,

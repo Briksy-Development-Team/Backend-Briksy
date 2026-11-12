@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\Seeker\ReviewController;
 use App\Http\Controllers\Api\Seeker\SeekerProfileController;
 use App\Http\Controllers\Api\Seeker\SeekerSavedSearchController;
 use App\Http\Controllers\Api\Seeker\AuctionCalendarController;
+use App\Http\Controllers\Api\Seeker\AiSearchController;
 use App\Http\Controllers\Api\SuperAdmin\OrganizationController;
 use App\Http\Controllers\Api\SuperAdmin\OrganizationTypeController;
 use App\Http\Controllers\Api\AgentTypeController;
@@ -104,6 +105,7 @@ Route::get('marketing-reels/{marketingReel}', [MarketingReelController::class, '
 Route::middleware('auth:sanctum')->delete('service-media/{serviceMedia}', [ServiceMediaController::class, 'destroy'])->name('service-media.destroy');
 
 Route::prefix('seeker')->group(function (): void {
+    Route::post('ai/search', AiSearchController::class);
     Route::post('auth/register', [RegistrationController::class, 'store']);
     Route::post('auth/login', [RegistrationController::class, 'loginSeeker']);
 

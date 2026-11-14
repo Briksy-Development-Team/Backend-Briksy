@@ -75,8 +75,12 @@ class FavoriteController extends Controller
         $favorite->load('favoritable');
         $collection = $collectionAssignmentService->assignAfterFavorite($request->user(), $target);
 
+        $favoritePayload = (new FavoriteResource($favorite))->resolve($request);
+
+        // Keep the original direct favorite shape while also exposing the
+        // nested form used by newer clients.
         return $this->created(
-            ['favorite' => (new FavoriteResource($favorite))->resolve($request), ...$collection],
+            [...$favoritePayload, 'favorite' => $favoritePayload, ...$collection],
             'Favorite added successfully.'
         );
     }

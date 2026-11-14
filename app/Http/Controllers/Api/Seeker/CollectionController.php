@@ -130,7 +130,7 @@ class CollectionController extends Controller
             })
             ->select('property_listings.*')
             ->visibleToSeekers()
-            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'propertyType', 'media', 'features'])
+            ->with(['organization.organizationType', 'organization.currentSubscription.plan', 'propertyType', 'media', 'features.group'])
             ->withExists(['favorites as is_favourite' => fn ($favoriteQuery) => $favoriteQuery->where('user_id', request()->user()->id)])
             ->latest('collection_items.created_at')
             ->paginate(24)
@@ -146,7 +146,7 @@ class CollectionController extends Controller
         $items = $collection->items()
             ->with(['collectable' => function ($morphQuery): void {
                 $morphQuery->morphWith([
-                    PropertyListing::class => ['organization.organizationType', 'propertyType', 'media', 'features'],
+                    PropertyListing::class => ['organization.organizationType', 'propertyType', 'media', 'features.group'],
                     Organization::class => ['organizationType', 'services'],
                     Service::class => ['organization', 'media'],
                 ]);

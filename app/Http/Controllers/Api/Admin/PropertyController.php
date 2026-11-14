@@ -138,6 +138,15 @@ class PropertyController extends Controller
             'pricing_type' => $request->input('pricing_type') ?: 'fixed',
             'price_min' => $request->input('pricing_type') === 'estimated' ? $request->input('price_min') : null,
             'price_max' => $request->input('pricing_type') === 'estimated' ? $request->input('price_max') : null,
+            'land_area_sqm' => $request->input('land_area_sqm'),
+            'land_area_unit' => $request->input('land_area_unit') ?: 'sqm',
+            'floor_area_sqm' => $request->input('floor_area_sqm'),
+            'floor_area_unit' => $request->input('floor_area_unit') ?: 'sqm',
+            'carpet_area' => $request->input('carpet_area'),
+            'carpet_area_unit' => $request->input('carpet_area_unit') ?: 'sqm',
+            'bedroom_option' => $this->normalizeCountOption($request->input('bedroom_option'), 5),
+            'bathroom_option' => $this->normalizeCountOption($request->input('bathroom_option'), 3),
+            'car_space_option' => $this->normalizeCountOption($request->input('car_space_option'), 3),
             'avg_prop_rating' => 0,
             'address_line_1' => $request->input('address_line_1') ?? $request->input('address'),
             'address_line_2' => $request->input('address_line_2'),
@@ -165,7 +174,11 @@ class PropertyController extends Controller
             'published_at' => null,
         ]);
 
-        $this->featureSync->sync($listing, $request->input('features', []));
+        $this->featureSync->sync($listing, $request->input('features', []), $request->input('feature_values', []));
+        $this->featureSync->syncLegacyCounts($listing, array_keys(array_intersect_key(
+            $request->all(),
+            array_flip(['bedroom_option', 'bathroom_option', 'car_space_option'])
+        )));
         $this->storeListingMedia($listing, $request);
         $this->recordPropertyActivity(
             $request,
@@ -225,6 +238,15 @@ class PropertyController extends Controller
         $validated = $request->validated();
         $features = array_key_exists('features', $validated) ? $validated['features'] : null;
         unset($validated['features']);
+        $featureValues = array_key_exists('feature_values', $validated) ? $validated['feature_values'] : [];
+        unset($validated['feature_values']);
+        $legacyCountFields = array_keys(array_intersect_key(
+            $validated,
+            array_flip(['bedroom_option', 'bathroom_option', 'car_space_option'])
+        ));
+        foreach (['bedroom_option' => 5, 'bathroom_option' => 3, 'car_space_option' => 3] as $field => $plusThreshold) {
+            if (array_key_exists($field, $validated)) $validated[$field] = $this->normalizeCountOption($validated[$field], $plusThreshold);
+        }
         if (array_key_exists('address', $validated) && !array_key_exists('full_address', $validated)) {
             $validated['full_address'] = $validated['address'];
         }
@@ -289,8 +311,9 @@ class PropertyController extends Controller
         $propertyListing->fill($validated);
         $propertyListing->save();
         if ($features !== null) {
-            $this->featureSync->sync($propertyListing, $features);
+            $this->featureSync->sync($propertyListing, $features, $featureValues);
         }
+        $this->featureSync->syncLegacyCounts($propertyListing, $legacyCountFields);
 
         $this->storeListingMedia($propertyListing, $request);
         $this->recordPropertyActivity(
@@ -343,6 +366,12 @@ class PropertyController extends Controller
             new AdminPropertyListingResource($propertyListing),
             'Property listing updated successfully.'
         );
+    }
+
+    private function normalizeCountOption(mixed $value, int $plusThreshold): ?string
+    {
+        if ($value === null || $value === '' || (int) $value === 0) return null;
+        return (int) $value >= $plusThreshold ? ($plusThreshold . '_plus') : (string) (int) $value;
     }
 
     private function hasAddressChanged(PropertyListing $propertyListing, array $validated): bool

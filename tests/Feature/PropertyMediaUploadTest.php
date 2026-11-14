@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -82,6 +83,49 @@ class PropertyMediaUploadTest extends TestCase
         $this->assertTrue((bool) $property->location_verified);
         $this->assertSame(PropertyWorkflow::STATUS_PUBLISHED, $property->status);
         $this->assertCount(count($featureIds), $property->features);
+    }
+
+    public function test_unrelated_edit_does_not_materialize_legacy_count_features(): void
+    {
+        $this->seed();
+        $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
+        $property = PropertyListing::query()->where('org_id', $admin->organization_id)->firstOrFail();
+        $feature = PropertyFeature::query()->whereNotIn('slug', ['bedrooms', 'bathrooms', 'car_spaces'])->firstOrFail();
+        $property->forceFill(['bedroom_option' => '3', 'bathroom_option' => '2', 'car_space_option' => '2'])->save();
+        Sanctum::actingAs($admin, ['admin']);
+
+        $this->putJson('/api/admin/properties/'.$property->generated_id, [
+            'title' => $property->title,
+            'features' => [$feature->id],
+        ])->assertOk();
+
+        $slugs = $property->fresh('features')->features->pluck('slug')->all();
+        $this->assertSame([$feature->slug], $slugs);
+    }
+
+    public function test_legacy_count_features_sync_only_when_count_fields_are_submitted_and_can_be_removed(): void
+    {
+        $this->seed();
+        $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
+        $property = PropertyListing::query()->where('org_id', $admin->organization_id)->firstOrFail();
+        $bedrooms = PropertyFeature::query()->where('slug', 'bedrooms')->firstOrFail();
+        Sanctum::actingAs($admin, ['admin']);
+
+        $this->putJson('/api/admin/properties/'.$property->generated_id, [
+            'title' => $property->title,
+            'bedroom_option' => '3',
+        ])->assertOk();
+
+        $this->assertSame('3', $property->fresh()->bedroom_option);
+        $this->assertSame(3.0, (float) $property->fresh('features')->features->firstWhere('slug', 'bedrooms')->pivot->quantity);
+
+        $this->putJson('/api/admin/properties/'.$property->generated_id, [
+            'title' => $property->title,
+            'bedroom_option' => null,
+        ])->assertOk();
+
+        $this->assertNull($property->fresh('features')->features->firstWhere('slug', 'bedrooms'));
+        $this->assertNotNull(DB::table('property_listing_features')->where('property_listing_id', $property->id)->where('feature_id', $bedrooms->id)->value('deleted_at'));
     }
 
     public function test_real_estate_image_and_video_limits_are_independent_and_block_storage(): void

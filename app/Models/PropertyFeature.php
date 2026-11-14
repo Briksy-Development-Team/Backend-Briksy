@@ -16,7 +16,7 @@ class PropertyFeature extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['group_id', 'name', 'slug', 'sort_order', 'is_active'];
+    protected $fillable = ['group_id', 'name', 'slug', 'sort_order', 'is_active', 'value_type'];
 
     protected function casts(): array
     {

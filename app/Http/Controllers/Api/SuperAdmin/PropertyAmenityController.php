@@ -24,6 +24,7 @@ class PropertyAmenityController extends Controller
                 'name' => $feature->name,
                 'slug' => $feature->slug,
                 'sort_order' => $feature->sort_order,
+                'value_type' => $feature->value_type ?: 'boolean',
                 'is_active' => (bool) $feature->is_active,
             ])->all(),
         ])->values()->all(), 'Property amenities retrieved successfully.');
@@ -37,6 +38,7 @@ class PropertyAmenityController extends Controller
             'slug' => ['nullable', 'string', 'max:100', 'unique:property_features,slug'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
+            'value_type' => ['sometimes', 'in:boolean,number'],
         ]);
         $data['slug'] = Str::slug($data['slug'] ?? $data['name']);
         return $this->created($this->feature($feature = PropertyFeature::create($data)), 'Property amenity created successfully.');
@@ -50,6 +52,7 @@ class PropertyAmenityController extends Controller
             'slug' => ['nullable', 'string', 'max:100', 'unique:property_features,slug,'.$propertyFeature->id],
             'sort_order' => ['sometimes', 'integer', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
+            'value_type' => ['sometimes', 'in:boolean,number'],
         ]);
         if (array_key_exists('slug', $data)) $data['slug'] = Str::slug($data['slug'] ?: $data['name']);
         $propertyFeature->update($data);
@@ -75,6 +78,7 @@ class PropertyAmenityController extends Controller
             'slug' => $feature->slug,
             'sort_order' => $feature->sort_order,
             'is_active' => (bool) $feature->is_active,
+            'value_type' => $feature->value_type ?: 'boolean',
         ];
     }
 }

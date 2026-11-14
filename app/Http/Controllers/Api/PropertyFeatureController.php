@@ -23,6 +23,7 @@ class PropertyFeatureController extends Controller
                     'id' => $feature->id,
                     'name' => $feature->name,
                     'slug' => $feature->slug,
+                    'value_type' => $feature->value_type ?: 'boolean',
                 ])->values()->all(),
             ])
             ->values()

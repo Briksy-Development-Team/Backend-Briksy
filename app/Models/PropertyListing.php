@@ -53,6 +53,15 @@ class PropertyListing extends Model
         'pricing_type',
         'price_min',
         'price_max',
+        'land_area_sqm',
+        'land_area_unit',
+        'floor_area_sqm',
+        'floor_area_unit',
+        'carpet_area',
+        'carpet_area_unit',
+        'bedroom_option',
+        'bathroom_option',
+        'car_space_option',
         'suburb',
         'state',
         'postcode',
@@ -79,6 +88,9 @@ class PropertyListing extends Model
             'price' => 'decimal:2',
             'price_min' => 'decimal:2',
             'price_max' => 'decimal:2',
+            'land_area_sqm' => 'decimal:2',
+            'floor_area_sqm' => 'decimal:2',
+            'carpet_area' => 'decimal:2',
             'is_auction' => 'boolean',
             'auction_date' => 'date:Y-m-d',
         ];
@@ -143,6 +155,7 @@ class PropertyListing extends Model
     public function features(): BelongsToMany
     {
         return $this->belongsToMany(PropertyFeature::class, 'property_listing_features', 'property_listing_id', 'feature_id')
+            ->withPivot(['quantity', 'quantity_is_minimum', 'deleted_at'])
             ->wherePivotNull('deleted_at');
     }
 

@@ -15,7 +15,7 @@ class FavoriteResource extends JsonResource
         $favoritable = $this->favoritable;
 
         if ($favoritable instanceof PropertyListing) {
-            $favoritable->loadMissing(['organization.organizationType', 'media']);
+            $favoritable->loadMissing(['organization.organizationType', 'propertyType', 'media', 'features.group']);
         }
 
         if ($favoritable instanceof Organization) {

@@ -16,7 +16,7 @@ class InquiryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Inquiry::query()
-            ->with(['propertyListing.organization.organizationType', 'organization.organizationType', 'plan']);
+            ->with(['propertyListing.organization.organizationType', 'propertyListing.features.group', 'propertyListing.propertyType', 'organization.organizationType', 'plan']);
 
         $this->scopeToAdminOrganization($query, $request);
         if ($request->boolean('pricing_only') || str_contains($request->path(), 'pricing-inquiries')) {
@@ -51,7 +51,7 @@ class InquiryController extends Controller
 
     public function show(Request $request, Inquiry $inquiry): JsonResponse
     {
-        $inquiry->load(['propertyListing.organization.organizationType', 'organization.organizationType', 'plan']);
+        $inquiry->load(['propertyListing.organization.organizationType', 'propertyListing.features.group', 'propertyListing.propertyType', 'organization.organizationType', 'plan']);
 
         abort_unless($this->canAccessInquiry($request, $inquiry), 403);
 

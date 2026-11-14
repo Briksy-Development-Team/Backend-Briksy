@@ -28,6 +28,8 @@ class InquiryController extends Controller
             ->where('user_id', $user->id)
             ->with([
                 'propertyListing.organization.organizationType',
+                'propertyListing.features.group',
+                'propertyListing.propertyType',
                 'organization.organizationType',
                 'staff',
             ])

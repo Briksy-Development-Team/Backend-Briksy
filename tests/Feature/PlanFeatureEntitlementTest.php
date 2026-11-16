@@ -49,6 +49,20 @@ class PlanFeatureEntitlementTest extends TestCase
             ->assertJsonPath('data.business_profile_available', true);
     }
 
+    public function test_custom_branding_entitles_an_organization_to_business_profile_media(): void
+    {
+        $organization = $this->createOrganization('Builder Enterprise', true);
+        $organization->currentSubscription()->first()->plan()->update([
+            'features' => [
+                ['name' => 'Custom Branding', 'enabled' => true, 'value' => null],
+            ],
+        ]);
+
+        $this->getJson('/api/seeker/organizations/'.$organization->slug)
+            ->assertOk()
+            ->assertJsonPath('data.business_profile_available', true);
+    }
+
     public static function tradesPlans(): array
     {
         return [['Starter'], ['Growth'], ['Elite']];

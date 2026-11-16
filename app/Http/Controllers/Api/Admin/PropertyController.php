@@ -286,7 +286,13 @@ class PropertyController extends Controller
         $validated['location_verified_at'] = $propertyListing->location_verified_at;
 
         $addressChanged = $this->hasAddressChanged($propertyListing, $validated);
-        $requiresReview = $addressChanged || $propertyListing->status === PropertyWorkflow::STATUS_PENDING_REVIEW;
+        // Media-only edits must not put an already approved/published property
+        // back into the review queue. Any media upload is intentionally
+        // excluded from the review transition, even if the form resends or
+        // changes other property fields alongside the file.
+        $requiresReview = !$this->hasUploadedMedia($request)
+            && $addressChanged
+            && $propertyListing->status !== PropertyWorkflow::STATUS_PENDING_REVIEW;
 
         if ($requiresReview) {
             $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
@@ -389,6 +395,13 @@ class PropertyController extends Controller
         }
 
         return false;
+    }
+
+    private function hasUploadedMedia(Request $request): bool
+    {
+        return $request->hasFile('images')
+            || $request->hasFile('videos')
+            || $request->hasFile('floorplan');
     }
 
     public function destroy(Request $request, PropertyListing $propertyListing): JsonResponse

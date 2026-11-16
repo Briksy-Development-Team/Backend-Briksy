@@ -17,7 +17,10 @@ final class PlanCapabilityResolver
      */
     private const FEATURE_ALIASES = [
         'verified_badge' => ['Verified Badge'],
-        'business_profile' => ['Business Profile'],
+        // Builder plans call this capability "Custom Branding" while other
+        // plans call it "Business Profile". Both include the organization
+        // profile picture and banner uploads.
+        'business_profile' => ['Business Profile', 'Custom Branding'],
         'buyer_profile' => ['Business Profile', 'Professional Agency Profile'],
         'service_management' => ['Business Profile', 'Service Management'],
         'service_enquiry' => ['Lead History', 'Service Enquiry', 'Buyer Enquiry Forms'],

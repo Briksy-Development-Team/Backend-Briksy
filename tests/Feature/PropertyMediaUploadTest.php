@@ -85,6 +85,38 @@ class PropertyMediaUploadTest extends TestCase
         $this->assertCount(count($featureIds), $property->features);
     }
 
+    public function test_media_upload_does_not_resubmit_an_approved_property(): void
+    {
+        $this->seed();
+        Storage::fake('public');
+
+        $admin = User::query()->where('email', 'harborview-realty@brisky.example')->firstOrFail();
+        $property = PropertyListing::query()->where('org_id', $admin->organization_id)->firstOrFail();
+        $existingImageCount = $property->media()->where('media_type', 'image')->count();
+        $property->forceFill([
+            'status' => PropertyWorkflow::STATUS_APPROVED,
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => now()->subDay(),
+        ])->save();
+
+        Sanctum::actingAs($admin, ['admin']);
+
+        $this->post('/api/admin/properties/'.$property->generated_id, [
+            '_method' => 'PUT',
+            'title' => $property->title,
+            'address' => '2 New Street, Sydney NSW 2000',
+            'images' => [UploadedFile::fake()->image('marketing-update.jpg')],
+            'floorplan' => UploadedFile::fake()->image('floorplan.png'),
+        ])->assertOk();
+
+        $updated = $property->fresh();
+        $this->assertSame(PropertyWorkflow::STATUS_APPROVED, $updated->status);
+        $this->assertSame($admin->id, $updated->reviewed_by);
+        $this->assertNotNull($updated->reviewed_at);
+        $this->assertSame($existingImageCount + 1, $updated->media()->where('media_type', 'image')->count());
+        $this->assertSame(1, $updated->media()->where('media_type', 'floorplan')->count());
+    }
+
     public function test_unrelated_edit_does_not_materialize_legacy_count_features(): void
     {
         $this->seed();

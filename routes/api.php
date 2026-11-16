@@ -92,6 +92,7 @@ Route::get('settings/public', [SettingController::class, 'publicSettings']);
 Route::get('plans/public', [SeekerSubscriptionPlanController::class, 'index']);
 Route::get('service-categories', [ServiceCategoryController::class, 'index']);
 Route::get('agent-types', [AgentTypeController::class, 'index']);
+Route::get('property-types', [PropertyTypeController::class, 'index']);
 Route::get('checkout/{token}', [CheckoutInvitationController::class, 'show']);
 Route::post('checkout/{token}/payment', [CheckoutInvitationController::class, 'payment']);
 Route::post('checkout', [CheckoutInvitationController::class, 'direct']);

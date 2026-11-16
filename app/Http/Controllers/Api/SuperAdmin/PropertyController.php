@@ -178,17 +178,16 @@ class PropertyController extends Controller
             }
         }
 
-        // Preserve publication intent only for an already-public listing.
-        // New, approved-but-unpublished, rejected, and archived listings must
-        // not be published automatically after review.
-        $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED;
-
-        $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
-        $validated['submitted_at'] = now();
-        $validated['reviewed_by'] = null;
-        $validated['reviewed_at'] = null;
-        $validated['rejection_reason'] = null;
-        $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
+        if (!$this->hasUploadedMedia($request)) {
+            // Non-media edits continue through the super-admin review flow.
+            $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED;
+            $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
+            $validated['submitted_at'] = now();
+            $validated['reviewed_by'] = null;
+            $validated['reviewed_at'] = null;
+            $validated['rejection_reason'] = null;
+            $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
+        }
 
         $typeId = $validated['property_type_id'] ?? $propertyListing->property_type_id;
         $typeCategory = \App\Models\PropertyType::query()->whereKey($typeId)->value('category');
@@ -413,6 +412,13 @@ class PropertyController extends Controller
             $path = $floorplan->storePublicly("property-listings/{$listing->id}/floorplans", 'public');
             Media::query()->create(['property_listing_id' => $listing->id, 'file_url' => 'storage/'.ltrim($path, '/'), 'media_type' => 'floorplan', 'is_primary' => false, 'sort_order' => 0]);
         }
+    }
+
+    private function hasUploadedMedia(Request $request): bool
+    {
+        return $request->hasFile('images')
+            || $request->hasFile('videos')
+            || $request->hasFile('floorplan');
     }
 
     private function assertMediaEntitlements(Request $request, ?Organization $organization, ?PropertyListing $listing = null): void

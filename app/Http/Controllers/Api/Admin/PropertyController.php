@@ -548,7 +548,11 @@ class PropertyController extends Controller
         $videos = count((array) $request->file('videos', []));
         $existingImages = $listing?->media()->where('media_type', 'image')->count() ?? 0;
         $existingVideos = $listing?->media()->where('media_type', 'video')->count() ?? 0;
-        $this->mediaEntitlements->assertUploadAllowed($user->organization, 'property', 'image', $existingImages, $images);
+        // A property with no active images is allowed to receive a replacement
+        // upload, even if its plan image allowance is exhausted or zero.
+        if ($existingImages > 0) {
+            $this->mediaEntitlements->assertUploadAllowed($user->organization, 'property', 'image', $existingImages, $images);
+        }
         $this->mediaEntitlements->assertUploadAllowed($user->organization, 'property', 'video', $existingVideos, $videos);
     }
 

@@ -178,16 +178,8 @@ class PropertyController extends Controller
             }
         }
 
-        if (!$this->hasUploadedMedia($request)) {
-            // Non-media edits continue through the super-admin review flow.
-            $wasPublished = $propertyListing->status === PropertyWorkflow::STATUS_PUBLISHED;
-            $validated['status'] = PropertyWorkflow::STATUS_PENDING_REVIEW;
-            $validated['submitted_at'] = now();
-            $validated['reviewed_by'] = null;
-            $validated['reviewed_at'] = null;
-            $validated['rejection_reason'] = null;
-            $validated['published_at'] = $wasPublished ? ($propertyListing->published_at ?? now()) : null;
-        }
+        // Super-admin edits, including media removals such as floorplans, do
+        // not send an already published property back through review.
 
         $typeId = $validated['property_type_id'] ?? $propertyListing->property_type_id;
         $typeCategory = \App\Models\PropertyType::query()->whereKey($typeId)->value('category');
@@ -423,12 +415,20 @@ class PropertyController extends Controller
 
     private function assertMediaEntitlements(Request $request, ?Organization $organization, ?PropertyListing $listing = null): void
     {
+        // Super-admins and global staff manage media across all organisations;
+        // their uploads must not be blocked by the organisation's plan quota.
+        if ($request->user()?->isSuperAdmin() || $request->user()?->isGlobalStaff()) {
+            return;
+        }
+
         $images = count((array) $request->file('images', []));
         $videos = count((array) $request->file('videos', []));
         $existingImages = $listing?->media()->where('media_type', 'image')->count() ?? 0;
         $existingVideos = $listing?->media()->where('media_type', 'video')->count() ?? 0;
 
-        $this->mediaEntitlements->assertUploadAllowed($organization, 'property', 'image', $existingImages, $images);
+        if ($existingImages > 0) {
+            $this->mediaEntitlements->assertUploadAllowed($organization, 'property', 'image', $existingImages, $images);
+        }
         $this->mediaEntitlements->assertUploadAllowed($organization, 'property', 'video', $existingVideos, $videos);
     }
 

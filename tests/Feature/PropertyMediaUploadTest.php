@@ -216,6 +216,66 @@ class PropertyMediaUploadTest extends TestCase
         $this->assertSame(1, $property->fresh()->media()->where('media_type', 'video')->count());
     }
 
+    public function test_super_admin_media_upload_is_not_blocked_by_property_owner_plan(): void
+    {
+        $this->seed();
+        Storage::fake('public');
+
+        $superAdmin = User::query()->where('email', 'superadmin@brisky.example')->firstOrFail();
+        $property = PropertyListing::query()->firstOrFail();
+        $existingImageCount = $property->media()->where('media_type', 'image')->count();
+        Sanctum::actingAs($superAdmin, ['super_admin']);
+
+        $this->post('/api/super-admin/properties/'.$property->generated_id, [
+            '_method' => 'PUT',
+            'title' => $property->title,
+            'images' => [UploadedFile::fake()->image('super-admin-upload.jpg')],
+        ])->assertOk();
+
+        $this->assertSame($existingImageCount + 1, $property->fresh()->media()->where('media_type', 'image')->count());
+    }
+
+    public function test_property_without_active_images_accepts_replacement_upload_when_image_limit_is_zero(): void
+    {
+        $this->seed();
+        Storage::fake('public');
+
+        $admin = User::query()->where('email', 'realestate@demo.briksy.com')->firstOrFail();
+        $plan = SubscriptionPlan::query()->where('plan_family', 'property_owner')->where('name', 'Bronze')->firstOrFail();
+        $features = collect($plan->features ?? [])->map(function (array $feature): array {
+            if ($feature['name'] === 'Property Images') {
+                $feature['enabled'] = true;
+                $feature['value'] = 0;
+            }
+
+            return $feature;
+        })->all();
+        $plan->update(['features' => $features]);
+        $admin->organization()->update(['plan_id' => $plan->id]);
+        $admin->organization->currentSubscription()->update(['subscription_plan_id' => $plan->id, 'status' => 'active']);
+        Sanctum::actingAs($admin, ['admin']);
+
+        $property = $this->post('/api/admin/properties', [
+            'title' => 'Replacement Image Property',
+            'address' => '1 Test Street, Sydney NSW 2000',
+            'address_line_1' => '1 Test Street',
+            'full_address' => '1 Test Street, Sydney NSW 2000',
+            'suburb' => 'Sydney',
+            'state' => 'NSW',
+            'postcode' => '2000',
+            'country' => 'Australia',
+        ])->assertCreated()->json('data');
+
+        $listing = PropertyListing::query()->findOrFail($property['id']);
+        $this->post('/api/admin/properties/'.$listing->generated_id, [
+            '_method' => 'PUT',
+            'title' => $listing->title,
+            'images' => [UploadedFile::fake()->image('replacement.jpg')],
+        ])->assertOk();
+
+        $this->assertSame(1, $listing->fresh()->media()->where('media_type', 'image')->count());
+    }
+
     private function propertyPayload(array $videos): array
     {
         return [

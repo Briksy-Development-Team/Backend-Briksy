@@ -64,7 +64,10 @@ class PropertyListingResource extends JsonResource
         $images = $media instanceof \Illuminate\Support\Collection ? $media->where('media_type', 'image')->values() : collect();
         $videos = $media instanceof \Illuminate\Support\Collection ? $media->where('media_type', 'video')->values() : collect();
         $floorplan = $media instanceof \Illuminate\Support\Collection ? $media->firstWhere('media_type', 'floorplan') : null;
-        $images = $entitlements->take($images, $entitlements->limitFor($this->organization, 'property', 'image'));
+        // Uploaded property images remain visible on published listings. The
+        // entitlement is enforced at upload time; filtering existing images
+        // here caused the public API to return images: [] while admin still
+        // showed the stored media.
         $videos = $entitlements->take($videos, $entitlements->limitFor($this->organization, 'property', 'video'));
         $visibleMedia = $images->concat($videos);
 

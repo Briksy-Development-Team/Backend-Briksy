@@ -25,7 +25,7 @@ class OrganizationTypeController extends Controller
         }
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order', stablePagination: true);
 
         $organizationTypes = $query->paginate($request->perPage())->withQueryString();
 

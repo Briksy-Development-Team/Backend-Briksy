@@ -23,9 +23,14 @@ class PropertyOfferController extends Controller
     public function index(PropertyOfferIndexRequest $request): JsonResponse
     {
         $query = $this->scopedQuery(PropertyOffer::query()->with(['propertyListing.organization', 'creator']), $request);
-        ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
+        if ($search = $request->search()) {
+            $query->where(function ($matches) use ($request, $search): void {
+                ApiQueryBuilder::applySearch($matches, $search, $request->searchableColumns());
+                $matches->orWhereHas('propertyListing', fn ($related) => $related->where('title', 'like', "%{$search}%"));
+            });
+        }
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order', stablePagination: true);
 
         $items = $query->paginate($request->perPage())->withQueryString();
 

@@ -39,7 +39,7 @@ class PlanRequestController extends Controller
         \App\Support\Query\ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         \App\Support\Query\ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
         \App\Support\Query\ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
-        \App\Support\Query\ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        \App\Support\Query\ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $items = $query->paginate($request->perPage())->withQueryString();
 

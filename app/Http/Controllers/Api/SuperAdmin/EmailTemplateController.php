@@ -27,7 +27,7 @@ class EmailTemplateController extends Controller
         $query = EmailTemplate::query();
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $items = $query->paginate($request->perPage())->withQueryString();
 

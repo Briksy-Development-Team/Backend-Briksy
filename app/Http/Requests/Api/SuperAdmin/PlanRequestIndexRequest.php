@@ -10,6 +10,9 @@ class PlanRequestIndexRequest extends ApiListRequest
     {
         return [
             'created_at' => 'created_at',
+            'display_id' => 'request_code',
+            'contact_email' => 'contact_email',
+            'requested_plan_name' => 'requested_plan_name',
             'status' => 'status',
             'contact_name' => 'contact_name',
             'company_name' => 'company_name',
@@ -35,6 +38,7 @@ class PlanRequestIndexRequest extends ApiListRequest
             'status' => 'status',
             'organization_id' => 'organization_id',
             'plan_id' => 'plan_id',
+            'billing_cycle' => 'billing_cycle',
         ];
     }
 
@@ -42,6 +46,7 @@ class PlanRequestIndexRequest extends ApiListRequest
     {
         return [
             'filter.status' => ['nullable', 'string'],
+            'filter.billing_cycle' => ['nullable', 'string'],
             'filter.organization_id' => ['nullable', 'uuid'],
             'filter.plan_id' => ['nullable', 'uuid'],
             'filter.created_at' => ['nullable', 'string', 'max:25'],

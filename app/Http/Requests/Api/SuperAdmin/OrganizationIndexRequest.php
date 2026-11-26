@@ -10,6 +10,10 @@ class OrganizationIndexRequest extends ApiListRequest
     {
         return [
             'created_at' => 'created_at',
+            'abn' => 'abn',
+            'contact_email' => 'contact_email',
+            'pending_properties_count' => 'pending_properties_count',
+            'pending_builder_projects_count' => 'pending_builder_projects_count',
             'name' => 'name',
             'ranking_priority' => 'ranking_priority',
             'avg_org_rating' => 'avg_org_rating',

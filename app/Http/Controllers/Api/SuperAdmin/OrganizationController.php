@@ -116,7 +116,7 @@ class OrganizationController extends Controller
 
         ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
 
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $paginator = $query->paginate($request->perPage())->withQueryString();
 

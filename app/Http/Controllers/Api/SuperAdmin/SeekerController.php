@@ -35,13 +35,15 @@ class SeekerController extends Controller
 
         ApiQueryBuilder::applyPresenceFilter($query, 'email_verified_at', $emailVerified);
         ApiQueryBuilder::applyPresenceFilter($query, 'mobile_verified_at', $mobileVerified);
+        ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
 
         ApiQueryBuilder::applySort(
             $query,
             $request->sort(),
             $request->direction(),
             $request->allowedSorts(),
-            'created_at'
+            'created_at',
+            stablePagination: true,
         );
 
         $paginator = $query->paginate($request->perPage())->withQueryString();

@@ -19,7 +19,7 @@ class AddonController extends Controller
         $query = Addon::query();
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order', stablePagination: true);
 
         $items = $query->paginate($request->perPage())->withQueryString();
 

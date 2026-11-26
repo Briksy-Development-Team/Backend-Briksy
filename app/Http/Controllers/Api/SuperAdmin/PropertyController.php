@@ -40,7 +40,7 @@ class PropertyController extends Controller
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         $this->applyFilters($query, $request);
 
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $properties = $query->paginate($request->perPage())->withQueryString();
 
@@ -59,7 +59,7 @@ class PropertyController extends Controller
 
         // The organization route is authoritative; a client filter cannot broaden it.
         $query->where('org_id', $organization->id);
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $properties = $query->paginate($request->perPage())->withQueryString();
 

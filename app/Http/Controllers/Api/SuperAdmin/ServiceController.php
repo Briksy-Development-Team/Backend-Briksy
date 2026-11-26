@@ -78,7 +78,8 @@ class ServiceController extends Controller
             $request->sort(),
             $request->direction(),
             $request->allowedSorts(),
-            'created_at'
+            'created_at',
+            stablePagination: true,
         );
 
         $services = $query->paginate($request->perPage())->withQueryString();
@@ -114,7 +115,7 @@ class ServiceController extends Controller
 
         ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
 
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $services = $query->paginate($request->perPage())->withQueryString();
 

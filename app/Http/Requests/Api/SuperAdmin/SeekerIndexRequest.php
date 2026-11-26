@@ -33,6 +33,7 @@ class SeekerIndexRequest extends ApiListRequest
     protected function filterRules(): array
     {
         return [
+            'filter.created_at' => ['nullable', 'string', 'max:25'],
             'filter.email_verified' => ['nullable', 'boolean'],
             'filter.mobile_verified' => ['nullable', 'boolean'],
         ];

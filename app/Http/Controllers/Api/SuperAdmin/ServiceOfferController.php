@@ -23,9 +23,14 @@ class ServiceOfferController extends Controller
     public function index(ServiceOfferIndexRequest $request): JsonResponse
     {
         $query = $this->scopedQuery(ServiceOffer::query()->with(['service.organization', 'creator']), $request);
-        ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
+        if ($search = $request->search()) {
+            $query->where(function ($matches) use ($request, $search): void {
+                ApiQueryBuilder::applySearch($matches, $search, $request->searchableColumns());
+                $matches->orWhereHas('service', fn ($related) => $related->where('name', 'like', "%{$search}%"));
+            });
+        }
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'sort_order', stablePagination: true);
         $items = $query->paginate($request->perPage())->withQueryString();
 
         return $this->paginated(ServiceOfferResource::collection($items)->resolve(), $items, 'Service offers retrieved successfully.');

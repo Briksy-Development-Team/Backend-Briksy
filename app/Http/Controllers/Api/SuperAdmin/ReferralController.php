@@ -17,22 +17,36 @@ class ReferralController extends Controller
             ->with(['organizationType', 'referredByOrganization'])
             ->withCount('referredOrganizations');
 
-        ApiQueryBuilder::applySearch($query, $request->string('search')->toString(), ['name', 'contact_email', 'referral_code', 'slug']);
+        $request->validate(['filter.with_referrals' => ['nullable', 'boolean']]);
+        $search = $request->string('search')->trim()->toString();
+        if ($search !== '') {
+            $query->where(function ($matches) use ($search): void {
+                ApiQueryBuilder::applySearch($matches, $search, ['name', 'trading_name', 'contact_email', 'referral_code', 'slug']);
+                $matches->orWhereHas('referredByOrganization', fn ($referrer) => $referrer->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        $withReferrals = (clone $query)->whereHas('referredOrganizations');
+        $totals = [
+            'organizations' => $query->count(),
+            'with_referrals' => $withReferrals->count(),
+        ];
+        if ($request->boolean('filter.with_referrals')) {
+            $query = $withReferrals;
+        }
         ApiQueryBuilder::applySort($query, $request->input('sort'), $request->input('direction', 'desc'), [
             'created_at' => 'created_at',
             'name' => 'name',
             'contact_email' => 'contact_email',
             'referred_organizations_count' => 'referred_organizations_count',
         ], 'created_at');
+        $query->orderBy('id');
 
         $organizations = $query->paginate(ApiQueryBuilder::normalizePerPage($request->integer('per_page'), 10, 100))->withQueryString();
 
         return $this->success([
             'organizations' => OrganizationResource::collection($organizations)->resolve(),
-            'totals' => [
-                'organizations' => Organization::query()->count(),
-                'with_referrals' => Organization::query()->whereHas('referredOrganizations')->count(),
-            ],
+            'totals' => $totals,
             'pagination' => [
                 'current_page' => $organizations->currentPage(),
                 'per_page' => $organizations->perPage(),

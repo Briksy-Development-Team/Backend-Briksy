@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\Admin\AdminBuilderProjectResource;
 use App\Models\BuilderProject;
 use App\Support\Properties\PropertyWorkflow;
+use App\Support\Query\ApiQueryBuilder;
 use Illuminate\Http\Request;
 
 class BuilderProjectController extends Controller
@@ -29,6 +30,8 @@ class BuilderProjectController extends Controller
             $query->where('organization_id', $request->string('filter.organization_id')->toString());
         }
 
+        ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
+
         $sort = $request->string('sort')->toString();
         $sortColumn = [
             'name' => 'name',
@@ -38,7 +41,7 @@ class BuilderProjectController extends Controller
             'created_at' => 'created_at',
         ][$sort] ?? 'created_at';
         $direction = $request->string('direction')->toString() === 'asc' ? 'asc' : 'desc';
-        $query->reorder($sortColumn, $direction);
+        $query->reorder($sortColumn, $direction)->orderBy('id');
 
         $perPage = max(1, min($request->integer('per_page', $request->integer('items_per_page', 20)), 100));
         $projects = $query->paginate($perPage)->withQueryString();

@@ -34,7 +34,12 @@ class StaffController extends Controller
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applyDateRangeFilter($query, 'created_at', $request->input('filter.created_at'));
+        if ($request->filled('filter.roles')) {
+            $roles = explode(',', $request->string('filter.roles')->toString());
+            $query->whereHas('roles', fn ($role) => $role->whereIn('name', $roles));
+        }
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $staffMembers = $query->paginate($request->perPage())->withQueryString();
 
@@ -53,7 +58,7 @@ class StaffController extends Controller
             ->with(['roles', 'organization']);
 
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $staffMembers = $query->paginate($request->perPage())->withQueryString();
 

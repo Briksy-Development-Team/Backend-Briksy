@@ -10,6 +10,10 @@ class StaffIndexRequest extends ApiListRequest
     {
         return [
             'created_at' => 'created_at',
+            'display_id' => 'generated_id',
+            'display_name' => 'display_name',
+            'email_verified_at' => 'email_verified_at',
+            'mobile_verified_at' => 'mobile_verified_at',
             'name' => 'name',
             'email' => 'email',
         ];
@@ -33,6 +37,8 @@ class StaffIndexRequest extends ApiListRequest
     protected function filterRules(): array
     {
         return [
+            'filter.roles' => ['nullable', 'string', 'max:255'],
+            'filter.created_at' => ['nullable', 'string', 'max:25'],
             'filter.organization_id' => ['nullable', 'uuid', 'exists:organizations,id'],
         ];
     }

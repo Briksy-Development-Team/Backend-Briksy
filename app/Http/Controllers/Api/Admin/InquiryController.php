@@ -37,6 +37,9 @@ class InquiryController extends Controller
         ];
 
         $query->orderBy($allowedSorts[$sort] ?? 'created_at', $direction);
+        if ($this->isSuperAdminRoute($request)) {
+            $query->orderBy('id');
+        }
 
         $inquiries = $query
             ->paginate(ApiQueryBuilder::normalizePerPage((int) $request->query('per_page', 10)))
@@ -143,6 +146,10 @@ class InquiryController extends Controller
 
         if (!empty($filters['lead_source'])) {
             $query->where('lead_source', $filters['lead_source']);
+        }
+
+        if ($this->isSuperAdminRoute($request) && !empty($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
         }
 
         if (!empty($filters['property_listing_id'])) {

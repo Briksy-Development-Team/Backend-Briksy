@@ -86,12 +86,17 @@ class ApiQueryBuilder
         ?string $sort,
         string $direction,
         array $allowedSorts,
-        string $defaultSort
+        string $defaultSort,
+        bool $stablePagination = false,
     ): void {
         $sortColumn = $allowedSorts[$sort] ?? $allowedSorts[$defaultSort] ?? $defaultSort;
         $sortDirection = strtolower($direction) === 'asc' ? 'asc' : 'desc';
 
         $query->orderBy($sortColumn, $sortDirection);
+
+        if ($stablePagination) {
+            $query->orderBy($query->getModel()->getQualifiedKeyName());
+        }
     }
 
     public static function normalizePerPage(?int $requested, int $default = 15, int $max = 100): int

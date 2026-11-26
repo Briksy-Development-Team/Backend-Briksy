@@ -26,7 +26,7 @@ class CouponController extends Controller
         $query = Coupon::query();
         ApiQueryBuilder::applySearch($query, $request->search(), $request->searchableColumns());
         ApiQueryBuilder::applyFilters($query, $request->filters(), $request->allowedFilters());
-        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at');
+        ApiQueryBuilder::applySort($query, $request->sort(), $request->direction(), $request->allowedSorts(), 'created_at', stablePagination: true);
 
         $items = $query->paginate($request->perPage())->withQueryString();
         return $this->paginated(CouponResource::collection($items)->resolve(), $items, 'Coupons retrieved successfully.');
